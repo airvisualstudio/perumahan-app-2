@@ -190,9 +190,55 @@ export interface ApprovalTemplate {
   chain: { level: number; role?: string; user_id?: string }[];
 }
 
+export type TemplateBlockType =
+  | 'heading'
+  | 'paragraph'
+  | 'field'
+  | 'data_field'
+  | 'table'
+  | 'divider'
+  | 'spacer'
+  | 'signature'
+  | 'qr';
+
+export interface DocumentTemplateBlock {
+  id: string;
+  type: TemplateBlockType;
+  // For heading/paragraph: static text content
+  content?: string;
+  // For field: a static label-value pair
+  label?: string;
+  value?: string;
+  // For data_field: merge variable key shown as {{variable_key}}
+  variable_key?: string;
+  variable_label?: string; // Human-readable label for the form input
+  variable_required?: boolean;
+  // For table: column headers + rows placeholder count
+  table_headers?: string[];
+  table_rows?: number;
+  // Style options
+  align?: 'left' | 'center' | 'right';
+  bold?: boolean;
+  size?: 'sm' | 'base' | 'lg' | 'xl';
+}
+
+export interface DocumentTemplate {
+  id: string;
+  name: string;
+  description?: string;
+  doc_type_key: string;       // Unique key used as doc_type, e.g. 'PKS', 'SPK'
+  prefix: string;             // Number prefix, e.g. 'PKS', 'SPK'
+  is_builtin: boolean;        // If true, cannot be deleted
+  approval_chain_roles: string[]; // e.g. ['manager','admin']
+  blocks: DocumentTemplateBlock[];
+  created_by: string;
+  created_at: string;
+  updated_at?: string;
+}
+
 export interface Document {
   id: string;
-  doc_type: 'Invoice' | 'Kwitansi' | 'Surat';
+  doc_type: string; // 'Invoice' | 'Kwitansi' | 'Surat' | any custom key
   doc_number: string;
   doc_token: string;
   requester_id: string;
@@ -204,6 +250,7 @@ export interface Document {
   approved_at?: string;
   data: any; // Dynamic document fields
   approval_chain: ApprovalChainStep[];
+  template_id?: string; // Reference to DocumentTemplate used
 }
 
 export interface AuditLog {
@@ -241,6 +288,7 @@ export interface DatabaseSchema {
   leaves: LeaveRequest[];
   approvalTemplates: ApprovalTemplate[];
   documents: Document[];
+  documentTemplates: DocumentTemplate[];
   auditLogs: AuditLog[];
   settings: SystemSettings;
 }
@@ -779,6 +827,74 @@ const generateSeedData = (): DatabaseSchema => {
     work_hours_end: '18:00'
   };
 
+  const documentTemplates: DocumentTemplate[] = [
+    {
+      id: 'tpl-invoice',
+      name: 'Invoice Pembayaran',
+      description: 'Template invoice tagihan unit properti kepada klien.',
+      doc_type_key: 'Invoice',
+      prefix: 'INV',
+      is_builtin: true,
+      approval_chain_roles: ['manager', 'admin'],
+      created_by: 'usr-admin',
+      created_at: new Date().toISOString(),
+      blocks: [
+        { id: 'b1', type: 'heading', content: 'INVOICE RESMI', align: 'center', size: 'xl', bold: true },
+        { id: 'b2', type: 'divider' },
+        { id: 'b3', type: 'data_field', variable_key: 'client_name', variable_label: 'Nama Klien', variable_required: true },
+        { id: 'b4', type: 'data_field', variable_key: 'due_date', variable_label: 'Tanggal Jatuh Tempo', variable_required: true },
+        { id: 'b5', type: 'table', table_headers: ['Deskripsi', 'Qty', 'Harga Satuan', 'Total'], table_rows: 3 },
+        { id: 'b6', type: 'divider' },
+        { id: 'b7', type: 'signature', align: 'right' },
+        { id: 'b8', type: 'qr' }
+      ]
+    },
+    {
+      id: 'tpl-kwitansi',
+      name: 'Kwitansi Pembayaran',
+      description: 'Template kwitansi bukti penerimaan pembayaran.',
+      doc_type_key: 'Kwitansi',
+      prefix: 'KWT',
+      is_builtin: true,
+      approval_chain_roles: ['manager', 'admin'],
+      created_by: 'usr-admin',
+      created_at: new Date().toISOString(),
+      blocks: [
+        { id: 'b1', type: 'heading', content: 'KWITANSI RESMI', align: 'center', size: 'xl', bold: true },
+        { id: 'b2', type: 'divider' },
+        { id: 'b3', type: 'data_field', variable_key: 'receiver_name', variable_label: 'Diterima Dari', variable_required: true },
+        { id: 'b4', type: 'data_field', variable_key: 'nominal_amount', variable_label: 'Jumlah Nominal (Rp)', variable_required: true },
+        { id: 'b5', type: 'data_field', variable_key: 'nominal_words', variable_label: 'Terbilang', variable_required: true },
+        { id: 'b6', type: 'data_field', variable_key: 'keterangan', variable_label: 'Keterangan Pembayaran', variable_required: true },
+        { id: 'b7', type: 'divider' },
+        { id: 'b8', type: 'signature', align: 'right' },
+        { id: 'b9', type: 'qr' }
+      ]
+    },
+    {
+      id: 'tpl-surat',
+      name: 'Surat Resmi',
+      description: 'Template surat tugas atau keterangan internal.',
+      doc_type_key: 'Surat',
+      prefix: 'SRT',
+      is_builtin: true,
+      approval_chain_roles: ['manager', 'admin'],
+      created_by: 'usr-admin',
+      created_at: new Date().toISOString(),
+      blocks: [
+        { id: 'b1', type: 'heading', content: 'SURAT RESMI', align: 'center', size: 'xl', bold: true },
+        { id: 'b2', type: 'divider' },
+        { id: 'b3', type: 'data_field', variable_key: 'receiver_name', variable_label: 'Nama Penerima', variable_required: true },
+        { id: 'b4', type: 'data_field', variable_key: 'receiver_role', variable_label: 'Jabatan / Role', variable_required: true },
+        { id: 'b5', type: 'data_field', variable_key: 'date_effective', variable_label: 'Tanggal Berlaku', variable_required: true },
+        { id: 'b6', type: 'data_field', variable_key: 'content', variable_label: 'Isi Surat', variable_required: false },
+        { id: 'b7', type: 'divider' },
+        { id: 'b8', type: 'signature', align: 'right' },
+        { id: 'b9', type: 'qr' }
+      ]
+    }
+  ];
+
   return {
     users,
     clusters,
@@ -793,6 +909,7 @@ const generateSeedData = (): DatabaseSchema => {
     leaves,
     approvalTemplates,
     documents,
+    documentTemplates,
     auditLogs,
     settings
   };

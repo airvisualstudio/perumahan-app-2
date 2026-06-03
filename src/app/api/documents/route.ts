@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db, Document, ApprovalChainStep } from '@/lib/db';
+import { db, Document, ApprovalChainStep, DocumentTemplate, DocumentTemplateBlock } from '@/lib/db';
 import crypto from 'crypto';
 
 export async function GET(request: Request) {
@@ -7,7 +7,14 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const docId = searchParams.get('docId');
     const token = searchParams.get('token');
+    const templates = searchParams.get('templates');
     const data = db.get();
+
+    // Return all document templates
+    if (templates === '1') {
+      // Ensure backwards-compat: if documentTemplates doesn't exist yet, return empty
+      return NextResponse.json({ success: true, templates: data.documentTemplates || [] });
+    }
 
     // Verification portal request
     if (token) {
@@ -54,48 +61,137 @@ export async function POST(request: Request) {
     const { action, actor_id } = body;
     const data = db.get();
 
+    // Ensure documentTemplates array exists (backwards compat for existing db.json)
+    if (!data.documentTemplates) {
+      data.documentTemplates = [];
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // TEMPLATE MANAGEMENT ACTIONS
+    // ─────────────────────────────────────────────────────────────────────────
+
+    if (action === 'save_template') {
+      const { template } = body as { template: DocumentTemplate };
+
+      if (!template.name || !template.doc_type_key || !template.prefix) {
+        return NextResponse.json({ success: false, error: 'name, doc_type_key, and prefix are required' }, { status: 400 });
+      }
+
+      const existing = data.documentTemplates.findIndex(t => t.id === template.id);
+      if (existing >= 0) {
+        // Update existing
+        data.documentTemplates[existing] = {
+          ...data.documentTemplates[existing],
+          ...template,
+          updated_at: new Date().toISOString()
+        };
+      } else {
+        // Create new
+        const newTemplate: DocumentTemplate = {
+          ...template,
+          id: template.id || ('tpl-' + Math.random().toString(36).substr(2, 9)),
+          is_builtin: false,
+          created_by: actor_id || 'usr-admin',
+          created_at: new Date().toISOString()
+        };
+        data.documentTemplates.unshift(newTemplate);
+      }
+
+      // Log audit
+      data.auditLogs.unshift({
+        id: 'log-' + Math.random().toString(36).substr(2, 9),
+        user_id: actor_id || 'usr-admin',
+        action: 'template.save',
+        entity_type: 'document_template',
+        created_at: new Date().toISOString()
+      });
+
+      db.save(data);
+      return NextResponse.json({ success: true, templates: data.documentTemplates });
+    }
+
+    if (action === 'delete_template') {
+      const { template_id } = body;
+      const tpl = data.documentTemplates.find(t => t.id === template_id);
+      if (!tpl) return NextResponse.json({ success: false, error: 'Template not found' }, { status: 404 });
+      if (tpl.is_builtin) return NextResponse.json({ success: false, error: 'Built-in templates cannot be deleted' }, { status: 403 });
+
+      data.documentTemplates = data.documentTemplates.filter(t => t.id !== template_id);
+
+      data.auditLogs.unshift({
+        id: 'log-' + Math.random().toString(36).substr(2, 9),
+        user_id: actor_id || 'usr-admin',
+        action: 'template.delete',
+        entity_type: 'document_template',
+        created_at: new Date().toISOString()
+      });
+
+      db.save(data);
+      return NextResponse.json({ success: true, templates: data.documentTemplates });
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // DOCUMENT CREATION
+    // ─────────────────────────────────────────────────────────────────────────
+
     if (action === 'create_document') {
-      const { doc_type, doc_data } = body;
+      const { doc_type, doc_data, template_id } = body;
+
+      // Resolve prefix: use template prefix if available, otherwise legacy fallback
+      let prefix = 'DOC';
+      const resolvedTemplate = data.documentTemplates.find(t => t.id === template_id || t.doc_type_key === doc_type);
+      if (resolvedTemplate) {
+        prefix = resolvedTemplate.prefix;
+      } else if (doc_type === 'Invoice') {
+        prefix = 'INV';
+      } else if (doc_type === 'Kwitansi') {
+        prefix = 'KWT';
+      } else if (doc_type === 'Surat') {
+        prefix = 'SRT';
+      }
+
       const count = data.documents.filter(d => d.doc_type === doc_type).length + 1;
       const indexStr = String(count).padStart(4, '0');
       const year = new Date().getFullYear();
       const month = String(new Date().getMonth() + 1).padStart(2, '0');
-      
-      let doc_number = '';
-      if (doc_type === 'Invoice') {
-        doc_number = `INV/${year}/${month}/${indexStr}`;
-      } else if (doc_type === 'Kwitansi') {
-        doc_number = `KWT/${year}/${month}/${indexStr}`;
-      } else {
-        doc_number = `SRT/${year}/${month}/${indexStr}`;
-      }
+      const doc_number = `${prefix}/${year}/${month}/${indexStr}`;
 
-      // Load approval chain template
-      const template = data.approvalTemplates.find(t => t.doc_type === doc_type);
-      const chain: ApprovalChainStep[] = template 
-        ? template.chain.map(c => ({
-            level: c.level,
-            role: c.role,
-            user_id: c.user_id,
-            status: 'pending'
-          }))
-        : [];
+      // Load approval chain: from template or legacy approval template
+      let chain: ApprovalChainStep[] = [];
+      if (resolvedTemplate && resolvedTemplate.approval_chain_roles.length > 0) {
+        chain = resolvedTemplate.approval_chain_roles.map((role, idx) => ({
+          level: idx + 1,
+          role,
+          status: 'pending' as const
+        }));
+      } else {
+        const template = data.approvalTemplates.find(t => t.doc_type === doc_type);
+        chain = template
+          ? template.chain.map(c => ({
+              level: c.level,
+              role: c.role,
+              user_id: c.user_id,
+              status: 'pending' as const
+            }))
+          : [];
+      }
 
       const newDoc: Document = {
         id: 'doc-' + Math.random().toString(36).substr(2, 9),
         doc_type,
         doc_number,
-        doc_token: crypto.randomBytes(16).toString('hex'), // Unique token
+        doc_token: crypto.randomBytes(16).toString('hex'),
         requester_id: actor_id,
         status: 'draft',
         created_at: new Date().toISOString(),
         data: doc_data,
-        approval_chain: chain
+        approval_chain: chain,
+        template_id: resolvedTemplate?.id
       };
 
       data.documents.unshift(newDoc);
 
-      // Record in prospect history if prospect_id exists in data
+      // Record in prospect history if prospect_id exists
       if (doc_data.prospect_id) {
         data.prospectHistory.unshift({
           id: 'ph-' + Math.random().toString(36).substr(2, 9),
@@ -142,7 +238,6 @@ export async function POST(request: Request) {
       const actor = data.users.find(u => u.id === actor_id);
       if (!actor) return NextResponse.json({ success: false, error: 'Actor not found' }, { status: 400 });
 
-      // Find the first pending step in approval chain
       const activeStep = doc.approval_chain.find(c => c.status === 'pending');
       if (!activeStep) {
         return NextResponse.json({ success: false, error: 'No active pending approval step' }, { status: 400 });
@@ -153,13 +248,11 @@ export async function POST(request: Request) {
       activeStep.decided_at = new Date().toISOString();
       activeStep.remarks = remarks;
 
-      // Check if all steps are approved
       const hasPending = doc.approval_chain.some(c => c.status === 'pending');
       if (!hasPending) {
         doc.status = 'approved';
         doc.approved_at = new Date().toISOString();
 
-        // Update booking unit to sold if this is approved invoice/kwitansi for a prospect
         if (doc.doc_type === 'Kwitansi' && doc.data.prospect_id) {
           const prospect = data.prospects.find(p => p.id === doc.data.prospect_id);
           if (prospect && prospect.booked_unit_id) {
@@ -251,3 +344,4 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
+

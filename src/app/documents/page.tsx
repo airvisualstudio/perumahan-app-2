@@ -19,7 +19,7 @@ import {
 
 interface Document {
   id: string;
-  doc_type: 'Invoice' | 'Kwitansi' | 'Surat';
+  doc_type: string;
   doc_number: string;
   doc_token: string;
   requester_id: string;
@@ -36,11 +36,37 @@ interface Document {
     decided_at?: string;
     remarks?: string;
   }[];
+  template_id?: string;
 }
 
 interface Prospect {
   id: string;
   full_name: string;
+}
+
+interface DocTemplate {
+  id: string;
+  name: string;
+  description?: string;
+  doc_type_key: string;
+  prefix: string;
+  is_builtin: boolean;
+  approval_chain_roles: string[];
+  blocks: {
+    id: string;
+    type: string;
+    content?: string;
+    label?: string;
+    value?: string;
+    variable_key?: string;
+    variable_label?: string;
+    variable_required?: boolean;
+    table_headers?: string[];
+    table_rows?: number;
+    align?: string;
+    bold?: boolean;
+    size?: string;
+  }[];
 }
 
 // Terbilang function in Indonesian
@@ -62,10 +88,13 @@ export default function DocumentHubPage() {
   
   // Tabs: 'list' | 'create' | 'queue'
   const [activeTab, setActiveTab] = useState<'list' | 'create' | 'queue'>('list');
-  const [docType, setDocType] = useState<'Invoice' | 'Kwitansi' | 'Surat'>('Invoice');
+  const [docType, setDocType] = useState<string>('Invoice');
   
   const [documents, setDocuments] = useState<Document[]>([]);
   const [prospects, setProspects] = useState<Prospect[]>([]);
+  const [docTemplates, setDocTemplates] = useState<DocTemplate[]>([]);
+  const [selectedTemplate, setSelectedTemplate] = useState<DocTemplate | null>(null);
+  const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
 
   // Selected document for preview
@@ -100,22 +129,31 @@ export default function DocumentHubPage() {
 
   const fetchDocumentsData = async () => {
     try {
-      const res = await fetch('/api/documents');
-      const json = await res.json();
+      const [docsRes, crmRes, tplRes] = await Promise.all([
+        fetch('/api/documents'),
+        fetch('/api/crm'),
+        fetch('/api/documents?templates=1'),
+      ]);
+      const json = await docsRes.json();
       if (json.success) {
         setDocuments(json.documents || []);
         if (json.documents.length > 0 && !selectedDoc) {
           setSelectedDoc(json.documents[0]);
         }
       }
-      
-      const crmRes = await fetch('/api/crm');
       const crmJson = await crmRes.json();
       if (crmJson.success) {
         setProspects(crmJson.prospects || []);
         if (crmJson.prospects.length > 0) {
           setInvProspectId(crmJson.prospects[0].id);
         }
+      }
+      const tplJson = await tplRes.json();
+      if (tplJson.success && tplJson.templates?.length > 0) {
+        setDocTemplates(tplJson.templates);
+        const firstTpl = tplJson.templates[0];
+        setSelectedTemplate(firstTpl);
+        setDocType(firstTpl.doc_type_key);
       }
       setIsLoading(false);
     } catch (error) {
@@ -129,9 +167,17 @@ export default function DocumentHubPage() {
 
   const handleCreateDocument = async (e: React.FormEvent) => {
     e.preventDefault();
-    let doc_data = {};
+    let doc_data: Record<string, any> = {};
+    let template_id: string | undefined;
 
-    if (docType === 'Invoice') {
+    // Determine if this is a custom (non-builtin or custom template) type
+    const isCustomTemplate = selectedTemplate && !['Invoice', 'Kwitansi', 'Surat'].includes(selectedTemplate.doc_type_key);
+
+    if (isCustomTemplate && selectedTemplate) {
+      // Custom template: collect customFieldValues
+      doc_data = { ...customFieldValues };
+      template_id = selectedTemplate.id;
+    } else if (docType === 'Invoice') {
       const selectedProspect = prospects.find(p => p.id === invProspectId);
       const subtotal = invPrice;
       const tax_amount = invTax ? Math.round(subtotal * 0.11) : 0;
@@ -145,7 +191,7 @@ export default function DocumentHubPage() {
         subtotal,
         tax_amount,
         total_amount,
-        due_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 14 days due
+        due_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         payment_method: 'Transfer Bank Mandiri',
         bank_account: '131-00-1234567-8 a/n PT Domus Somnia',
         notes: invNotes
@@ -175,12 +221,12 @@ export default function DocumentHubPage() {
           action: 'create_document',
           doc_type: docType,
           doc_data,
+          template_id,
           actor_id: user?.id
         })
       });
       const json = await res.json();
       if (json.success) {
-        // Slack trigger
         const message = `Dokumen ${docType} baru dibuat oleh ${user?.name} dengan status DRAFT`;
         window.dispatchEvent(new CustomEvent('simulated-slack-webhook', {
           detail: { timestamp: new Date().toLocaleTimeString('id-ID'), channel: 'finance-notif', message }
@@ -719,28 +765,45 @@ export default function DocumentHubPage() {
         {activeTab === 'create' && (
           <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 max-w-xl mx-auto w-full text-left">
             <h2 className="font-extrabold text-lg flex items-center gap-2 border-b border-gray-100 pb-3 mb-5">
-              <Plus size={20} className="text-blue-600" />
+              <Plus size={20} className="text-indigo-600" />
               Buat Dokumen Baru
             </h2>
 
-            <div className="flex gap-2 bg-gray-100 p-1 rounded-xl mb-6">
-              {(['Invoice', 'Kwitansi', 'Surat'] as const).map(t => (
-                <button
-                  key={t}
-                  onClick={() => setDocType(t)}
-                  className={`flex-1 py-2 rounded-lg font-bold text-xs transition-all ${
-                    docType === t ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-800'
-                  }`}
-                >
-                  {t}
-                </button>
-              ))}
+            {/* Template Selector */}
+            <div className="mb-5">
+              <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block mb-1.5">Pilih Jenis / Template Dokumen *</label>
+              <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto no-scrollbar">
+                {docTemplates.map(tpl => (
+                  <button
+                    key={tpl.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedTemplate(tpl);
+                      setDocType(tpl.doc_type_key);
+                      setCustomFieldValues({});
+                    }}
+                    className={`flex flex-col items-start p-3 rounded-xl border text-left transition-all ${
+                      selectedTemplate?.id === tpl.id
+                        ? 'border-indigo-500 bg-indigo-50 ring-1 ring-indigo-400'
+                        : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1 mb-0.5">
+                      <FileText size={12} className="text-indigo-500" />
+                      <span className="text-[10px] font-mono font-bold text-gray-500">{tpl.prefix}</span>
+                      {tpl.is_builtin && <span className="text-[8px] font-bold text-amber-600 bg-amber-50 px-1 py-0.5 rounded">built-in</span>}
+                    </div>
+                    <span className="text-xs font-extrabold text-gray-800 leading-snug">{tpl.name}</span>
+                    {tpl.description && <span className="text-[9px] text-gray-400 mt-0.5 line-clamp-1">{tpl.description}</span>}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <form onSubmit={handleCreateDocument} className="flex flex-col gap-4 text-xs font-semibold">
               
-              {/* Form: INVOICE */}
-              {docType === 'Invoice' && (
+              {/* Form: INVOICE (builtin) */}
+              {selectedTemplate?.doc_type_key === 'Invoice' && (
                 <>
                   <div className="flex flex-col gap-1.5">
                     <label className="text-gray-400 uppercase tracking-wider text-[9px]">Hubungkan Prospek Klien *</label>
@@ -779,15 +842,9 @@ export default function DocumentHubPage() {
                         className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none"
                       />
                     </div>
-
                     <div className="border border-gray-200 rounded-xl px-4 h-10 flex items-center justify-between">
                       <span className="text-gray-400 text-[10px] uppercase font-bold">Kenakan PPN (11%)</span>
-                      <input
-                        type="checkbox"
-                        checked={invTax}
-                        onChange={e => setInvTax(e.target.checked)}
-                        className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
-                      />
+                      <input type="checkbox" checked={invTax} onChange={e => setInvTax(e.target.checked)} className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500" />
                     </div>
                   </div>
 
@@ -804,8 +861,8 @@ export default function DocumentHubPage() {
                 </>
               )}
 
-              {/* Form: KWITANSI */}
-              {docType === 'Kwitansi' && (
+              {/* Form: KWITANSI (builtin) */}
+              {selectedTemplate?.doc_type_key === 'Kwitansi' && (
                 <>
                   <div className="flex flex-col gap-1.5">
                     <label className="text-gray-400 uppercase tracking-wider text-[9px]">Hubungkan Invoice Approved (Salin Data)</label>
@@ -820,122 +877,118 @@ export default function DocumentHubPage() {
                       ))}
                     </select>
                   </div>
-
                   <div className="flex flex-col gap-1.5">
                     <label className="text-gray-400 uppercase tracking-wider text-[9px]">Telah Diterima Dari (Nama) *</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Masukkan nama pembayar..."
-                      value={kwtPenerima}
-                      onChange={e => setKwtPenerima(e.target.value)}
-                      className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none"
-                    />
+                    <input type="text" required placeholder="Masukkan nama pembayar..." value={kwtPenerima}
+                      onChange={e => setKwtPenerima(e.target.value)} className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none" />
                   </div>
-
                   <div className="flex flex-col gap-1.5">
                     <label className="text-gray-400 uppercase tracking-wider text-[9px]">Jumlah Uang (Nominal IDR) *</label>
-                    <input
-                      type="number"
-                      required
-                      placeholder="Masukkan jumlah nominal..."
-                      value={kwtNominal || ''}
-                      onChange={e => setKwtNominal(Number(e.target.value))}
-                      className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none"
-                    />
+                    <input type="number" required placeholder="Masukkan jumlah nominal..." value={kwtNominal || ''}
+                      onChange={e => setKwtNominal(Number(e.target.value))} className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none" />
                     {kwtNominal > 0 && (
                       <span className="text-[10px] text-gray-500 italic mt-0.5">
                         Terbilang: &quot;{terbilang(kwtNominal)} rupiah&quot;
                       </span>
                     )}
                   </div>
-
                   <div className="flex flex-col gap-1.5">
                     <label className="text-gray-400 uppercase tracking-wider text-[9px]">Keterangan Pembayaran *</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Contoh: Pembayaran Pelunasan Down Payment Kavling..."
-                      value={kwtKeterangan}
-                      onChange={e => setKwtKeterangan(e.target.value)}
-                      className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none"
-                    />
+                    <input type="text" required placeholder="Contoh: Pembayaran Pelunasan Down Payment Kavling..." value={kwtKeterangan}
+                      onChange={e => setKwtKeterangan(e.target.value)} className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none" />
                   </div>
                 </>
               )}
 
-              {/* Form: SURAT RESMI */}
-              {docType === 'Surat' && (
+              {/* Form: SURAT RESMI (builtin) */}
+              {selectedTemplate?.doc_type_key === 'Surat' && (
                 <>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="flex flex-col gap-1.5">
                       <label className="text-gray-400 uppercase tracking-wider text-[9px]">Pilih Template Surat</label>
-                      <select
-                        value={srtTemplate}
-                        onChange={e => setSrtTemplate(e.target.value)}
-                        className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none"
-                      >
+                      <select value={srtTemplate} onChange={e => setSrtTemplate(e.target.value)}
+                        className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none">
                         <option value="Surat Tugas">Surat Tugas Lapangan</option>
                         <option value="Surat Pengantar">Surat Pengantar Proyek</option>
                         <option value="Surat Keterangan">Surat Keterangan Kerja</option>
                       </select>
                     </div>
-
                     <div className="flex flex-col gap-1.5">
                       <label className="text-gray-400 uppercase tracking-wider text-[9px]">Tanggal Berlaku *</label>
-                      <input
-                        type="date"
-                        required
-                        value={srtTanggal}
-                        onChange={e => setSrtTanggal(e.target.value)}
-                        className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none"
-                      />
+                      <input type="date" required value={srtTanggal} onChange={e => setSrtTanggal(e.target.value)}
+                        className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none" />
                     </div>
                   </div>
-
                   <div className="grid grid-cols-2 gap-4">
                     <div className="flex flex-col gap-1.5">
                       <label className="text-gray-400 uppercase tracking-wider text-[9px]">Nama Penerima Surat *</label>
-                      <input
-                        type="text"
-                        required
-                        placeholder="Nama pegawai / staf..."
-                        value={srtPenerima}
-                        onChange={e => setSrtPenerima(e.target.value)}
-                        className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none"
-                      />
+                      <input type="text" required placeholder="Nama pegawai / staf..." value={srtPenerima}
+                        onChange={e => setSrtPenerima(e.target.value)} className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none" />
                     </div>
-
                     <div className="flex flex-col gap-1.5">
                       <label className="text-gray-400 uppercase tracking-wider text-[9px]">Jabatan / Divisi *</label>
-                      <input
-                        type="text"
-                        required
-                        placeholder="Contoh: Sales Marketing..."
-                        value={srtJabatan}
-                        onChange={e => setSrtJabatan(e.target.value)}
-                        className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none"
-                      />
+                      <input type="text" required placeholder="Contoh: Sales Marketing..." value={srtJabatan}
+                        onChange={e => setSrtJabatan(e.target.value)} className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none" />
                     </div>
                   </div>
-
                   <div className="flex flex-col gap-1.5">
                     <label className="text-gray-400 uppercase tracking-wider text-[9px]">Isi Konten Surat Wewenang *</label>
-                    <textarea
-                      required
-                      placeholder="Masukkan deskripsi tugas wewenang atau isi lengkap surat..."
-                      value={srtIsi}
-                      onChange={e => setSrtIsi(e.target.value)}
-                      rows={4}
-                      className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none resize-none font-medium"
-                    ></textarea>
+                    <textarea required placeholder="Masukkan deskripsi tugas wewenang atau isi lengkap surat..."
+                      value={srtIsi} onChange={e => setSrtIsi(e.target.value)} rows={4}
+                      className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none resize-none font-medium"></textarea>
                   </div>
                 </>
               )}
 
+              {/* Form: CUSTOM TEMPLATE — dynamic fields from data_field blocks */}
+              {selectedTemplate && !['Invoice', 'Kwitansi', 'Surat'].includes(selectedTemplate.doc_type_key) && (
+                <>
+                  <div className="flex items-center gap-2 bg-indigo-50 border border-indigo-100 rounded-xl px-3 py-2">
+                    <FileText size={14} className="text-indigo-500" />
+                    <div>
+                      <p className="text-xs font-extrabold text-indigo-800">{selectedTemplate.name}</p>
+                      <p className="text-[9px] text-indigo-500">{selectedTemplate.description || 'Template kustom'} · Nomor: {selectedTemplate.prefix}/YYYY/MM/####</p>
+                    </div>
+                  </div>
+
+                  {/* Render data_field blocks as form inputs */}
+                  {selectedTemplate.blocks
+                    .filter(b => b.type === 'data_field' && b.variable_key)
+                    .map(b => (
+                      <div key={b.id} className="flex flex-col gap-1.5">
+                        <label className="text-gray-400 uppercase tracking-wider text-[9px]">
+                          {b.variable_label || b.variable_key} {b.variable_required && <span className="text-red-400">*</span>}
+                        </label>
+                        <input
+                          type="text"
+                          required={b.variable_required}
+                          placeholder={`Isi ${b.variable_label || b.variable_key}...`}
+                          value={customFieldValues[b.variable_key!] || ''}
+                          onChange={e => setCustomFieldValues(prev => ({ ...prev, [b.variable_key!]: e.target.value }))}
+                          className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                        />
+                      </div>
+                    ))
+                  }
+
+                  {selectedTemplate.blocks.filter(b => b.type === 'data_field').length === 0 && (
+                    <div className="text-center py-6 text-gray-400 text-xs border border-dashed border-gray-200 rounded-xl">
+                      Template ini tidak memiliki field data. Langsung buat dokumen.
+                    </div>
+                  )}
+                </>
+              )}
+
+              {!selectedTemplate && (
+                <div className="text-center py-6 text-gray-400 text-xs border border-dashed border-gray-200 rounded-xl">
+                  Pilih jenis dokumen / template di atas untuk memulai.
+                </div>
+              )}
+
               <button
                 type="submit"
-                className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-bold text-xs shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-1.5"
+                disabled={!selectedTemplate}
+                className="w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-bold text-xs shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Check size={16} />
                 BUAT DOKUMEN RESMI (DRAFT)
