@@ -14,21 +14,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="id" className="h-full antialiased" suppressHydrationWarning>
-      <head>
-        <script dangerouslySetInnerHTML={{
-          __html: `
-            try {
-              var saved = localStorage.getItem('theme');
-              var system = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-              var theme = saved || system;
-              document.documentElement.classList.remove('light', 'dark');
-              document.documentElement.classList.add(theme);
-            } catch (e) {}
-          `
-        }} />
-      </head>
-      <body className="min-h-full flex flex-col bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-slate-100 transition-colors duration-200">
+    <html lang="id" className="h-full antialiased light">
+      <body className="min-h-full flex flex-col bg-gray-50 text-gray-900">
         <Providers>
           {children}
         </Providers>
