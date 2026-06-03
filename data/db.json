@@ -682,6 +682,41 @@
   ],
   "documents": [
     {
+      "id": "doc-m1q4w0jc7",
+      "doc_type": "Surat",
+      "doc_number": "SRT/2026/06/0001",
+      "doc_token": "7b38c9b46bb699f484cc5791c7bf2dae",
+      "requester_id": "usr-admin",
+      "status": "approved",
+      "created_at": "2026-06-03T08:11:59.213Z",
+      "data": {
+        "template_name": "Surat Pengantar",
+        "receiver_name": "DD",
+        "receiver_role": "DD",
+        "date_effective": "2026-06-04",
+        "content": "DDDD"
+      },
+      "approval_chain": [
+        {
+          "level": 1,
+          "role": "manager",
+          "status": "approved",
+          "decided_by": "Budi Purnomo",
+          "decided_at": "2026-06-03T08:12:32.636Z",
+          "remarks": "Approved"
+        },
+        {
+          "level": 2,
+          "role": "admin",
+          "status": "approved",
+          "decided_by": "Ahmad Admin",
+          "decided_at": "2026-06-03T08:12:46.882Z",
+          "remarks": "Approved"
+        }
+      ],
+      "approved_at": "2026-06-03T08:12:46.882Z"
+    },
+    {
       "id": "doc-olvt16avd",
       "doc_type": "Kwitansi",
       "doc_number": "KWT/2026/06/0002",
