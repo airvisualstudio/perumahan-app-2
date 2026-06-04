@@ -230,6 +230,16 @@ export async function POST(request: Request) {
         return NextResponse.json({ success: false, error: 'User not found' }, { status: 444 });
       }
 
+      const prospect = data.prospects.find(p => p.id === followup.prospect_id);
+      if (!prospect) {
+        return NextResponse.json({ success: false, error: 'Prospect not found' }, { status: 444 });
+      }
+
+      const canComment = actor.role === 'manager' || actor.role === 'admin' || prospect.assigned_to === actor.id;
+      if (!canComment) {
+        return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 403 });
+      }
+
       if (!followup.comments) {
         followup.comments = [];
       }

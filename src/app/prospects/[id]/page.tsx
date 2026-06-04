@@ -334,7 +334,14 @@ export default function ProspectDetailPage({ params }: Props) {
   };
 
   const handleAddFollowupComment = async (followupId: string) => {
-    if (!newCommentText.trim() || !user) return;
+    if (!newCommentText.trim() || !user || !prospect) return;
+    
+    const canComment = user.role === 'manager' || user.role === 'admin' || prospect.assigned_to === user.id;
+    if (!canComment) {
+      alert("Anda tidak memiliki izin untuk memberikan komentar pada prospek ini.");
+      return;
+    }
+
     setIsCommentSubmitting(true);
     try {
       const res = await fetch('/api/crm', {
@@ -975,14 +982,14 @@ export default function ProspectDetailPage({ params }: Props) {
 
                   {/* Add Comment Form */}
                   <div className="border-t border-gray-100 pt-4 flex flex-col gap-3">
-                    {user?.role === 'manager' || user?.role === 'admin' ? (
+                    {user?.role === 'manager' || user?.role === 'admin' || prospect.assigned_to === user?.id ? (
                       <div className="flex flex-col gap-2">
                         <label className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">
-                          Berikan Tanggapan (sebagai {user.role})
+                          Berikan Tanggapan (sebagai {user.role === 'staff' ? 'Sales Ditugaskan' : user.role})
                         </label>
                         <div className="flex gap-2">
                           <textarea
-                            placeholder="Tuliskan komentar, instruksi, atau arahan untuk sales..."
+                            placeholder="Tuliskan komentar, instruksi, atau tanggapan..."
                             value={newCommentText}
                             onChange={(e) => setNewCommentText(e.target.value)}
                             rows={2}
@@ -999,7 +1006,7 @@ export default function ProspectDetailPage({ params }: Props) {
                       </div>
                     ) : (
                       <div className="p-3 bg-amber-50 border border-amber-100 rounded-xl text-amber-800 text-[11px] font-medium leading-relaxed">
-                        Hanya akun bertipe <strong>Manager</strong> atau <strong>Admin</strong> yang memiliki otoritas untuk memberikan tanggapan / komentar pada follow-up ini.
+                        Hanya Manager, Admin, IT, atau Sales Agent yang ditugaskan ke konsumen ini yang dapat memberikan komentar pada follow-up ini.
                       </div>
                     )}
                   </div>
