@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Info, MapPin, Layers, Trees, Sparkles } from 'lucide-react';
 
@@ -36,12 +36,23 @@ interface Prospect {
   pipeline_stage: string;
 }
 
+interface Cluster {
+  id: string;
+  name: string;
+  location: string;
+  description: string;
+  total_units: number;
+  status: string;
+  svg_content?: string;
+}
+
 interface KavlingMapProps {
   units: Unit[];
   unitTypes: UnitType[];
   prospects: Prospect[];
   activeClusterId: string;
   onUnitSelect: (unit: Unit) => void;
+  clusters?: Cluster[];
 }
 
 const statusConfig = {
@@ -53,10 +64,101 @@ const statusConfig = {
   unavailable: { label: 'Tidak Tersedia', color: 'bg-gray-100 text-gray-700 border-gray-200', dot: 'bg-gray-500', fill: 'url(#grad-unavailable)', stroke: '#6b7280' }
 };
 
-export default function KavlingMap({ units, unitTypes, prospects, activeClusterId, onUnitSelect }: KavlingMapProps) {
+export default function KavlingMap({ units, unitTypes, prospects, activeClusterId, onUnitSelect, clusters }: KavlingMapProps) {
   const [hoveredUnit, setHoveredUnit] = useState<Unit | null>(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
   const [hoveredPlaceholder, setHoveredPlaceholder] = useState<string | null>(null);
+
+  const activeCluster = clusters?.find(c => c.id === activeClusterId);
+  const [parsedSvgReact, setParsedSvgReact] = useState<React.ReactNode | null>(null);
+
+  const parseSvgToReact = useCallback((node: Node, key: string): React.ReactNode => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      return node.nodeValue;
+    }
+    
+    if (node.nodeType !== Node.ELEMENT_NODE) {
+      return null;
+    }
+    
+    const element = node as Element;
+    const tagName = element.tagName.toLowerCase();
+    
+    const allowedTags = [
+      'svg', 'g', 'path', 'rect', 'circle', 'ellipse', 'line', 
+      'polyline', 'polygon', 'text', 'tspan', 'defs', 
+      'lineargradient', 'stop', 'filter', 'fedropshadow', 'style'
+    ];
+    
+    if (!allowedTags.includes(tagName)) {
+      return null;
+    }
+    
+    const props: any = { key };
+    for (let i = 0; i < element.attributes.length; i++) {
+      const attr = element.attributes[i];
+      let name = attr.name;
+      if (name.includes('-')) {
+        name = name.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
+      }
+      if (name === 'class') name = 'className';
+      
+      props[name] = attr.value;
+    }
+    
+    const blockNumber = element.getAttribute('id') || element.getAttribute('data-block');
+    const unit = blockNumber ? units.find(u => u.cluster_id === activeClusterId && u.block_number === blockNumber) : null;
+    
+    if (blockNumber && unit) {
+      const config = statusConfig[unit.status];
+      props.fill = config.fill;
+      props.stroke = config.stroke;
+      props.strokeWidth = hoveredUnit?.id === unit.id ? 3.5 : (props.strokeWidth || 1.5);
+      props.style = { ...props.style, cursor: 'pointer', transition: 'all 0.2s' };
+      
+      props.onClick = () => onUnitSelect(unit);
+      props.onMouseEnter = () => setHoveredUnit(unit);
+      props.onMouseLeave = () => setHoveredUnit(null);
+    } else if (blockNumber && (blockNumber.match(/^[A-Z]-[0-9]+$/i) || blockNumber.match(/^[A-Z][0-9]+$/i))) {
+      props.style = { ...props.style, cursor: 'default', opacity: 0.6 };
+      props.onMouseEnter = () => setHoveredPlaceholder(blockNumber);
+      props.onMouseLeave = () => setHoveredPlaceholder(null);
+    }
+    
+    const children: React.ReactNode[] = [];
+    for (let i = 0; i < node.childNodes.length; i++) {
+      const childReact = parseSvgToReact(node.childNodes[i], `${key}-${i}`);
+      if (childReact) {
+        children.push(childReact);
+      }
+    }
+    
+    return React.createElement(tagName, props, children.length > 0 ? children : undefined);
+  }, [activeClusterId, units, hoveredUnit, onUnitSelect]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !activeCluster?.svg_content) {
+      setParsedSvgReact(null);
+      return;
+    }
+    
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(activeCluster.svg_content, 'image/svg+xml');
+      const svgElement = doc.documentElement;
+      
+      if (svgElement.tagName.toLowerCase() === 'svg') {
+        svgElement.setAttribute('class', 'w-full h-auto select-none rounded-2xl border border-gray-200/50 bg-slate-50/50 shadow-inner ' + (svgElement.getAttribute('class') || ''));
+        const parsed = parseSvgToReact(svgElement, 'custom-svg-root');
+        setParsedSvgReact(parsed);
+      } else {
+        setParsedSvgReact(<p className="text-red-500 text-xs font-bold text-center py-10 bg-slate-50 border rounded-2xl">Format SVG tidak valid.</p>);
+      }
+    } catch (e) {
+      console.error(e);
+      setParsedSvgReact(<p className="text-red-500 text-xs font-bold text-center py-10 bg-slate-50 border rounded-2xl">Gagal memproses file SVG.</p>);
+    }
+  }, [activeClusterId, activeCluster?.svg_content, units, hoveredUnit, parseSvgToReact]);
 
   const formatIDR = (num: number) => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(num);
@@ -418,8 +520,47 @@ export default function KavlingMap({ units, unitTypes, prospects, activeClusterI
 
   return (
     <div className="relative w-full" onMouseMove={handleMouseMove}>
-      {/* Map rendering */}
-      {activeClusterId === 'cls-melati' ? renderClusterMelati() : renderClusterAnggrek()}
+      {parsedSvgReact ? (
+        <div className="relative">
+          <svg className="absolute w-0 h-0 pointer-events-none">
+            <defs>
+              <linearGradient id="grad-available" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#86efac" />
+                <stop offset="100%" stopColor="#22c55e" />
+              </linearGradient>
+              <linearGradient id="grad-reserved" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#fef08a" />
+                <stop offset="100%" stopColor="#eab308" />
+              </linearGradient>
+              <linearGradient id="grad-booking" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#93c5fd" />
+                <stop offset="100%" stopColor="#3b82f6" />
+              </linearGradient>
+              <linearGradient id="grad-kpr_process" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#fed7aa" />
+                <stop offset="100%" stopColor="#f97316" />
+              </linearGradient>
+              <linearGradient id="grad-sold" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#fca5a5" />
+                <stop offset="100%" stopColor="#ef4444" />
+              </linearGradient>
+              <linearGradient id="grad-unavailable" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#e4e4e7" />
+                <stop offset="100%" stopColor="#a1a1aa" />
+              </linearGradient>
+              <linearGradient id="grad-placeholder" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#f4f4f5" />
+                <stop offset="100%" stopColor="#e4e4e7" />
+              </linearGradient>
+            </defs>
+          </svg>
+          {parsedSvgReact}
+        </div>
+      ) : activeClusterId === 'cls-melati' ? (
+        renderClusterMelati()
+      ) : (
+        renderClusterAnggrek()
+      )}
 
       {/* Floating Rich Tooltip */}
       <AnimatePresence>

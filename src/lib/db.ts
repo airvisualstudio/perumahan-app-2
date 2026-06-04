@@ -29,6 +29,7 @@ export interface Cluster {
   status: 'pre_launch' | 'active' | 'sold_out';
   created_by: string;
   created_at: string;
+  svg_content?: string;
 }
 
 export interface UnitType {

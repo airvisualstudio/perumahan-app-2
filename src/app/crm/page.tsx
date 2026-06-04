@@ -30,6 +30,7 @@ interface Cluster {
   description: string;
   total_units: number;
   status: string;
+  svg_content?: string;
 }
 
 interface Unit {
@@ -430,6 +431,7 @@ export default function CRMModulePage() {
                 unitTypes={unitTypes}
                 prospects={prospects}
                 activeClusterId={activeClusterId}
+                clusters={clusters}
                 onUnitSelect={(unit) => {
                   setSelectedUnit(unit);
                   setNewStatus(unit.status);

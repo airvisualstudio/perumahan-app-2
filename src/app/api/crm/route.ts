@@ -268,6 +268,230 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, followup });
     }
 
+    if (action === 'create_cluster') {
+      const { name, location, description, status, svg_content, actor_id } = body;
+      
+      const newCluster = {
+        id: 'cls-' + Math.random().toString(36).substr(2, 9),
+        name,
+        location,
+        description,
+        total_units: 0,
+        status: status || 'active',
+        svg_content,
+        created_by: actor_id,
+        created_at: new Date().toISOString()
+      };
+
+      data.clusters.push(newCluster);
+
+      data.auditLogs.unshift({
+        id: 'aud-' + Math.random().toString(36).substr(2, 9),
+        user_id: actor_id,
+        action: 'cluster.create',
+        entity_type: 'cluster',
+        entity_id: newCluster.id,
+        created_at: new Date().toISOString()
+      });
+
+      db.save(data);
+      return NextResponse.json({ success: true, cluster: newCluster, clusters: data.clusters });
+    }
+
+    if (action === 'create_unit_type') {
+      const { cluster_id, name, building_area, land_area, base_price, bedrooms, bathrooms, has_carport, description, photos, actor_id } = body;
+      
+      const newType = {
+        id: 'typ-' + Math.random().toString(36).substr(2, 9),
+        cluster_id,
+        name,
+        building_area: Number(building_area),
+        land_area: Number(land_area),
+        base_price: Number(base_price),
+        bedrooms: Number(bedrooms),
+        bathrooms: Number(bathrooms),
+        has_carport: Boolean(has_carport),
+        description,
+        photos: photos || ['https://images.unsplash.com/photo-1580587771525-78b9dba3b914?q=80&w=400'],
+      };
+
+      if (!data.unitTypes) {
+        data.unitTypes = [];
+      }
+      data.unitTypes.push(newType);
+
+      db.save(data);
+      return NextResponse.json({ success: true, unitType: newType, unitTypes: data.unitTypes });
+    }
+
+    if (action === 'create_unit') {
+      const { cluster_id, unit_type_id, block_number, sell_price, orientation, status, notes, actor_id } = body;
+      
+      const newUnit = {
+        id: 'unt-' + Math.random().toString(36).substr(2, 9),
+        cluster_id,
+        unit_type_id,
+        block_number,
+        sell_price: Number(sell_price),
+        orientation: orientation || 'middle',
+        status: status || 'available',
+        notes,
+        updated_at: new Date().toISOString()
+      };
+
+      data.units.push(newUnit);
+
+      // Increment cluster unit count
+      const cluster = data.clusters.find(c => c.id === cluster_id);
+      if (cluster) {
+        cluster.total_units = (cluster.total_units || 0) + 1;
+      }
+
+      data.auditLogs.unshift({
+        id: 'aud-' + Math.random().toString(36).substr(2, 9),
+        user_id: actor_id,
+        action: 'unit.create',
+        entity_type: 'unit',
+        entity_id: newUnit.id,
+        created_at: new Date().toISOString()
+      });
+
+      db.save(data);
+      return NextResponse.json({ success: true, unit: newUnit, units: data.units, clusters: data.clusters });
+    }
+
+    if (action === 'update_cluster') {
+      const { cluster_id, name, location, description, status, svg_content, actor_id } = body;
+      const cluster = data.clusters.find(c => c.id === cluster_id);
+      if (!cluster) {
+        return NextResponse.json({ success: false, error: 'Cluster not found' }, { status: 444 });
+      }
+
+      cluster.name = name;
+      cluster.location = location;
+      cluster.description = description;
+      cluster.status = status;
+      if (svg_content !== undefined) {
+        cluster.svg_content = svg_content;
+      }
+
+      data.auditLogs.unshift({
+        id: 'aud-' + Math.random().toString(36).substr(2, 9),
+        user_id: actor_id,
+        action: 'cluster.update',
+        entity_type: 'cluster',
+        entity_id: cluster_id,
+        created_at: new Date().toISOString()
+      });
+
+      db.save(data);
+      return NextResponse.json({ success: true, cluster, clusters: data.clusters });
+    }
+
+    if (action === 'delete_cluster') {
+      const { cluster_id, actor_id } = body;
+      
+      data.clusters = data.clusters.filter(c => c.id !== cluster_id);
+      data.unitTypes = data.unitTypes.filter(t => t.cluster_id !== cluster_id);
+      data.units = data.units.filter(u => u.cluster_id !== cluster_id);
+
+      data.auditLogs.unshift({
+        id: 'aud-' + Math.random().toString(36).substr(2, 9),
+        user_id: actor_id,
+        action: 'cluster.delete',
+        entity_type: 'cluster',
+        entity_id: cluster_id,
+        created_at: new Date().toISOString()
+      });
+
+      db.save(data);
+      return NextResponse.json({ success: true, clusters: data.clusters, unitTypes: data.unitTypes, units: data.units });
+    }
+
+    if (action === 'update_unit_type') {
+      const { unit_type_id, name, building_area, land_area, base_price, bedrooms, bathrooms, has_carport, description, actor_id } = body;
+      const type = data.unitTypes.find(t => t.id === unit_type_id);
+      if (!type) {
+        return NextResponse.json({ success: false, error: 'Unit type not found' }, { status: 444 });
+      }
+
+      type.name = name;
+      type.building_area = Number(building_area);
+      type.land_area = Number(land_area);
+      type.base_price = Number(base_price);
+      type.bedrooms = Number(bedrooms);
+      type.bathrooms = Number(bathrooms);
+      type.has_carport = Boolean(has_carport);
+      type.description = description;
+
+      db.save(data);
+      return NextResponse.json({ success: true, unitType: type, unitTypes: data.unitTypes });
+    }
+
+    if (action === 'delete_unit_type') {
+      const { unit_type_id, actor_id } = body;
+      
+      data.units = data.units.filter(u => u.unit_type_id !== unit_type_id);
+      data.unitTypes = data.unitTypes.filter(t => t.id !== unit_type_id);
+
+      db.save(data);
+      return NextResponse.json({ success: true, unitTypes: data.unitTypes, units: data.units });
+    }
+
+    if (action === 'update_unit') {
+      const { unit_id, unit_type_id, block_number, sell_price, orientation, status, notes, actor_id } = body;
+      const unit = data.units.find(u => u.id === unit_id);
+      if (!unit) {
+        return NextResponse.json({ success: false, error: 'Unit not found' }, { status: 444 });
+      }
+
+      unit.unit_type_id = unit_type_id;
+      unit.block_number = block_number;
+      unit.sell_price = Number(sell_price);
+      unit.orientation = orientation;
+      unit.status = status;
+      unit.notes = notes;
+      unit.updated_at = new Date().toISOString();
+
+      data.auditLogs.unshift({
+        id: 'aud-' + Math.random().toString(36).substr(2, 9),
+        user_id: actor_id,
+        action: 'unit.update',
+        entity_type: 'unit',
+        entity_id: unit_id,
+        created_at: new Date().toISOString()
+      });
+
+      db.save(data);
+      return NextResponse.json({ success: true, unit, units: data.units });
+    }
+
+    if (action === 'delete_unit') {
+      const { unit_id, actor_id } = body;
+      
+      const unit = data.units.find(u => u.id === unit_id);
+      if (unit) {
+        const cluster = data.clusters.find(c => c.id === unit.cluster_id);
+        if (cluster) {
+          cluster.total_units = Math.max(0, (cluster.total_units || 1) - 1);
+        }
+      }
+
+      data.units = data.units.filter(u => u.id !== unit_id);
+
+      data.auditLogs.unshift({
+        id: 'aud-' + Math.random().toString(36).substr(2, 9),
+        user_id: actor_id,
+        action: 'unit.delete',
+        entity_type: 'unit',
+        entity_id: unit_id,
+        created_at: new Date().toISOString()
+      });
+
+      db.save(data);
+      return NextResponse.json({ success: true, units: data.units, clusters: data.clusters });
+    }
+
     return NextResponse.json({ success: false, error: 'Unknown action' }, { status: 400 });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
