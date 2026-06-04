@@ -98,6 +98,15 @@ export interface Prospect {
   attachments?: { id: string; url: string; file_name: string; file_size_bytes: number }[];
 }
 
+export interface FollowupComment {
+  id: string;
+  user_id: string;
+  user_name: string;
+  user_role: string;
+  content: string;
+  created_at: string;
+}
+
 export interface FollowupRecord {
   id: string;
   prospect_id: string;
@@ -110,7 +119,9 @@ export interface FollowupRecord {
   next_followup_note?: string;
   attachments: { id: string; url: string; file_name: string; file_size_bytes: number }[];
   created_at: string;
+  comments?: FollowupComment[];
 }
+
 
 export interface ProspectHistory {
   id: string;
@@ -728,7 +739,17 @@ const generateSeedData = (): DatabaseSchema => {
       attachments: [
         { id: 'att-1', url: 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?q=80&w=400&auto=format&fit=crop', file_name: 'survei_lokasi.jpg', file_size_bytes: 1200000 }
       ],
-      created_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString()
+      created_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+      comments: [
+        {
+          id: 'cm-01',
+          user_id: 'usr-manager',
+          user_name: 'Budi Purnomo',
+          user_role: 'manager',
+          content: 'Lokasi B-08 memang sangat bagus dan diminati. Segera tindak lanjuti untuk penawaran KPR.',
+          created_at: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString()
+        }
+      ]
     },
     {
       id: 'fl-2',

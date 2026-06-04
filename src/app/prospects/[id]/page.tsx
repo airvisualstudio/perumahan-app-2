@@ -59,6 +59,15 @@ interface Document {
   data: any;
 }
 
+interface FollowupComment {
+  id: string;
+  user_id: string;
+  user_name: string;
+  user_role: string;
+  content: string;
+  created_at: string;
+}
+
 interface Followup {
   id: string;
   prospect_id: string;
@@ -71,6 +80,7 @@ interface Followup {
   next_followup_note?: string;
   attachments: { id: string; url: string; file_name: string; file_size_bytes: number }[];
   created_at: string;
+  comments?: FollowupComment[];
 }
 
 interface HistoryLog {
@@ -119,6 +129,11 @@ export default function ProspectDetailPage({ params }: Props) {
   const [units, setUnits] = useState<Unit[]>([]);
   const [documents, setDocuments] = useState<Document[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // States for Followup Details and Comment Thread Modal
+  const [selectedFollowupForModal, setSelectedFollowupForModal] = useState<Followup | null>(null);
+  const [newCommentText, setNewCommentText] = useState('');
+  const [isCommentSubmitting, setIsCommentSubmitting] = useState(false);
 
   // Follow-up Form state
   const [fuType, setFuType] = useState<'telepon' | 'whatsapp' | 'kunjungan' | 'email' | 'meeting' | 'video_call'>('whatsapp');
@@ -316,6 +331,44 @@ export default function ProspectDetailPage({ params }: Props) {
       }
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleAddFollowupComment = async (followupId: string) => {
+    if (!newCommentText.trim() || !user) return;
+    setIsCommentSubmitting(true);
+    try {
+      const res = await fetch('/api/crm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'add_followup_comment',
+          followup_id: followupId,
+          content: newCommentText,
+          actor_id: user.id
+        })
+      });
+      const result = await res.json();
+      if (result.success) {
+        const message = `User ${user.name} (${user.role}) mengomentari follow-up prospek *${prospect?.full_name}*: "${newCommentText.substring(0, 40)}${newCommentText.length > 40 ? '...' : ''}"`;
+        window.dispatchEvent(new CustomEvent('simulated-slack-webhook', {
+          detail: { timestamp: new Date().toLocaleTimeString('id-ID'), channel: 'marketing-notif', message }
+        }));
+        
+        setNewCommentText('');
+        const updatedFollowup = result.followup;
+        
+        // Update both local state list and local modal state
+        setFollowups(prev => prev.map(f => f.id === followupId ? updatedFollowup : f));
+        setSelectedFollowupForModal(updatedFollowup);
+        
+        // Refresh details (history, etc)
+        fetchDetails();
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsCommentSubmitting(false);
+    }
   };
 
   const formatBytes = (bytes: number) => {
@@ -660,11 +713,15 @@ export default function ProspectDetailPage({ params }: Props) {
                     ? followups.find(f => log.description.includes(f.followup_type) && new Date(f.created_at).getTime() - new Date(log.created_at).getTime() < 10000)
                     : null;
                   
+                  const commentFU = log.event_type === 'followup_comment_added' && log.metadata?.followup_id
+                    ? followups.find(f => f.id === log.metadata.followup_id)
+                    : null;
+                  
                   return (
                     <div key={log.id} className="flex gap-4 items-start relative text-xs">
                       {/* Timeline Dot */}
                       <div className="w-8 h-8 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 z-10 flex-shrink-0">
-                        {log.event_type === 'stage_changed' ? '🔄' : log.event_type === 'followup_added' ? '📸' : '🟢'}
+                        {log.event_type === 'stage_changed' ? '🔄' : log.event_type === 'followup_added' ? '📸' : log.event_type === 'followup_comment_added' ? '💬' : '🟢'}
                       </div>
                       
                       <div className="flex flex-col gap-1.5 bg-gray-50/50 border border-gray-200/50 p-4 rounded-xl flex-1 text-left">
@@ -699,6 +756,26 @@ export default function ProspectDetailPage({ params }: Props) {
                                 Rencana FU: {new Date(matchingFU.next_followup_at).toLocaleDateString('id-ID')} · {matchingFU.next_followup_note}
                               </div>
                             )}
+
+                            <div className="mt-2 pt-2 border-t border-gray-50 flex items-center justify-between">
+                              <button
+                                onClick={() => setSelectedFollowupForModal(matchingFU)}
+                                className="text-[10px] text-blue-600 hover:text-blue-800 font-bold flex items-center gap-1 hover:underline transition-all"
+                              >
+                                💬 Lihat Diskusi Thread & Komentar ({matchingFU.comments?.length || 0})
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        {commentFU && (
+                          <div className="mt-2 pt-2 border-t border-gray-50 flex items-center justify-between">
+                            <button
+                              onClick={() => setSelectedFollowupForModal(commentFU)}
+                              className="text-[10px] text-blue-600 hover:text-blue-800 font-bold flex items-center gap-1 hover:underline transition-all"
+                            >
+                              💬 Buka Thread Diskusi Follow-up
+                            </button>
                           </div>
                         )}
                       </div>
@@ -762,6 +839,172 @@ export default function ProspectDetailPage({ params }: Props) {
               >
                 <X size={20} />
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* DETAIL FOLLOW-UP & THREAD DISCUSSION MODAL */}
+        {selectedFollowupForModal && (
+          <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white max-w-2xl w-full rounded-2xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden">
+              {/* Modal Header */}
+              <div className="flex justify-between items-center border-b border-gray-100 px-6 py-4 bg-gray-50/50">
+                <div className="flex flex-col text-left">
+                  <h3 className="font-extrabold text-base text-gray-950 flex items-center gap-2">
+                    💬 Thread Diskusi Follow-up
+                  </h3>
+                  <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-0.5">
+                    Prospek: {prospect.full_name} · Tipe: {selectedFollowupForModal.followup_type.toUpperCase()}
+                  </span>
+                </div>
+                <button 
+                  onClick={() => {
+                    setSelectedFollowupForModal(null);
+                    setNewCommentText('');
+                  }}
+                  className="p-1 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-gray-900 transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Modal Content */}
+              <div className="p-6 overflow-y-auto flex flex-col gap-6 text-xs font-semibold">
+                {/* Follow-up Main Card */}
+                <div className="bg-slate-50 border border-slate-100 p-4 rounded-xl flex flex-col gap-3 text-left">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Detail Record Follow-up</span>
+                    <span className="text-[10px] text-gray-400 font-medium">
+                      {new Date(selectedFollowupForModal.followup_at).toLocaleDateString('id-ID')} · {new Date(selectedFollowupForModal.followup_at).toLocaleTimeString('id-ID')}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-b border-slate-200/60 pb-3">
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Dilakukan Oleh</span>
+                      <span className="text-gray-800 font-bold">
+                        {selectedFollowupForModal.conducted_by === 'usr-sales' ? 'Rina Wijaya (Sales)' : selectedFollowupForModal.conducted_by === 'usr-manager' ? 'Budi Purnomo (Manager)' : selectedFollowupForModal.conducted_by}
+                      </span>
+                    </div>
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Respon Prospek</span>
+                      <span className="text-gray-800 font-bold capitalize">
+                        {selectedFollowupForModal.prospect_response.replace('_', ' ')}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-1.5 mt-1">
+                    <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Catatan Hasil Follow-up</span>
+                    <p className="text-gray-700 font-medium whitespace-pre-wrap bg-white border border-slate-100 p-3 rounded-lg leading-relaxed">
+                      {selectedFollowupForModal.notes}
+                    </p>
+                  </div>
+
+                  {selectedFollowupForModal.attachments && selectedFollowupForModal.attachments.length > 0 && (
+                    <div className="flex flex-col gap-1.5 mt-1">
+                      <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Dokumentasi</span>
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        {selectedFollowupForModal.attachments.map((att) => (
+                          <div 
+                            key={att.id}
+                            onClick={() => setLightboxImg(att.url)}
+                            className="w-16 h-16 border rounded-lg overflow-hidden cursor-zoom-in relative group bg-white flex-shrink-0"
+                          >
+                            <img src={att.url} className="w-full h-full object-cover" alt="att" />
+                            <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+                              <Eye size={14} />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedFollowupForModal.next_followup_at && (
+                    <div className="text-[10px] text-indigo-700 font-bold bg-indigo-50 border border-indigo-100 px-3 py-2 rounded-lg mt-1">
+                      Rencana Follow-up Berikutnya: {new Date(selectedFollowupForModal.next_followup_at).toLocaleDateString('id-ID')} · {selectedFollowupForModal.next_followup_note}
+                    </div>
+                  )}
+                </div>
+
+                {/* Comment Section Header */}
+                <div className="border-t border-gray-100 pt-4 flex flex-col gap-4 text-left">
+                  <h4 className="font-extrabold text-sm text-gray-950 flex items-center gap-1.5">
+                    💬 Diskusi Thread ({selectedFollowupForModal.comments?.length || 0})
+                  </h4>
+
+                  {/* Comments List */}
+                  <div className="flex flex-col gap-4 max-h-[30vh] overflow-y-auto pr-1 no-scrollbar">
+                    {selectedFollowupForModal.comments && selectedFollowupForModal.comments.length > 0 ? (
+                      selectedFollowupForModal.comments.map((comment) => (
+                        <div key={comment.id} className="flex gap-3 items-start relative text-xs">
+                          {/* Avatar Initials */}
+                          <div className="w-7 h-7 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-700 font-bold text-[10px] flex-shrink-0">
+                            {comment.user_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                          </div>
+
+                          <div className="flex flex-col gap-1 bg-slate-50 border border-slate-100/80 px-3.5 py-2.5 rounded-2xl flex-1">
+                            <div className="flex justify-between items-center gap-2">
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-extrabold text-gray-950">{comment.user_name}</span>
+                                <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase ${
+                                  comment.user_role === 'manager' 
+                                    ? 'bg-purple-100 text-purple-700 border border-purple-200' 
+                                    : comment.user_role === 'admin' 
+                                    ? 'bg-red-100 text-red-700 border border-red-200' 
+                                    : 'bg-gray-100 text-gray-700 border border-gray-200'
+                                }`}>
+                                  {comment.user_role}
+                                </span>
+                              </div>
+                              <span className="text-[9px] text-gray-400 font-medium">
+                                {new Date(comment.created_at).toLocaleDateString('id-ID')} {new Date(comment.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
+                            <p className="text-gray-700 font-medium leading-relaxed mt-1">{comment.content}</p>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-6 border border-dashed border-gray-100 rounded-xl text-gray-400 italic text-[11px]">
+                        Belum ada tanggapan atau komentar dari manager/admin.
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Add Comment Form */}
+                  <div className="border-t border-gray-100 pt-4 flex flex-col gap-3">
+                    {user?.role === 'manager' || user?.role === 'admin' ? (
+                      <div className="flex flex-col gap-2">
+                        <label className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">
+                          Berikan Tanggapan (sebagai {user.role})
+                        </label>
+                        <div className="flex gap-2">
+                          <textarea
+                            placeholder="Tuliskan komentar, instruksi, atau arahan untuk sales..."
+                            value={newCommentText}
+                            onChange={(e) => setNewCommentText(e.target.value)}
+                            rows={2}
+                            className="flex-1 px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 font-medium resize-none text-xs"
+                          />
+                          <button
+                            onClick={() => handleAddFollowupComment(selectedFollowupForModal.id)}
+                            disabled={isCommentSubmitting || !newCommentText.trim()}
+                            className="px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-gray-300 disabled:to-gray-400 text-white rounded-xl font-bold transition-all flex items-center justify-center text-xs shadow-md"
+                          >
+                            {isCommentSubmitting ? '...' : 'KIRIM'}
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-3 bg-amber-50 border border-amber-100 rounded-xl text-amber-800 text-[11px] font-medium leading-relaxed">
+                        Hanya akun bertipe <strong>Manager</strong> atau <strong>Admin</strong> yang memiliki otoritas untuk memberikan tanggapan / komentar pada follow-up ini.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )}

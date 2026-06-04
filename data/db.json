@@ -10,7 +10,7 @@
       "join_date": "2024-01-15",
       "annual_leave_balance": 12,
       "is_active": true,
-      "created_at": "2026-06-04T10:00:12.586Z"
+      "created_at": "2026-06-04T10:09:00.026Z"
     },
     {
       "id": "usr-manager",
@@ -22,7 +22,7 @@
       "join_date": "2024-02-10",
       "annual_leave_balance": 10,
       "is_active": true,
-      "created_at": "2026-06-04T10:00:12.586Z"
+      "created_at": "2026-06-04T10:09:00.026Z"
     },
     {
       "id": "usr-finance",
@@ -34,7 +34,7 @@
       "join_date": "2024-03-01",
       "annual_leave_balance": 12,
       "is_active": true,
-      "created_at": "2026-06-04T10:00:12.586Z"
+      "created_at": "2026-06-04T10:09:00.026Z"
     },
     {
       "id": "usr-sales",
@@ -46,7 +46,7 @@
       "join_date": "2024-04-01",
       "annual_leave_balance": 12,
       "is_active": true,
-      "created_at": "2026-06-04T10:00:12.586Z"
+      "created_at": "2026-06-04T10:09:00.026Z"
     },
     {
       "id": "usr-staff",
@@ -58,7 +58,7 @@
       "join_date": "2024-05-01",
       "annual_leave_balance": 12,
       "is_active": true,
-      "created_at": "2026-06-04T10:00:12.586Z"
+      "created_at": "2026-06-04T10:09:00.026Z"
     }
   ],
   "clusters": [
@@ -70,7 +70,7 @@
       "total_units": 30,
       "status": "active",
       "created_by": "usr-admin",
-      "created_at": "2026-06-04T10:00:12.586Z"
+      "created_at": "2026-06-04T10:09:00.026Z"
     },
     {
       "id": "cls-anggrek",
@@ -80,7 +80,7 @@
       "total_units": 20,
       "status": "active",
       "created_by": "usr-admin",
-      "created_at": "2026-06-04T10:00:12.586Z"
+      "created_at": "2026-06-04T10:09:00.026Z"
     }
   ],
   "unitTypes": [
@@ -139,7 +139,7 @@
       "sell_price": 475000000,
       "orientation": "hook",
       "status": "available",
-      "updated_at": "2026-06-04T10:00:12.586Z"
+      "updated_at": "2026-06-04T10:09:00.026Z"
     },
     {
       "id": "unt-m02",
@@ -149,7 +149,7 @@
       "sell_price": 450000000,
       "orientation": "middle",
       "status": "available",
-      "updated_at": "2026-06-04T10:00:12.586Z"
+      "updated_at": "2026-06-04T10:09:00.026Z"
     },
     {
       "id": "unt-m03",
@@ -160,7 +160,7 @@
       "orientation": "middle",
       "status": "reserved",
       "reserved_for": "pr-02",
-      "updated_at": "2026-06-04T10:00:12.586Z"
+      "updated_at": "2026-06-04T10:09:00.026Z"
     },
     {
       "id": "unt-m04",
@@ -171,7 +171,7 @@
       "orientation": "corner",
       "status": "booking",
       "reserved_for": "pr-03",
-      "updated_at": "2026-06-04T10:00:12.586Z"
+      "updated_at": "2026-06-04T10:09:00.026Z"
     },
     {
       "id": "unt-m05",
@@ -186,7 +186,7 @@
       "akad_date": "2026-06-18",
       "loan_amount": 450000000,
       "interest_rate": 5.75,
-      "updated_at": "2026-06-04T10:00:12.586Z"
+      "updated_at": "2026-06-04T10:09:00.026Z"
     },
     {
       "id": "unt-m06",
@@ -201,7 +201,7 @@
       "akad_date": "2026-05-24",
       "loan_amount": 480000000,
       "interest_rate": 6.25,
-      "updated_at": "2026-06-04T10:00:12.586Z"
+      "updated_at": "2026-06-04T10:09:00.026Z"
     },
     {
       "id": "unt-a01",
@@ -216,7 +216,7 @@
       "akad_date": "2026-06-25",
       "loan_amount": 750000000,
       "interest_rate": 6.5,
-      "updated_at": "2026-06-04T10:00:12.586Z"
+      "updated_at": "2026-06-04T10:09:00.026Z"
     },
     {
       "id": "unt-a02",
@@ -231,7 +231,7 @@
       "akad_date": "2026-05-15",
       "loan_amount": 700000000,
       "interest_rate": 5.9,
-      "updated_at": "2026-06-04T10:00:12.586Z"
+      "updated_at": "2026-06-04T10:09:00.026Z"
     }
   ],
   "unitHistory": [
@@ -243,7 +243,7 @@
       "changed_by": "usr-sales",
       "prospect_id": "pr-02",
       "notes": "Bapak Hendra tertarik setelah survei unit Melati A-03.",
-      "created_at": "2026-06-01T10:00:12.586Z"
+      "created_at": "2026-06-01T10:09:00.026Z"
     },
     {
       "id": "uh-2",
@@ -253,7 +253,7 @@
       "changed_by": "usr-sales",
       "prospect_id": "pr-03",
       "notes": "Booking fee sebesar Rp 5.000.000 terverifikasi.",
-      "created_at": "2026-05-30T10:00:12.586Z"
+      "created_at": "2026-05-30T10:09:00.026Z"
     }
   ],
   "prospects": [
@@ -276,7 +276,7 @@
       ],
       "notes": "Tanya brosur tipe 36 via DM Instagram.",
       "created_by": "usr-sales",
-      "created_at": "2026-05-25T10:00:12.586Z"
+      "created_at": "2026-05-25T10:09:00.026Z"
     },
     {
       "id": "pr-02",
@@ -295,9 +295,9 @@
         "KPR Mandiri"
       ],
       "notes": "Sudah survei lokasi dan suka layout hook.",
-      "last_followup_at": "2026-06-03T10:00:12.586Z",
+      "last_followup_at": "2026-06-03T10:09:00.026Z",
       "created_by": "usr-sales",
-      "created_at": "2026-05-28T10:00:12.586Z"
+      "created_at": "2026-05-28T10:09:00.026Z"
     },
     {
       "id": "pr-03",
@@ -317,9 +317,9 @@
         "cash keras"
       ],
       "notes": "Mengirimkan booking fee unit A-04.",
-      "last_followup_at": "2026-06-02T10:00:12.586Z",
+      "last_followup_at": "2026-06-02T10:09:00.026Z",
       "created_by": "usr-sales",
-      "created_at": "2026-05-27T10:00:12.586Z",
+      "created_at": "2026-05-27T10:09:00.026Z",
       "attachments": [
         {
           "id": "da-01",
@@ -354,9 +354,9 @@
         "premium"
       ],
       "notes": "Proses appraisal bank untuk unit B-01.",
-      "last_followup_at": "2026-05-31T10:00:12.586Z",
+      "last_followup_at": "2026-05-31T10:09:00.026Z",
       "created_by": "usr-sales",
-      "created_at": "2026-05-20T10:00:12.586Z",
+      "created_at": "2026-05-20T10:09:00.026Z",
       "attachments": [
         {
           "id": "da-03",
@@ -389,9 +389,9 @@
         "cash bertahap"
       ],
       "notes": "Akad PPJB dijadwalkan minggu ini.",
-      "last_followup_at": "2026-05-30T10:00:12.587Z",
+      "last_followup_at": "2026-05-30T10:09:00.026Z",
       "created_by": "usr-sales",
-      "created_at": "2026-05-15T10:00:12.587Z",
+      "created_at": "2026-05-15T10:09:00.026Z",
       "attachments": [
         {
           "id": "da-05",
@@ -421,7 +421,7 @@
       ],
       "notes": "KPR disetujui oleh BCA, menunggu jadwal akad.",
       "created_by": "usr-sales",
-      "created_at": "2026-05-23T10:00:12.587Z",
+      "created_at": "2026-05-23T10:09:00.026Z",
       "attachments": [
         {
           "id": "da-06",
@@ -463,7 +463,7 @@
       ],
       "notes": "Berkas PPJB dan Akad Kredit Mandiri selesai.",
       "created_by": "usr-sales",
-      "created_at": "2026-05-10T10:00:12.587Z",
+      "created_at": "2026-05-10T10:09:00.026Z",
       "attachments": [
         {
           "id": "da-09",
@@ -486,10 +486,10 @@
       "prospect_id": "pr-02",
       "conducted_by": "usr-sales",
       "followup_type": "kunjungan",
-      "followup_at": "2026-06-03T10:00:12.587Z",
+      "followup_at": "2026-06-03T10:09:00.027Z",
       "notes": "Bapak Hendra survei unit B-08, suka karena hook.",
       "prospect_response": "very_interested",
-      "next_followup_at": "2026-06-06T10:00:12.587Z",
+      "next_followup_at": "2026-06-06T10:09:00.027Z",
       "next_followup_note": "Kirim simulasi KPR BCA",
       "attachments": [
         {
@@ -499,18 +499,28 @@
           "file_size_bytes": 1200000
         }
       ],
-      "created_at": "2026-06-03T10:00:12.587Z"
+      "created_at": "2026-06-03T10:09:00.027Z",
+      "comments": [
+        {
+          "id": "cm-01",
+          "user_id": "usr-manager",
+          "user_name": "Budi Purnomo",
+          "user_role": "manager",
+          "content": "Lokasi B-08 memang sangat bagus dan diminati. Segera tindak lanjuti untuk penawaran KPR.",
+          "created_at": "2026-06-03T22:09:00.027Z"
+        }
+      ]
     },
     {
       "id": "fl-2",
       "prospect_id": "pr-02",
       "conducted_by": "usr-sales",
       "followup_type": "telepon",
-      "followup_at": "2026-05-31T10:00:12.587Z",
+      "followup_at": "2026-05-31T10:09:00.027Z",
       "notes": "Sudah dihubungi, mau survei hari Senin.",
       "prospect_response": "interested",
       "attachments": [],
-      "created_at": "2026-05-31T10:00:12.587Z"
+      "created_at": "2026-05-31T10:09:00.027Z"
     }
   ],
   "prospectHistory": [
@@ -520,7 +530,7 @@
       "event_type": "prospect_created",
       "actor_id": "usr-sales",
       "description": "Prospek dibuat · Sumber: Walk-in",
-      "created_at": "2026-05-28T10:00:12.587Z"
+      "created_at": "2026-05-28T10:09:00.027Z"
     },
     {
       "id": "ph-2",
@@ -532,7 +542,7 @@
         "to": "survei"
       },
       "description": "Stage berubah: Prospect Baru → Survei Lokasi",
-      "created_at": "2026-05-31T10:00:12.587Z"
+      "created_at": "2026-05-31T10:09:00.027Z"
     },
     {
       "id": "ph-3",
@@ -543,7 +553,7 @@
         "unit_id": "unt-m03"
       },
       "description": "Unit Melati A-03 di-reserve untuk prospek ini",
-      "created_at": "2026-06-01T10:00:12.587Z"
+      "created_at": "2026-06-01T10:09:00.027Z"
     }
   ],
   "tasks": [
@@ -561,11 +571,11 @@
           "id": "com-1",
           "user_id": "usr-manager",
           "content": "Lead ini potensial dari ad campaign.",
-          "created_at": "2026-06-04T10:00:12.587Z"
+          "created_at": "2026-06-04T10:09:00.027Z"
         }
       ],
-      "created_at": "2026-06-04T10:00:12.587Z",
-      "updated_at": "2026-06-04T10:00:12.587Z"
+      "created_at": "2026-06-04T10:09:00.027Z",
+      "updated_at": "2026-06-04T10:09:00.027Z"
     },
     {
       "id": "tsk-2",
@@ -577,8 +587,8 @@
       "status": "in_progress",
       "due_date": "2026-06-07",
       "comments": [],
-      "created_at": "2026-06-04T10:00:12.587Z",
-      "updated_at": "2026-06-04T10:00:12.587Z"
+      "created_at": "2026-06-04T10:09:00.027Z",
+      "updated_at": "2026-06-04T10:09:00.027Z"
     }
   ],
   "attendance": [
@@ -608,7 +618,7 @@
       "total_days": 3,
       "reason": "Acara keluarga di luar kota.",
       "status": "pending",
-      "created_at": "2026-06-04T10:00:12.587Z"
+      "created_at": "2026-06-04T10:09:00.027Z"
     }
   ],
   "approvalTemplates": [
@@ -662,8 +672,8 @@
       "doc_token": "d8c8942a781b4d8bb8fe11ad50ccfe01",
       "requester_id": "usr-sales",
       "status": "approved",
-      "created_at": "2026-05-30T10:00:12.587Z",
-      "approved_at": "2026-05-31T10:00:12.587Z",
+      "created_at": "2026-05-30T10:09:00.027Z",
+      "approved_at": "2026-05-31T10:09:00.027Z",
       "data": {
         "prospect_id": "pr-03",
         "client_name": "Siti Rahma",
@@ -692,7 +702,7 @@
           "role": "Keuangan",
           "status": "approved",
           "decided_by": "usr-finance",
-          "decided_at": "2026-05-30T22:00:12.587Z",
+          "decided_at": "2026-05-30T22:09:00.027Z",
           "remarks": "Berkas sesuai."
         },
         {
@@ -700,7 +710,7 @@
           "role": "manager",
           "status": "approved",
           "decided_by": "usr-manager",
-          "decided_at": "2026-05-31T10:00:12.587Z",
+          "decided_at": "2026-05-31T10:09:00.027Z",
           "remarks": "Approved."
         }
       ]
@@ -719,7 +729,7 @@
         "admin"
       ],
       "created_by": "usr-admin",
-      "created_at": "2026-06-04T10:00:12.587Z",
+      "created_at": "2026-06-04T10:09:00.027Z",
       "blocks": [
         {
           "id": "b1",
@@ -785,7 +795,7 @@
         "admin"
       ],
       "created_by": "usr-admin",
-      "created_at": "2026-06-04T10:00:12.587Z",
+      "created_at": "2026-06-04T10:09:00.027Z",
       "blocks": [
         {
           "id": "b1",
@@ -854,7 +864,7 @@
         "admin"
       ],
       "created_by": "usr-admin",
-      "created_at": "2026-06-04T10:00:12.587Z",
+      "created_at": "2026-06-04T10:09:00.027Z",
       "blocks": [
         {
           "id": "b1",
@@ -918,7 +928,7 @@
       "user_id": "usr-admin",
       "action": "system.seed",
       "entity_type": "system",
-      "created_at": "2026-06-04T10:00:12.587Z"
+      "created_at": "2026-06-04T10:09:00.027Z"
     }
   ],
   "settings": {

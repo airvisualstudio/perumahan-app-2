@@ -218,6 +218,46 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, prospect });
     }
 
+    if (action === 'add_followup_comment') {
+      const { followup_id, content, actor_id } = body;
+      const followup = data.followups.find(f => f.id === followup_id);
+      if (!followup) {
+        return NextResponse.json({ success: false, error: 'Followup not found' }, { status: 444 });
+      }
+
+      const actor = data.users.find(u => u.id === actor_id);
+      if (!actor) {
+        return NextResponse.json({ success: false, error: 'User not found' }, { status: 444 });
+      }
+
+      if (!followup.comments) {
+        followup.comments = [];
+      }
+
+      const newComment = {
+        id: 'cm-' + Math.random().toString(36).substr(2, 9),
+        user_id: actor.id,
+        user_name: actor.name,
+        user_role: actor.role,
+        content,
+        created_at: new Date().toISOString()
+      };
+
+      followup.comments.push(newComment);
+
+      data.prospectHistory.unshift({
+        id: 'ph-' + Math.random().toString(36).substr(2, 9),
+        prospect_id: followup.prospect_id,
+        event_type: 'followup_comment_added',
+        actor_id,
+        description: `${actor.name} (${actor.role}) mengomentari follow-up: "${content.substring(0, 30)}${content.length > 30 ? '...' : ''}"`,
+        created_at: new Date().toISOString()
+      });
+
+      db.save(data);
+      return NextResponse.json({ success: true, followup });
+    }
+
     return NextResponse.json({ success: false, error: 'Unknown action' }, { status: 400 });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
