@@ -47,6 +47,16 @@ interface Prospect {
   notes?: string;
   last_followup_at?: string;
   created_at: string;
+  attachments?: { id: string; url: string; file_name: string; file_size_bytes: number }[];
+}
+
+interface Document {
+  id: string;
+  doc_type: string;
+  doc_number: string;
+  status: string;
+  created_at: string;
+  data: any;
 }
 
 interface Followup {
@@ -107,6 +117,7 @@ export default function ProspectDetailPage({ params }: Props) {
   const [history, setHistory] = useState<HistoryLog[]>([]);
   const [clusters, setClusters] = useState<Cluster[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
+  const [documents, setDocuments] = useState<Document[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Follow-up Form state
@@ -150,6 +161,17 @@ export default function ProspectDetailPage({ params }: Props) {
       
       setFollowups(filteredFUs);
       setHistory(filteredHist);
+
+      // Fetch and filter official documents
+      const docsRes = await fetch(`/api/documents`);
+      const docsJson = await docsRes.json();
+      if (docsJson.success) {
+        const filteredDocs = (docsJson.documents || []).filter(
+          (doc: any) => doc.data?.prospect_id === prospectId
+        );
+        setDocuments(filteredDocs);
+      }
+
       setIsLoading(false);
     } catch (error) {
       console.error(error);
@@ -260,6 +282,50 @@ export default function ProspectDetailPage({ params }: Props) {
     }
   };
 
+  const handleUploadDossier = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !prospect) return;
+
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      try {
+        const res = await fetch('/api/crm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'add_prospect_attachment',
+            prospect_id: prospect.id,
+            attachment: {
+              url: reader.result as string,
+              file_name: file.name,
+              file_size_bytes: file.size
+            },
+            actor_id: user?.id
+          })
+        });
+        const result = await res.json();
+        if (result.success) {
+          const message = `Sales Rina Wijaya mengunggah berkas dokumen konsumen *${prospect.full_name}*: *${file.name}*`;
+          window.dispatchEvent(new CustomEvent('simulated-slack-webhook', {
+            detail: { timestamp: new Date().toLocaleTimeString('id-ID'), channel: 'marketing-notif', message }
+          }));
+          fetchDetails();
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const formatBytes = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+  };
+
   if (isLoading || !prospect) {
     return (
       <AppShell>
@@ -367,6 +433,97 @@ export default function ProspectDetailPage({ params }: Props) {
                     <span className="text-gray-800 font-bold">{selectedCluster?.name || '-'}</span>
                   </div>
                 </div>
+              </div>
+            </div>
+
+            {/* Dossier and Documents Card */}
+            <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm flex flex-col gap-5">
+              <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+                <h2 className="font-extrabold text-sm flex items-center gap-2">
+                  <Paperclip size={18} className="text-blue-600" />
+                  Berkas & Dokumen
+                </h2>
+                
+                {/* Upload Button */}
+                <label className="flex items-center gap-1.5 px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl cursor-pointer font-bold text-[10px] transition-colors border border-blue-100">
+                  <Plus size={12} />
+                  UNGGAH
+                  <input
+                    type="file"
+                    accept="image/*,application/pdf"
+                    onChange={handleUploadDossier}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+
+              {/* Dossier Files (Pre-seeded & Uploaded) */}
+              <div className="flex flex-col gap-3">
+                <h3 className="text-[10px] font-black uppercase text-gray-400 tracking-wider">Berkas Lampiran Konsumen</h3>
+                {prospect.attachments && prospect.attachments.length > 0 ? (
+                  <div className="flex flex-col gap-2">
+                    {prospect.attachments.map((att) => (
+                      <div 
+                        key={att.id}
+                        onClick={() => {
+                          if (att.url.startsWith('data:image') || att.url.includes('images.unsplash.com')) {
+                            setLightboxImg(att.url);
+                          } else {
+                            alert(`Membuka file: ${att.file_name}`);
+                          }
+                        }}
+                        className="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-100 hover:border-blue-200 hover:bg-blue-50/20 rounded-xl cursor-pointer transition-all"
+                      >
+                        <div className="flex items-center gap-2 truncate max-w-[80%]">
+                          <Paperclip size={14} className="text-slate-400 flex-shrink-0" />
+                          <span className="font-bold text-slate-700 text-[11px] truncate">{att.file_name}</span>
+                        </div>
+                        <span className="text-[9px] text-gray-400 font-bold flex-shrink-0">
+                          {formatBytes(att.file_size_bytes)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-4 border border-dashed border-gray-100 rounded-xl text-gray-400 italic text-[11px]">
+                    Belum ada berkas lampiran diunggah.
+                  </div>
+                )}
+              </div>
+
+              {/* Official Web Documents List */}
+              <div className="flex flex-col gap-3 border-t border-gray-100 pt-4">
+                <h3 className="text-[10px] font-black uppercase text-gray-400 tracking-wider">Dokumen Resmi Platform</h3>
+                {documents.length > 0 ? (
+                  <div className="flex flex-col gap-2">
+                    {documents.map((doc) => {
+                      let badgeColor = 'bg-gray-100 text-gray-700 border-gray-200';
+                      if (doc.status === 'approved') badgeColor = 'bg-green-50 text-green-700 border-green-100';
+                      else if (doc.status === 'pending_approval') badgeColor = 'bg-amber-50 text-amber-700 border-amber-100';
+                      else if (doc.status === 'rejected') badgeColor = 'bg-red-50 text-red-700 border-red-100';
+
+                      return (
+                        <Link
+                          key={doc.id}
+                          href={`/documents?docId=${doc.id}`}
+                          className="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-100 hover:border-blue-200 hover:bg-blue-50/20 rounded-xl transition-all"
+                        >
+                          <div className="flex flex-col text-left gap-0.5 truncate max-w-[65%]">
+                            <span className="font-bold text-slate-800 text-[11px] truncate">{doc.doc_number}</span>
+                            <span className="text-[9px] text-gray-400 font-bold">{doc.doc_type}</span>
+                          </div>
+                          <span className={`px-2 py-0.5 rounded border text-[8px] font-black uppercase flex-shrink-0 ${badgeColor}`}>
+                            {doc.status.replace('_', ' ')}
+                          </span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-center py-4 border border-dashed border-gray-100 rounded-xl text-gray-400 italic text-[11px]">
+                    Belum ada dokumen resmi dibuat.
+                  </div>
+                )}
               </div>
             </div>
           </div>

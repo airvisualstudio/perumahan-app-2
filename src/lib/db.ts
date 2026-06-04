@@ -56,6 +56,10 @@ export interface PropertyUnit {
   reserved_for?: string; // Prospect ID
   notes?: string;
   updated_at: string;
+  bank_name?: string;
+  akad_date?: string;
+  loan_amount?: number;
+  interest_rate?: number;
 }
 
 export interface UnitStatusHistory {
@@ -91,6 +95,7 @@ export interface Prospect {
   created_by: string;
   created_at: string;
   updated_at?: string;
+  attachments?: { id: string; url: string; file_name: string; file_size_bytes: number }[];
 }
 
 export interface FollowupRecord {
@@ -467,6 +472,36 @@ const generateSeedData = (): DatabaseSchema => {
       updated_at: new Date().toISOString()
     },
     {
+      id: 'unt-m05',
+      cluster_id: 'cls-melati',
+      unit_type_id: 'typ-melati-45',
+      block_number: 'A-05',
+      sell_price: 600000000,
+      orientation: 'middle',
+      status: 'kpr_process',
+      reserved_for: 'pr-06',
+      bank_name: 'Bank BCA',
+      akad_date: '2026-06-18',
+      loan_amount: 450000000,
+      interest_rate: 5.75,
+      updated_at: new Date().toISOString()
+    },
+    {
+      id: 'unt-m06',
+      cluster_id: 'cls-melati',
+      unit_type_id: 'typ-melati-45',
+      block_number: 'A-06',
+      sell_price: 600000000,
+      orientation: 'middle',
+      status: 'sold',
+      reserved_for: 'pr-07',
+      bank_name: 'Bank Mandiri',
+      akad_date: '2026-05-24',
+      loan_amount: 480000000,
+      interest_rate: 6.25,
+      updated_at: new Date().toISOString()
+    },
+    {
       id: 'unt-a01',
       cluster_id: 'cls-anggrek',
       unit_type_id: 'typ-anggrek-54',
@@ -475,6 +510,10 @@ const generateSeedData = (): DatabaseSchema => {
       orientation: 'hook',
       status: 'kpr_process',
       reserved_for: 'pr-04',
+      bank_name: 'Bank BTN',
+      akad_date: '2026-06-25',
+      loan_amount: 750000000,
+      interest_rate: 6.5,
       updated_at: new Date().toISOString()
     },
     {
@@ -486,6 +525,10 @@ const generateSeedData = (): DatabaseSchema => {
       orientation: 'middle',
       status: 'sold',
       reserved_for: 'pr-05',
+      bank_name: 'Bank BNI',
+      akad_date: '2026-05-15',
+      loan_amount: 700000000,
+      interest_rate: 5.9,
       updated_at: new Date().toISOString()
     }
   ];
@@ -569,7 +612,11 @@ const generateSeedData = (): DatabaseSchema => {
       notes: 'Mengirimkan booking fee unit A-04.',
       last_followup_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
       created_by: 'usr-sales',
-      created_at: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString()
+      created_at: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(),
+      attachments: [
+        { id: 'da-01', url: 'https://images.unsplash.com/photo-1554774853-aae0a22c8aa4?q=80&w=200', file_name: 'KTP_Siti_Rahma.pdf', file_size_bytes: 145000 },
+        { id: 'da-02', url: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?q=80&w=200', file_name: 'Bukti_Transfer_Booking.jpg', file_size_bytes: 284000 }
+      ]
     },
     {
       id: 'pr-04',
@@ -590,7 +637,11 @@ const generateSeedData = (): DatabaseSchema => {
       notes: 'Proses appraisal bank untuk unit B-01.',
       last_followup_at: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
       created_by: 'usr-sales',
-      created_at: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString()
+      created_at: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
+      attachments: [
+        { id: 'da-03', url: 'https://images.unsplash.com/photo-1554774853-aae0a22c8aa4?q=80&w=200', file_name: 'KTP_Dr_Gunawan.pdf', file_size_bytes: 156000 },
+        { id: 'da-04', url: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?q=80&w=200', file_name: 'Slip_Gaji_Klinik.pdf', file_size_bytes: 312000 }
+      ]
     },
     {
       id: 'pr-05',
@@ -609,7 +660,57 @@ const generateSeedData = (): DatabaseSchema => {
       notes: 'Akad PPJB dijadwalkan minggu ini.',
       last_followup_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
       created_by: 'usr-sales',
-      created_at: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString()
+      created_at: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(),
+      attachments: [
+        { id: 'da-05', url: 'https://images.unsplash.com/photo-1554774853-aae0a22c8aa4?q=80&w=200', file_name: 'KTP_Ibu_Ratna.pdf', file_size_bytes: 148000 }
+      ]
+    },
+    {
+      id: 'pr-06',
+      full_name: 'Rudi Hermawan',
+      phone: '081277778888',
+      email: 'rudi.hermawan@outlook.com',
+      occupation: 'Manager IT',
+      company_name: 'Solusi Digital PT',
+      estimated_income: 22000000,
+      lead_source: 'website',
+      pipeline_stage: 'kpr_process',
+      assigned_to: 'usr-sales',
+      interested_cluster_id: 'cls-melati',
+      interested_type_id: 'typ-melati-45',
+      booked_unit_id: 'unt-m05',
+      tags: ['premium', 'KPR BCA'],
+      notes: 'KPR disetujui oleh BCA, menunggu jadwal akad.',
+      created_by: 'usr-sales',
+      created_at: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString(),
+      attachments: [
+        { id: 'da-06', url: 'https://images.unsplash.com/photo-1554774853-aae0a22c8aa4?q=80&w=200', file_name: 'KTP_Rudi.pdf', file_size_bytes: 139000 },
+        { id: 'da-07', url: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?q=80&w=200', file_name: 'Slip_Gaji_Maret_Mei.pdf', file_size_bytes: 425000 },
+        { id: 'da-08', url: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?q=80&w=200', file_name: 'NPWP_Rudi.pdf', file_size_bytes: 198000 }
+      ]
+    },
+    {
+      id: 'pr-07',
+      full_name: 'Diana Putri',
+      phone: '081912345678',
+      email: 'diana.putri@gmail.com',
+      occupation: 'Arsitek',
+      company_name: 'Design Kreasi',
+      estimated_income: 18000000,
+      lead_source: 'instagram',
+      pipeline_stage: 'akad',
+      assigned_to: 'usr-sales',
+      interested_cluster_id: 'cls-melati',
+      interested_type_id: 'typ-melati-45',
+      booked_unit_id: 'unt-m06',
+      tags: ['cash keras', 'PPJB'],
+      notes: 'Berkas PPJB dan Akad Kredit Mandiri selesai.',
+      created_by: 'usr-sales',
+      created_at: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000).toISOString(),
+      attachments: [
+        { id: 'da-09', url: 'https://images.unsplash.com/photo-1554774853-aae0a22c8aa4?q=80&w=200', file_name: 'KTP_Diana.pdf', file_size_bytes: 142000 },
+        { id: 'da-10', url: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?q=80&w=200', file_name: 'Kwitansi_Akad_Lunas.pdf', file_size_bytes: 275000 }
+      ]
     }
   ];
 

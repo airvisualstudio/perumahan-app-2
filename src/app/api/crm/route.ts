@@ -150,7 +150,7 @@ export async function POST(request: Request) {
       unit.updated_at = new Date().toISOString();
       if (prospect_id) {
         unit.reserved_for = prospect_id;
-      } else if (new_status === 'available') {
+      } else {
         unit.reserved_for = undefined;
       }
 
@@ -183,6 +183,39 @@ export async function POST(request: Request) {
 
       db.save(data);
       return NextResponse.json({ success: true, unit });
+    }
+
+    if (action === 'add_prospect_attachment') {
+      const { prospect_id, attachment, actor_id } = body;
+      const prospect = data.prospects.find(p => p.id === prospect_id);
+      if (!prospect) {
+        return NextResponse.json({ success: false, error: 'Prospect not found' }, { status: 444 });
+      }
+
+      if (!prospect.attachments) {
+        prospect.attachments = [];
+      }
+
+      const newAttachment = {
+        id: 'att-' + Math.random().toString(36).substr(2, 9),
+        url: attachment.url,
+        file_name: attachment.file_name,
+        file_size_bytes: attachment.file_size_bytes
+      };
+
+      prospect.attachments.push(newAttachment);
+
+      data.prospectHistory.unshift({
+        id: 'ph-' + Math.random().toString(36).substr(2, 9),
+        prospect_id,
+        event_type: 'attachment_added',
+        actor_id,
+        description: `Mengunggah berkas dokumen: ${attachment.file_name}`,
+        created_at: new Date().toISOString()
+      });
+
+      db.save(data);
+      return NextResponse.json({ success: true, prospect });
     }
 
     return NextResponse.json({ success: false, error: 'Unknown action' }, { status: 400 });

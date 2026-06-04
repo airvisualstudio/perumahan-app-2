@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import AppShell from '@/components/AppShell';
+import KavlingMap from '@/components/KavlingMap';
 import { useAuth } from '@/context/AuthContext';
 import { 
   Home as HomeIcon, 
@@ -41,6 +42,10 @@ interface Unit {
   status: 'available' | 'reserved' | 'booking' | 'kpr_process' | 'sold' | 'unavailable';
   reserved_for?: string;
   notes?: string;
+  bank_name?: string;
+  akad_date?: string;
+  loan_amount?: number;
+  interest_rate?: number;
 }
 
 interface UnitType {
@@ -52,6 +57,7 @@ interface UnitType {
   base_price: number;
   bedrooms: number;
   bathrooms: number;
+  photos?: string[];
 }
 
 interface Prospect {
@@ -96,7 +102,7 @@ const pipelineStages = [
 ];
 
 export default function CRMModulePage() {
-  const { user } = useAuth();
+  const { user, availableUsers } = useAuth();
   const [draggedOverStage, setDraggedOverStage] = useState<string | null>(null);
 
   const handleDragStart = (e: React.DragEvent, prospectId: string) => {
@@ -152,6 +158,7 @@ export default function CRMModulePage() {
 
   // Tabs: 'units' | 'pipeline' | 'prospects'
   const [activeTab, setActiveTab] = useState<'units' | 'pipeline' | 'prospects'>('units');
+  const [viewMode, setViewMode] = useState<'grid' | 'map'>('map');
   
   const [clusters, setClusters] = useState<Cluster[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
@@ -259,35 +266,7 @@ export default function CRMModulePage() {
     }
   };
 
-  const handleUpdateUnitStatus = async () => {
-    if (!selectedUnit) return;
-    try {
-      const res = await fetch('/api/crm', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'update_unit_status',
-          unit_id: selectedUnit.id,
-          new_status: newStatus,
-          notes: editNotes,
-          actor_id: user?.id
-        })
-      });
-      const result = await res.json();
-      if (result.success) {
-        const message = `Unit Kavling Blok ${selectedUnit.block_number} diubah menjadi status ${newStatus} oleh ${user?.name}`;
-        window.dispatchEvent(new CustomEvent('simulated-slack-webhook', {
-          detail: { timestamp: new Date().toLocaleTimeString('id-ID'), channel: 'marketing-notif', message }
-        }));
 
-        setIsEditUnitOpen(false);
-        setSelectedUnit(null);
-        fetchData();
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
 
   // Helper to determine follow-up indicator color (PRD 2B)
   const getFollowupIndicator = (lastFUStr?: string) => {
@@ -378,19 +357,42 @@ export default function CRMModulePage() {
         {/* ==================== TAB 1: UNITS GRID ==================== */}
         {activeTab === 'units' && (
           <div className="flex flex-col gap-6">
-            {/* Cluster selectors */}
-            <div className="flex bg-gray-100 p-1 rounded-xl self-start gap-1">
-              {clusters.map((c) => (
+            {/* Toolbar: Cluster selectors & View Mode Toggle */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              {/* Cluster selectors */}
+              <div className="flex bg-gray-100 p-1 rounded-xl self-start gap-1">
+                {clusters.map((c) => (
+                  <button
+                    key={c.id}
+                    onClick={() => setActiveClusterId(c.id)}
+                    className={`px-4 py-2 rounded-lg font-bold text-xs transition-all ${
+                      activeClusterId === c.id ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-800'
+                    }`}
+                  >
+                    {c.name}
+                  </button>
+                ))}
+              </div>
+
+              {/* View Mode Toggle */}
+              <div className="flex bg-gray-100 p-1 rounded-xl self-start gap-1">
                 <button
-                  key={c.id}
-                  onClick={() => setActiveClusterId(c.id)}
+                  onClick={() => setViewMode('map')}
                   className={`px-4 py-2 rounded-lg font-bold text-xs transition-all ${
-                    activeClusterId === c.id ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-800'
+                    viewMode === 'map' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-800'
                   }`}
                 >
-                  {c.name}
+                  Peta Site Plan
                 </button>
-              ))}
+                <button
+                  onClick={() => setViewMode('grid')}
+                  className={`px-4 py-2 rounded-lg font-bold text-xs transition-all ${
+                    viewMode === 'grid' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-800'
+                  }`}
+                >
+                  Daftar Grid
+                </button>
+              </div>
             </div>
 
             {activeCluster && (
@@ -422,48 +424,63 @@ export default function CRMModulePage() {
               </div>
             )}
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              <AnimatePresence mode="popLayout">
-                {filteredUnits.map((unit) => {
-                  const config = statusConfig[unit.status];
-                  const type = unitTypes.find(t => t.id === unit.unit_type_id);
-                  return (
-                    <motion.div
-                      layout
-                      initial={{ opacity: 0, scale: 0.92 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.92 }}
-                      transition={{ duration: 0.2 }}
-                      key={unit.id}
-                      onClick={() => {
-                        setSelectedUnit(unit);
-                        setNewStatus(unit.status);
-                        setEditNotes('');
-                        setIsEditUnitOpen(true);
-                      }}
-                      className="border rounded-2xl p-4 bg-white cursor-pointer shadow-sm hover:shadow-md transition-all flex flex-col gap-2 border-gray-200 hover:-translate-y-0.5 premium-card"
-                    >
-                      <div className="flex justify-between items-center">
-                        <span className="font-extrabold text-lg text-gray-950">{unit.block_number}</span>
-                        {unit.orientation !== 'middle' && (
-                          <span className="text-[9px] font-bold bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded border border-amber-100 uppercase">
-                            {unit.orientation}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-[10px] text-gray-400 font-bold">{type?.name}</span>
-                        <span className="text-xs font-extrabold text-gray-800">{formatIDR(unit.sell_price)}</span>
-                      </div>
-                      <div className={`mt-2 py-1 px-2.5 rounded-lg border text-[10px] font-bold text-center flex items-center justify-center gap-1.5 ${config.color}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${config.dot}`}></span>
-                        {config.label}
-                      </div>
-                    </motion.div>
-                  );
-                })}
-              </AnimatePresence>
-            </div>
+            {viewMode === 'map' ? (
+              <KavlingMap
+                units={units}
+                unitTypes={unitTypes}
+                prospects={prospects}
+                activeClusterId={activeClusterId}
+                onUnitSelect={(unit) => {
+                  setSelectedUnit(unit);
+                  setNewStatus(unit.status);
+                  setEditNotes('');
+                  setIsEditUnitOpen(true);
+                }}
+              />
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                <AnimatePresence mode="popLayout">
+                  {filteredUnits.map((unit) => {
+                    const config = statusConfig[unit.status];
+                    const type = unitTypes.find(t => t.id === unit.unit_type_id);
+                    return (
+                      <motion.div
+                        layout
+                        initial={{ opacity: 0, scale: 0.92 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.92 }}
+                        transition={{ duration: 0.2 }}
+                        key={unit.id}
+                        onClick={() => {
+                          setSelectedUnit(unit);
+                          setNewStatus(unit.status);
+                          setEditNotes('');
+                          setIsEditUnitOpen(true);
+                        }}
+                        className="border rounded-2xl p-4 bg-white cursor-pointer shadow-sm hover:shadow-md transition-all flex flex-col gap-2 border-gray-200 hover:-translate-y-0.5 premium-card"
+                      >
+                        <div className="flex justify-between items-center">
+                          <span className="font-extrabold text-lg text-gray-950">{unit.block_number}</span>
+                          {unit.orientation !== 'middle' && (
+                            <span className="text-[9px] font-bold bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded border border-amber-100 uppercase">
+                              {unit.orientation}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-[10px] text-gray-400 font-bold">{type?.name}</span>
+                          <span className="text-xs font-extrabold text-gray-800">{formatIDR(unit.sell_price)}</span>
+                        </div>
+                        <div className={`mt-2 py-1 px-2.5 rounded-lg border text-[10px] font-bold text-center flex items-center justify-center gap-1.5 ${config.color}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${config.dot}`}></span>
+                          {config.label}
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </AnimatePresence>
+              </div>
+            )}
           </div>
         )}
 
@@ -788,79 +805,196 @@ export default function CRMModulePage() {
           </div>
         )}
 
-        {/* MODAL: EDIT UNIT STATUS */}
-        {isEditUnitOpen && selectedUnit && (
-          <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white max-w-md w-full rounded-2xl shadow-2xl p-6 flex flex-col gap-4 animate-scaleUp">
-              <div className="flex justify-between items-center border-b border-gray-100 pb-3">
-                <h3 className="font-extrabold text-lg flex items-center gap-2">
-                  <HomeIcon size={20} className="text-blue-600" />
-                  Kavling Blok {selectedUnit.block_number}
-                </h3>
-                <button 
-                  onClick={() => setIsEditUnitOpen(false)} 
-                  className="p-1 hover:bg-gray-100 rounded text-gray-500 text-xs font-bold"
-                >
-                  BATAL
-                </button>
-              </div>
+        {/* MODAL: DETAIL KAVLING */}
+        {isEditUnitOpen && selectedUnit && (() => {
+          const type = unitTypes.find(t => t.id === selectedUnit.unit_type_id);
+          const prospect = selectedUnit.reserved_for 
+            ? prospects.find(p => p.id === selectedUnit.reserved_for) 
+            : null;
+          const salesAgent = prospect 
+            ? availableUsers.find(u => u.id === prospect.assigned_to) 
+            : null;
+          const config = statusConfig[selectedUnit.status];
+          
+          return (
+            <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+              <div className="bg-white max-w-lg w-full rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] animate-scaleUp">
+                {/* Visual Header Image */}
+                {type?.photos && type.photos.length > 0 ? (
+                  <div className="w-full h-48 relative border-b border-gray-100">
+                    <img 
+                      src={type.photos[0]} 
+                      alt={type.name} 
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm border border-gray-200/50 py-1.5 px-3 rounded-full text-[10px] font-black tracking-widest uppercase shadow-md flex items-center gap-1.5">
+                      <span className={`w-2 h-2 rounded-full ${config.dot}`}></span>
+                      <span className="text-slate-800">{config.label}</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 flex justify-between items-center border-b border-gray-100">
+                    <h3 className="font-extrabold text-lg text-slate-800 flex items-center gap-2">
+                      <HomeIcon size={20} className="text-blue-600" />
+                      Detail Kavling Blok {selectedUnit.block_number}
+                    </h3>
+                    <div className={`py-1 px-2.5 rounded-lg border text-[10px] font-bold ${config.color}`}>
+                      {config.label}
+                    </div>
+                  </div>
+                )}
 
-              <div className="bg-blue-50/50 p-4 border border-blue-100 rounded-xl flex flex-col gap-2 text-xs">
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Tipe Unit:</span>
-                  <span className="font-bold text-gray-800">
-                    {unitTypes.find(t => t.id === selectedUnit.unit_type_id)?.name}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Harga Kavling:</span>
-                  <span className="font-extrabold text-blue-700">{formatIDR(selectedUnit.sell_price)}</span>
-                </div>
-              </div>
+                {/* Content body */}
+                <div className="p-6 overflow-y-auto flex flex-col gap-5 text-xs">
+                  {type?.photos && type.photos.length > 0 && (
+                    <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+                      <h3 className="font-extrabold text-lg text-slate-900">
+                        Kavling Blok {selectedUnit.block_number}
+                      </h3>
+                      <span className="text-[10px] font-bold bg-amber-50 text-amber-700 px-2 py-0.5 rounded border border-amber-100 uppercase">
+                        Kavling {selectedUnit.orientation}
+                      </span>
+                    </div>
+                  )}
 
-              {['admin', 'manager'].includes(user?.role || '') ? (
-                <div className="flex flex-col gap-3.5">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold text-gray-500">PILIH STATUS BARU</label>
-                    <select
-                      value={newStatus}
-                      onChange={(e) => setNewStatus(e.target.value)}
-                      className="px-3.5 py-2.5 border border-gray-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-blue-500"
-                    >
-                      {Object.entries(statusConfig).map(([key, value]) => (
-                        <option key={key} value={key}>{value.label}</option>
-                      ))}
-                    </select>
+                  {/* Section: Unit Specs */}
+                  <div className="grid grid-cols-2 gap-4 bg-slate-50/50 p-4 border border-slate-100 rounded-2xl">
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-gray-400 font-bold text-[9px] uppercase tracking-wider">Tipe Unit</span>
+                      <span className="font-extrabold text-slate-800 text-sm">{type?.name}</span>
+                    </div>
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-gray-400 font-bold text-[9px] uppercase tracking-wider">Harga Jual</span>
+                      <span className="font-black text-blue-600 text-sm">{formatIDR(selectedUnit.sell_price)}</span>
+                    </div>
+                    {type && (
+                      <>
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-gray-400 font-bold text-[9px] uppercase tracking-wider">Luas Bangunan / Tanah</span>
+                          <span className="font-bold text-slate-700">{type.building_area} m² / {type.land_area} m²</span>
+                        </div>
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-gray-400 font-bold text-[9px] uppercase tracking-wider">Spesifikasi</span>
+                          <span className="font-bold text-slate-700">{type.bedrooms} KT / {type.bathrooms} KM</span>
+                        </div>
+                      </>
+                    )}
                   </div>
 
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold text-gray-500">CATATAN PERUBAHAN</label>
-                    <textarea
-                      placeholder="Masukkan alasan perubahan status..."
-                      value={editNotes}
-                      onChange={(e) => setEditNotes(e.target.value)}
-                      rows={2}
-                      className="px-3.5 py-2.5 border border-gray-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-blue-500 resize-none"
-                    ></textarea>
-                  </div>
+                  {/* Section: Consumer info */}
+                  {prospect ? (
+                    <div className="flex flex-col gap-2.5 border-t border-gray-100 pt-4">
+                      <h4 className="font-extrabold text-slate-900 uppercase tracking-widest text-[9px] text-blue-600">Informasi Konsumen</h4>
+                      <div className="grid grid-cols-2 gap-3.5 bg-blue-50/20 p-4 border border-blue-100/30 rounded-2xl">
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-gray-400 font-bold text-[9px] uppercase tracking-wider">Nama Lengkap</span>
+                          <span className="font-extrabold text-slate-800">{prospect.full_name}</span>
+                        </div>
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-gray-400 font-bold text-[9px] uppercase tracking-wider">Telepon</span>
+                          <span className="font-bold text-slate-700">{prospect.phone}</span>
+                        </div>
+                        {prospect.email && (
+                          <div className="flex flex-col gap-0.5">
+                            <span className="text-gray-400 font-bold text-[9px] uppercase tracking-wider">Email</span>
+                            <span className="font-bold text-slate-700 truncate">{prospect.email}</span>
+                          </div>
+                        )}
+                        {prospect.occupation && (
+                          <div className="flex flex-col gap-0.5">
+                            <span className="text-gray-400 font-bold text-[9px] uppercase tracking-wider">Pekerjaan</span>
+                            <span className="font-bold text-slate-700">
+                              {prospect.occupation} {prospect.company_name ? `di ${prospect.company_name}` : ''}
+                            </span>
+                          </div>
+                        )}
+                        <div className="flex flex-col gap-0.5 col-span-2 border-t border-blue-100/10 pt-2 mt-1">
+                          <span className="text-gray-400 font-bold text-[9px] uppercase tracking-wider">Status Pipeline</span>
+                          <span className="font-black text-indigo-600 uppercase tracking-wide text-[10px]">
+                            {prospect.pipeline_stage.replace('_', ' ')}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-4 border border-dashed border-gray-200 rounded-2xl text-gray-400 font-semibold italic">
+                      Kavling ini belum dihubungkan dengan konsumen (Status Available).
+                    </div>
+                  )}
 
+                  {/* Section: Sales Agent */}
+                  {salesAgent && (
+                    <div className="flex flex-col gap-2.5 border-t border-gray-100 pt-4">
+                      <h4 className="font-extrabold text-slate-900 uppercase tracking-widest text-[9px] text-teal-600">Sales Yang Menangani</h4>
+                      <div className="flex items-center gap-3 bg-teal-50/20 p-4 border border-teal-100/30 rounded-2xl">
+                        <div className="w-9 h-9 rounded-full bg-teal-50 border border-teal-100 flex items-center justify-center text-teal-700 font-black text-sm uppercase">
+                          {salesAgent.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="font-extrabold text-slate-800 text-sm">{salesAgent.name}</span>
+                          <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wide">
+                            {salesAgent.role} · {salesAgent.department}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Section: Mortgage (KPR / Akad) details */}
+                  {['kpr_process', 'sold'].includes(selectedUnit.status) && selectedUnit.bank_name && (
+                    <div className="flex flex-col gap-2.5 border-t border-gray-100 pt-4">
+                      <h4 className="font-extrabold text-slate-900 uppercase tracking-widest text-[9px] text-orange-600">
+                        Detail Akad & KPR Bank
+                      </h4>
+                      <div className="grid grid-cols-2 gap-3.5 bg-orange-50/20 p-4 border border-orange-100/30 rounded-2xl">
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-gray-400 font-bold text-[9px] uppercase tracking-wider">Bank Akad</span>
+                          <span className="font-black text-slate-800">{selectedUnit.bank_name}</span>
+                        </div>
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-gray-400 font-bold text-[9px] uppercase tracking-wider">Tanggal Akad</span>
+                          <span className="font-extrabold text-slate-700">{selectedUnit.akad_date}</span>
+                        </div>
+                        {selectedUnit.loan_amount && (
+                          <div className="flex flex-col gap-0.5">
+                            <span className="text-gray-400 font-bold text-[9px] uppercase tracking-wider">Jumlah Pinjaman (Plafond)</span>
+                            <span className="font-extrabold text-orange-600">{formatIDR(selectedUnit.loan_amount)}</span>
+                          </div>
+                        )}
+                        {selectedUnit.interest_rate && (
+                          <div className="flex flex-col gap-0.5">
+                            <span className="text-gray-400 font-bold text-[9px] uppercase tracking-wider">Suku Bunga KPR</span>
+                            <span className="font-bold text-slate-700">{selectedUnit.interest_rate} %</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Section: Notes */}
+                  {selectedUnit.notes && (
+                    <div className="flex flex-col gap-1.5 border-t border-gray-100 pt-4">
+                      <span className="text-gray-400 font-bold text-[9px] uppercase tracking-wider">Catatan Unit</span>
+                      <p className="text-slate-600 font-semibold bg-gray-50 p-3 rounded-xl border border-gray-100 leading-relaxed">
+                        {selectedUnit.notes}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Footer action button */}
+                <div className="bg-slate-50 border-t border-gray-100 p-4 flex justify-end">
                   <button
-                    onClick={handleUpdateUnitStatus}
-                    className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-bold text-xs shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-1.5"
+                    onClick={() => setIsEditUnitOpen(false)}
+                    className="px-5 py-2.5 bg-slate-900 text-white font-bold text-xs rounded-xl shadow-md hover:bg-slate-800 transition-colors uppercase tracking-wider"
                   >
-                    <Check size={16} />
-                    SIMPAN PERUBAHAN
+                    Tutup Detail
                   </button>
                 </div>
-              ) : (
-                <div className="text-center py-4 text-xs text-gray-500 flex flex-col items-center gap-2 border border-dashed border-gray-200 rounded-xl">
-                  <Info size={16} className="text-gray-400" />
-                  <span>Akses level Manager / Admin diperlukan untuk mengubah status unit.</span>
-                </div>
-              )}
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
       </div>
     </AppShell>
