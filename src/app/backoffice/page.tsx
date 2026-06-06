@@ -33,6 +33,9 @@ import {
   Home,
 } from 'lucide-react';
 import { DocumentTemplate, DocumentTemplateBlock, TemplateBlockType } from '@/lib/db';
+import dynamic from 'next/dynamic';
+
+const MapPicker = dynamic(() => import('@/components/MapPicker'), { ssr: false });
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -1234,6 +1237,19 @@ export default function BackofficePage() {
                       value={officeRadius} 
                       onChange={e => setOfficeRadius(Number(e.target.value))}
                       className="px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 font-medium" 
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-gray-400 uppercase tracking-wider text-[9px]">Titik Lokasi Kantor & Radius Geofence (Klik/Geser Pin)</label>
+                    <MapPicker 
+                      latitude={officeLat} 
+                      longitude={officeLng} 
+                      radius={officeRadius} 
+                      onChange={(lat, lng) => {
+                        setOfficeLat(Number(lat.toFixed(6)));
+                        setOfficeLng(Number(lng.toFixed(6)));
+                      }}
                     />
                   </div>
 
