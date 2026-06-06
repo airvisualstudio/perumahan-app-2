@@ -114,7 +114,6 @@ export async function POST(request: Request) {
       const { template_id } = body;
       const tpl = data.documentTemplates.find(t => t.id === template_id);
       if (!tpl) return NextResponse.json({ success: false, error: 'Template not found' }, { status: 404 });
-      if (tpl.is_builtin) return NextResponse.json({ success: false, error: 'Built-in templates cannot be deleted' }, { status: 403 });
 
       data.documentTemplates = data.documentTemplates.filter(t => t.id !== template_id);
 

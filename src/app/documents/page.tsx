@@ -14,7 +14,8 @@ import {
   User as UserIcon,
   Layers,
   FileCheck,
-  Eye
+  Eye,
+  Edit3
 } from 'lucide-react';
 
 interface Document {
@@ -52,6 +53,7 @@ interface DocTemplate {
   prefix: string;
   is_builtin: boolean;
   approval_chain_roles: string[];
+  paper_size?: 'A4' | 'Letter' | 'Legal' | 'F4';
   blocks: {
     id: string;
     type: string;
@@ -158,6 +160,31 @@ export default function DocumentHubPage() {
       setIsLoading(false);
     } catch (error) {
       console.error(error);
+    }
+  };
+
+  const handleDeleteTemplate = async (templateId: string) => {
+    if (!confirm('Hapus template ini? Dokumen yang sudah dibuat tidak akan terpengaruh.')) return;
+    try {
+      const res = await fetch('/api/documents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'delete_template',
+          actor_id: user?.id || 'usr-admin',
+          template_id: templateId
+        })
+      });
+      const json = await res.json();
+      if (json.success) {
+        setDocTemplates(json.templates || []);
+        if (selectedTemplate?.id === templateId) {
+          setSelectedTemplate(null);
+          setDocType('');
+        }
+      }
+    } catch (e) {
+      console.error(e);
     }
   };
 
@@ -409,6 +436,19 @@ export default function DocumentHubPage() {
   // QR Code generator API (using qrserver which is fast, open, and reliable)
   const qrImageSrc = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(qrVerificationUrl)}`;
 
+  // Resolve paper size from template
+  const docTemplate = docTemplates.find(t => t.id === selectedDoc?.template_id || t.doc_type_key === selectedDoc?.doc_type);
+  const paperSize = (docTemplate?.paper_size || 'A4') as 'A4' | 'Letter' | 'Legal' | 'F4';
+
+  const paperSizes = {
+    A4: { name: 'A4', width: '210mm', height: '297mm', sizeSpec: 'A4' },
+    Letter: { name: 'Letter', width: '215.9mm', height: '279.4mm', sizeSpec: 'letter' },
+    Legal: { name: 'Legal', width: '215.9mm', height: '355.6mm', sizeSpec: 'legal' },
+    F4: { name: 'F4 / Folio', width: '215mm', height: '330mm', sizeSpec: '215mm 330mm' }
+  };
+
+  const paperSpec = paperSizes[paperSize] || paperSizes.A4;
+
   const formatIDR = (num: number) => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(num);
   };
@@ -561,8 +601,31 @@ export default function DocumentHubPage() {
                     </div>
                   </div>
 
-                  {/* A4 PRINT CONTAINER (RENDERED AS HTML PIXEL PERFECT SHEET) */}
-                  <div id="print-area" className="print-container bg-white border border-gray-200 rounded-2xl shadow-xl p-10 max-w-[210mm] min-h-[297mm] mx-auto text-left relative flex flex-col font-sans text-gray-800">
+                  {/* Dynamic Print layout CSS Injection */}
+                  <style dangerouslySetInnerHTML={{ __html: `
+                    @media print {
+                      @page {
+                        size: ${paperSpec.sizeSpec};
+                        margin: 0;
+                      }
+                      .print-container {
+                        width: ${paperSpec.width} !important;
+                        height: ${paperSpec.height} !important;
+                        max-height: ${paperSpec.height} !important;
+                      }
+                    }
+                  `}} />
+
+                  {/* PRINT CONTAINER (RENDERED AS HTML PIXEL PERFECT SHEET) */}
+                  <div 
+                    id="print-area" 
+                    className="print-container bg-white border border-gray-200 rounded-2xl shadow-xl p-10 mx-auto text-left relative flex flex-col font-sans text-gray-800 transition-all duration-300"
+                    style={{
+                      width: paperSpec.width,
+                      minHeight: paperSpec.height,
+                      maxWidth: '105%'
+                    }}
+                  >
                     
                     {/* Watermark status */}
                     {selectedDoc.status === 'revoked' && (
@@ -774,28 +837,59 @@ export default function DocumentHubPage() {
               <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block mb-1.5">Pilih Jenis / Template Dokumen *</label>
               <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto no-scrollbar">
                 {docTemplates.map(tpl => (
-                  <button
+                  <div
                     key={tpl.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedTemplate(tpl);
-                      setDocType(tpl.doc_type_key);
-                      setCustomFieldValues({});
-                    }}
-                    className={`flex flex-col items-start p-3 rounded-xl border text-left transition-all ${
-                      selectedTemplate?.id === tpl.id
-                        ? 'border-indigo-500 bg-indigo-50 ring-1 ring-indigo-400'
-                        : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
-                    }`}
+                    className="relative group/tpl"
                   >
-                    <div className="flex items-center gap-1 mb-0.5">
-                      <FileText size={12} className="text-indigo-500" />
-                      <span className="text-[10px] font-mono font-bold text-gray-500">{tpl.prefix}</span>
-                      {tpl.is_builtin && <span className="text-[8px] font-bold text-amber-600 bg-amber-50 px-1 py-0.5 rounded">built-in</span>}
-                    </div>
-                    <span className="text-xs font-extrabold text-gray-800 leading-snug">{tpl.name}</span>
-                    {tpl.description && <span className="text-[9px] text-gray-400 mt-0.5 line-clamp-1">{tpl.description}</span>}
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedTemplate(tpl);
+                        setDocType(tpl.doc_type_key);
+                        setCustomFieldValues({});
+                      }}
+                      className={`w-full flex flex-col items-start p-3 rounded-xl border text-left transition-all ${
+                        selectedTemplate?.id === tpl.id
+                          ? 'border-indigo-500 bg-indigo-50 ring-1 ring-indigo-400 pr-12'
+                          : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50 pr-12'
+                      }`}
+                    >
+                      <div className="flex items-center gap-1 mb-0.5">
+                        <FileText size={12} className="text-indigo-500" />
+                        <span className="text-[10px] font-mono font-bold text-gray-500">{tpl.prefix}</span>
+                        {tpl.is_builtin && <span className="text-[8px] font-bold text-amber-600 bg-amber-50 px-1 py-0.5 rounded">built-in</span>}
+                      </div>
+                      <span className="text-xs font-extrabold text-gray-800 leading-snug">{tpl.name}</span>
+                      {tpl.description && <span className="text-[9px] text-gray-400 mt-0.5 line-clamp-1">{tpl.description}</span>}
+                    </button>
+                    
+                    {user?.role === 'admin' && (
+                      <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover/tpl:opacity-100 transition-opacity">
+                        <button
+                          type="button"
+                          title="Edit Template"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.location.href = `/backoffice?tab=templates&edit=${tpl.id}`;
+                          }}
+                          className="p-1 rounded bg-white hover:bg-indigo-50 text-indigo-600 border border-gray-200 shadow-sm transition-all"
+                        >
+                          <Edit3 size={11} />
+                        </button>
+                        <button
+                          type="button"
+                          title="Hapus Template"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteTemplate(tpl.id);
+                          }}
+                          className="p-1 rounded bg-white hover:bg-red-50 text-red-600 border border-gray-200 shadow-sm transition-all"
+                        >
+                          <Trash2 size={11} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 ))}
               </div>
             </div>

@@ -172,12 +172,13 @@ export interface AttendanceRecord {
   work_mode: 'onsite' | 'wfh';
   is_offline_sync: boolean;
   notes?: string;
+  overtime_hours?: number;
 }
 
 export interface LeaveRequest {
   id: string;
   user_id: string;
-  leave_type: 'Cuti Tahunan' | 'Izin' | 'Sakit' | 'Cuti Khusus';
+  leave_type: string;
   start_date: string;
   end_date: string;
   total_days: number;
@@ -188,6 +189,7 @@ export interface LeaveRequest {
   reviewed_at?: string;
   review_notes?: string;
   created_at: string;
+  category?: 'cuti' | 'izin';
 }
 
 export interface ApprovalChainStep {
@@ -248,6 +250,7 @@ export interface DocumentTemplate {
   is_builtin: boolean;        // If true, cannot be deleted
   approval_chain_roles: string[]; // e.g. ['manager','admin']
   blocks: DocumentTemplateBlock[];
+  paper_size?: 'A4' | 'Letter' | 'Legal' | 'F4';
   created_by: string;
   created_at: string;
   updated_at?: string;
@@ -280,6 +283,12 @@ export interface AuditLog {
   created_at: string;
 }
 
+export interface PermissionType {
+  id: string;
+  name: string;
+  requires_attachment: boolean;
+}
+
 export interface SystemSettings {
   org_name: string;
   org_logo: string;
@@ -288,6 +297,7 @@ export interface SystemSettings {
   late_threshold_minutes: number;
   work_hours_start: string;
   work_hours_end: string;
+  permission_types?: PermissionType[];
 }
 
 // Full Database Schema
@@ -947,7 +957,13 @@ const generateSeedData = (): DatabaseSchema => {
     ],
     late_threshold_minutes: 15,
     work_hours_start: '09:00',
-    work_hours_end: '18:00'
+    work_hours_end: '18:00',
+    permission_types: [
+      { id: 'prm-sakit', name: 'Sakit (Dengan Surat Dokter)', requires_attachment: true },
+      { id: 'prm-keluarga', name: 'Izin Keperluan Keluarga', requires_attachment: false },
+      { id: 'prm-menikah', name: 'Izin Menikah', requires_attachment: true },
+      { id: 'prm-dinas', name: 'Tugas Dinas Luar', requires_attachment: false }
+    ]
   };
 
   const documentTemplates: DocumentTemplate[] = [

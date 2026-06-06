@@ -277,6 +277,7 @@ function TemplateBuilder({
     is_builtin: template.is_builtin || false,
     approval_chain_roles: template.approval_chain_roles || ['manager'],
     blocks: template.blocks || [],
+    paper_size: template.paper_size || 'A4',
     created_by: template.created_by || user?.id || 'usr-admin',
     created_at: template.created_at || new Date().toISOString(),
   });
@@ -305,15 +306,34 @@ function TemplateBuilder({
     setTpl(t => ({ ...t, blocks }));
   };
 
-  // Drag & Drop reorder
+  // Drag & Drop reorder & add from palette
   const onDragStart = (idx: number) => { dragSrcIdx.current = idx; };
   const onDragOver = (e: React.DragEvent, idx: number) => { e.preventDefault(); setDragOverIdx(idx); };
-  const onDrop = (idx: number) => {
-    if (dragSrcIdx.current === null || dragSrcIdx.current === idx) return;
-    const blocks = [...tpl.blocks];
-    const [moved] = blocks.splice(dragSrcIdx.current, 1);
-    blocks.splice(idx, 0, moved);
-    setTpl(t => ({ ...t, blocks }));
+  
+  const onDrop = (e: React.DragEvent, idx: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const dataStr = e.dataTransfer.getData('text/plain');
+    if (dataStr.startsWith('new-block:')) {
+      const blockType = dataStr.replace('new-block:', '') as TemplateBlockType;
+      const palType = BLOCK_PALETTE.find(p => p.type === blockType);
+      if (palType) {
+        const newBlock: DocumentTemplateBlock = {
+          id: 'blk-' + Math.random().toString(36).substr(2, 9),
+          type: palType.type,
+          ...palType.default
+        };
+        const blocks = [...tpl.blocks];
+        blocks.splice(idx, 0, newBlock);
+        setTpl(t => ({ ...t, blocks }));
+      }
+    } else if (dragSrcIdx.current !== null) {
+      if (dragSrcIdx.current === idx) return;
+      const blocks = [...tpl.blocks];
+      const [moved] = blocks.splice(dragSrcIdx.current, 1);
+      blocks.splice(idx, 0, moved);
+      setTpl(t => ({ ...t, blocks }));
+    }
     dragSrcIdx.current = null;
     setDragOverIdx(null);
   };
@@ -354,7 +374,6 @@ function TemplateBuilder({
             value={tpl.name}
             onChange={e => setTpl(t => ({ ...t, name: e.target.value }))}
             placeholder="Nama Template Dokumen..."
-            disabled={tpl.is_builtin}
             className="text-base font-extrabold text-gray-900 bg-transparent border-none outline-none w-full placeholder-gray-300 disabled:cursor-not-allowed"
           />
         </div>
@@ -366,11 +385,11 @@ function TemplateBuilder({
         </button>
         <button
           onClick={handleSave}
-          disabled={saving || tpl.is_builtin}
+          disabled={saving}
           className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Save size={14} />
-          {saving ? 'Menyimpan...' : tpl.is_builtin ? 'Built-in' : 'Simpan Template'}
+          {saving ? 'Menyimpan...' : 'Simpan Template'}
         </button>
       </div>
 
@@ -381,18 +400,17 @@ function TemplateBuilder({
           {/* Metadata Row */}
           <div className="px-5 py-4 bg-gray-50/80 border-b border-gray-200">
             {tpl.is_builtin && (
-              <div className="flex items-center gap-1.5 text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5 mb-3">
-                <Lock size={11} /> Template bawaan sistem tidak dapat diubah — hanya bisa dilihat.
+              <div className="flex items-center gap-1.5 text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5 mb-3">
+                <Star size={11} className="text-amber-500" /> Ini adalah template bawaan sistem. Anda dapat mengedit struktur dan konfigurasinya.
               </div>
             )}
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-4 gap-3">
               <div className="flex flex-col gap-0.5">
                 <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Kode Tipe Dokumen *</label>
                 <input
                   value={tpl.doc_type_key}
                   onChange={e => setTpl(t => ({ ...t, doc_type_key: e.target.value.toUpperCase() }))}
                   placeholder="cth: PKS"
-                  disabled={tpl.is_builtin}
                   className="px-2.5 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-400 font-mono uppercase disabled:bg-gray-50 disabled:cursor-not-allowed"
                 />
               </div>
@@ -402,7 +420,6 @@ function TemplateBuilder({
                   value={tpl.prefix}
                   onChange={e => setTpl(t => ({ ...t, prefix: e.target.value.toUpperCase() }))}
                   placeholder="cth: PKS"
-                  disabled={tpl.is_builtin}
                   className="px-2.5 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-400 font-mono uppercase disabled:bg-gray-50 disabled:cursor-not-allowed"
                 />
               </div>
@@ -412,9 +429,21 @@ function TemplateBuilder({
                   value={chainRoles}
                   onChange={e => setTpl(t => ({ ...t, approval_chain_roles: e.target.value.split(',').map(r => r.trim()).filter(Boolean) }))}
                   placeholder="manager, admin"
-                  disabled={tpl.is_builtin}
                   className="px-2.5 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-400 disabled:bg-gray-50 disabled:cursor-not-allowed"
                 />
+              </div>
+              <div className="flex flex-col gap-0.5">
+                <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Ukuran Kertas</label>
+                <select
+                  value={tpl.paper_size || 'A4'}
+                  onChange={e => setTpl(t => ({ ...t, paper_size: e.target.value as any }))}
+                  className="px-2.5 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-400 bg-white"
+                >
+                  <option value="A4">A4 (210 x 297 mm)</option>
+                  <option value="Letter">Letter (8.5 x 11 in)</option>
+                  <option value="Legal">Legal (8.5 x 14 in)</option>
+                  <option value="F4">F4 / Folio (8.5 x 13 in)</option>
+                </select>
               </div>
             </div>
             <div className="mt-2">
@@ -423,46 +452,60 @@ function TemplateBuilder({
                 value={tpl.description || ''}
                 onChange={e => setTpl(t => ({ ...t, description: e.target.value }))}
                 placeholder="Keterangan singkat template..."
-                disabled={tpl.is_builtin}
                 className="mt-0.5 w-full px-2.5 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-400 disabled:bg-gray-50 disabled:cursor-not-allowed"
               />
             </div>
           </div>
 
           {/* Block Palette */}
-          {!tpl.is_builtin && (
-            <div className="px-5 py-3 border-b border-gray-200 bg-white">
-              <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-2">Tambah Blok</p>
-              <div className="flex flex-wrap gap-1.5">
-                {BLOCK_PALETTE.map(p => (
-                  <button
-                    key={p.type}
-                    onClick={() => addBlock(p)}
-                    title={p.desc}
-                    className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold border border-gray-200 rounded-lg hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-700 transition-all bg-white text-gray-600"
-                  >
-                    {p.icon} {p.label}
-                  </button>
-                ))}
-              </div>
+          <div className="px-5 py-3 border-b border-gray-200 bg-white">
+            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-2">Tambah / Seret Blok</p>
+            <div className="flex flex-wrap gap-1.5">
+              {BLOCK_PALETTE.map(p => (
+                <button
+                  key={p.type}
+                  draggable={true}
+                  onDragStart={(e) => {
+                    e.dataTransfer.setData('text/plain', `new-block:${p.type}`);
+                  }}
+                  onClick={() => addBlock(p)}
+                  title={p.desc}
+                  className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold border border-gray-200 rounded-lg hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-700 transition-all bg-white text-gray-600 cursor-grab active:cursor-grabbing"
+                >
+                  {p.icon} {p.label}
+                </button>
+              ))}
             </div>
-          )}
+          </div>
 
           {/* Block Canvas */}
-          <div className="px-5 py-4 flex flex-col gap-2">
+          <div 
+            className="px-5 py-4 flex flex-col gap-2 min-h-[400px]"
+            onDragOver={e => e.preventDefault()}
+            onDrop={e => {
+              const dataStr = e.dataTransfer.getData('text/plain');
+              if (dataStr.startsWith('new-block:')) {
+                const blockType = dataStr.replace('new-block:', '') as TemplateBlockType;
+                const palType = BLOCK_PALETTE.find(p => p.type === blockType);
+                if (palType) {
+                  addBlock(palType);
+                }
+              }
+            }}
+          >
             {tpl.blocks.length === 0 && (
               <div className="text-center py-12 text-gray-400 text-xs border-2 border-dashed border-gray-200 rounded-xl">
                 <LayoutTemplate size={28} className="mx-auto mb-2 opacity-40" />
-                Belum ada blok. Klik tombol di atas untuk menambahkan konten.
+                Belum ada blok. Klik tombol di atas atau seret blok ke sini.
               </div>
             )}
             {tpl.blocks.map((block, idx) => (
               <div
                 key={block.id}
-                draggable={!tpl.is_builtin}
+                draggable={true}
                 onDragStart={() => onDragStart(idx)}
                 onDragOver={e => onDragOver(e, idx)}
-                onDrop={() => onDrop(idx)}
+                onDrop={e => onDrop(e, idx)}
                 onDragLeave={() => setDragOverIdx(null)}
                 className={`transition-all ${dragOverIdx === idx ? 'ring-2 ring-indigo-400 ring-offset-1 rounded-xl' : ''}`}
               >
@@ -479,8 +522,16 @@ function TemplateBuilder({
         {/* ── Right: A4 Live Preview ── */}
         {showPreview && (
           <div className="w-1/2 overflow-y-auto bg-gray-200 flex flex-col items-center py-6 px-4">
-            <p className="text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-3">Preview A4 — {tpl.name || 'Untitled'}</p>
-            <div className="bg-white shadow-xl" style={{ width: '595px', minHeight: '842px', padding: '48px 56px', fontFamily: "'Google Sans', sans-serif" }}>
+            <p className="text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-3">Preview — {tpl.name || 'Untitled'} ({tpl.paper_size || 'A4'})</p>
+            <div 
+              className="bg-white shadow-xl transition-all duration-300" 
+              style={{ 
+                width: tpl.paper_size === 'Letter' ? '612px' : tpl.paper_size === 'Legal' ? '612px' : tpl.paper_size === 'F4' ? '612px' : '595px', 
+                minHeight: tpl.paper_size === 'Letter' ? '792px' : tpl.paper_size === 'Legal' ? '1008px' : tpl.paper_size === 'F4' ? '936px' : '842px', 
+                padding: '48px 56px', 
+                fontFamily: "'Google Sans', sans-serif" 
+              }}
+            >
               {/* Letterhead */}
               <div className="flex items-center justify-between border-b-2 border-gray-900 pb-4 mb-6">
                 <div>
@@ -525,6 +576,14 @@ export default function BackofficePage() {
   const [officeLat, setOfficeLat] = useState(0);
   const [officeLng, setOfficeLng] = useState(0);
   const [officeRadius, setOfficeRadius] = useState(100);
+
+  // Policy Config fields
+  const [workHoursStart, setWorkHoursStart] = useState('09:00');
+  const [workHoursEnd, setWorkHoursEnd] = useState('18:00');
+  const [lateThresholdMinutes, setLateThresholdMinutes] = useState(15);
+  const [permissionTypes, setPermissionTypes] = useState<any[]>([]);
+  const [newPermissionName, setNewPermissionName] = useState('');
+  const [newPermissionRequiresAttachment, setNewPermissionRequiresAttachment] = useState(false);
 
   const [isLoading, setIsLoading] = useState(true);
   const [saveSuccess, setSaveSuccess] = useState('');
@@ -586,13 +645,21 @@ export default function BackofficePage() {
         setUnits(json.data.units || []);
         setUnitTypes(json.data.unitTypes || []);
         
-        const office = json.data.settings.office_locations[0];
-        setOfficeSettings(office);
-        if (office) {
-          setOfficeName(office.name);
-          setOfficeLat(office.latitude);
-          setOfficeLng(office.longitude);
-          setOfficeRadius(office.radius_meters);
+        const settings = json.data.settings;
+        if (settings) {
+          setLateThresholdMinutes(settings.late_threshold_minutes ?? 15);
+          setWorkHoursStart(settings.work_hours_start ?? '09:00');
+          setWorkHoursEnd(settings.work_hours_end ?? '18:00');
+          setPermissionTypes(settings.permission_types ?? []);
+          
+          const office = settings.office_locations?.[0];
+          setOfficeSettings(office);
+          if (office) {
+            setOfficeName(office.name);
+            setOfficeLat(office.latitude);
+            setOfficeLng(office.longitude);
+            setOfficeRadius(office.radius_meters);
+          }
         }
       }
       setIsLoading(false);
@@ -615,19 +682,105 @@ export default function BackofficePage() {
 
   useEffect(() => {
     fetchBackofficeData();
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get('tab');
+      if (tab === 'templates') {
+        setActiveTab('templates');
+      }
+    }
   }, []);
 
   useEffect(() => {
     if (activeTab === 'templates') fetchTemplates();
   }, [activeTab]);
 
-  const handleMockSaveGps = () => {
-    setSaveSuccess('Pengaturan GPS Kantor berhasil disimpan!');
-    const message = `Admin *${user?.name}* mengubah radius toleransi absensi kantor menjadi *${officeRadius} meter*`;
-    window.dispatchEvent(new CustomEvent('simulated-slack-webhook', {
-      detail: { timestamp: new Date().toLocaleTimeString('id-ID'), channel: 'hr-notif', message }
-    }));
-    setTimeout(() => setSaveSuccess(''), 3000);
+  useEffect(() => {
+    if (activeTab === 'templates' && templates.length > 0 && typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const editId = params.get('edit');
+      if (editId) {
+        const found = templates.find(t => t.id === editId);
+        if (found) {
+          setEditingTemplate(found);
+        }
+      }
+    }
+  }, [activeTab, templates]);
+
+  const handleSaveSettings = async () => {
+    try {
+      const office = {
+        id: officeSettings?.id || 'loc-main',
+        name: officeName,
+        latitude: officeLat,
+        longitude: officeLng,
+        radius_meters: officeRadius,
+        is_active: true
+      };
+
+      const res = await fetch('/api/attendance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'save_settings',
+          actor_id: user?.id,
+          office_locations: [office],
+          late_threshold_minutes: Number(lateThresholdMinutes),
+          work_hours_start: workHoursStart,
+          work_hours_end: workHoursEnd,
+          permission_types: permissionTypes
+        })
+      });
+
+      const json = await res.json();
+      if (json.success) {
+        setSaveSuccess('Pengaturan absensi & geofencing berhasil disimpan!');
+        const message = `Admin *${user?.name}* memperbarui kebijakan absensi:
+- Jam Kerja: *${workHoursStart} - ${workHoursEnd}*
+- Toleransi Terlambat: *${lateThresholdMinutes} menit*
+- Radius GPS: *${officeRadius} meter*
+- Jumlah Tipe Izin: *${permissionTypes.length} tipe*`;
+        window.dispatchEvent(new CustomEvent('simulated-slack-webhook', {
+          detail: { timestamp: new Date().toLocaleTimeString('id-ID'), channel: 'hr-notif', message }
+        }));
+        setTimeout(() => setSaveSuccess(''), 3000);
+        fetchBackofficeData();
+      } else {
+        alert(json.error);
+      }
+    } catch (error) {
+      console.error(error);
+      alert('Gagal menyimpan pengaturan.');
+    }
+  };
+
+  const handleAddPermissionType = () => {
+    if (!newPermissionName.trim()) {
+      alert('Nama tipe izin tidak boleh kosong.');
+      return;
+    }
+    
+    const isDup = permissionTypes.some(pt => pt.name.toLowerCase() === newPermissionName.trim().toLowerCase());
+    if (isDup) {
+      alert('Tipe izin dengan nama tersebut sudah ada.');
+      return;
+    }
+
+    const newPt = {
+      id: 'prm-' + Math.random().toString(36).substr(2, 9),
+      name: newPermissionName.trim(),
+      requires_attachment: newPermissionRequiresAttachment
+    };
+
+    setPermissionTypes([...permissionTypes, newPt]);
+    setNewPermissionName('');
+    setNewPermissionRequiresAttachment(false);
+  };
+
+  const handleDeletePermissionType = (id: string) => {
+    if (!confirm('Apakah Anda yakin ingin menghapus tipe izin ini?')) return;
+    setPermissionTypes(permissionTypes.filter(pt => pt.id !== id));
   };
 
   const handleDeleteTemplate = async (id: string) => {
@@ -1018,50 +1171,216 @@ export default function BackofficePage() {
           </div>
         )}
 
-        {/* ── GPS CONFIG ── */}
+        {/* ── GPS & POLICY CONFIG ── */}
         {activeTab === 'gps' && (
-          <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 max-w-md w-full">
-            <h2 className="font-extrabold text-base border-b border-gray-100 pb-3 mb-5 flex items-center gap-2">
-              <MapPin className="text-indigo-600" size={18} />
-              Pengaturan Geofencing Absensi
-            </h2>
-
+          <div className="flex flex-col gap-6 w-full text-left">
             {saveSuccess && (
-              <div className="bg-green-50 border border-green-200 text-green-800 rounded-xl p-3 text-xs font-bold mb-4 flex items-center gap-2">
-                <Check size={16} />{saveSuccess}
+              <div className="bg-green-50 border border-green-200 text-green-800 rounded-2xl p-4 text-xs font-bold flex items-center gap-2 shadow-sm animate-pulse">
+                <Check size={18} className="bg-green-500 text-white rounded-full p-0.5" />
+                {saveSuccess}
               </div>
             )}
 
-            <div className="flex flex-col gap-4 text-xs font-semibold">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-gray-400 uppercase tracking-wider text-[9px]">Nama Kantor / Cabang *</label>
-                <input type="text" required value={officeName} onChange={e => setOfficeName(e.target.value)}
-                  className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none" />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-gray-400 uppercase tracking-wider text-[9px]">Latitude *</label>
-                  <input type="number" step="any" required value={officeLat} onChange={e => setOfficeLat(Number(e.target.value))}
-                    className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none" />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start w-full">
+              {/* Geofencing & Work Hours Policy */}
+              <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 flex flex-col gap-5">
+                <h2 className="font-extrabold text-base border-b border-gray-100 pb-3 flex items-center gap-2 text-indigo-700">
+                  <MapPin size={18} />
+                  Geofencing & Kebijakan Jam Kerja
+                </h2>
+
+                <div className="flex flex-col gap-4 text-xs font-semibold">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-gray-400 uppercase tracking-wider text-[9px]">Nama Kantor / Cabang *</label>
+                    <input 
+                      type="text" 
+                      required 
+                      value={officeName} 
+                      onChange={e => setOfficeName(e.target.value)}
+                      className="px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 font-medium" 
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-gray-400 uppercase tracking-wider text-[9px]">Latitude *</label>
+                      <input 
+                        type="number" 
+                        step="any" 
+                        required 
+                        value={officeLat} 
+                        onChange={e => setOfficeLat(Number(e.target.value))}
+                        className="px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 font-medium" 
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-gray-400 uppercase tracking-wider text-[9px]">Longitude *</label>
+                      <input 
+                        type="number" 
+                        step="any" 
+                        required 
+                        value={officeLng} 
+                        onChange={e => setOfficeLng(Number(e.target.value))}
+                        className="px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 font-medium" 
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-gray-400 uppercase tracking-wider text-[9px]">Radius Toleransi (Meter) *</label>
+                    <input 
+                      type="number" 
+                      required 
+                      value={officeRadius} 
+                      onChange={e => setOfficeRadius(Number(e.target.value))}
+                      className="px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 font-medium" 
+                    />
+                  </div>
+
+                  <div className="border-t border-gray-100 my-2 pt-3 flex flex-col gap-4">
+                    <h3 className="text-xs font-extrabold text-gray-700 uppercase tracking-wider">Kebijakan Waktu</h3>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-gray-400 uppercase tracking-wider text-[9px]">Jam Masuk Kerja (Clock-in)</label>
+                        <input 
+                          type="time" 
+                          required 
+                          value={workHoursStart} 
+                          onChange={e => setWorkHoursStart(e.target.value)}
+                          className="px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 font-medium" 
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-gray-400 uppercase tracking-wider text-[9px]">Jam Pulang Kerja (Clock-out)</label>
+                        <input 
+                          type="time" 
+                          required 
+                          value={workHoursEnd} 
+                          onChange={e => setWorkHoursEnd(e.target.value)}
+                          className="px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 font-medium" 
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-gray-400 uppercase tracking-wider text-[9px]">Batas Toleransi Keterlambatan (Menit)</label>
+                      <input 
+                        type="number" 
+                        required 
+                        value={lateThresholdMinutes} 
+                        onChange={e => setLateThresholdMinutes(Number(e.target.value))}
+                        className="px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 font-medium" 
+                      />
+                      <span className="text-[10px] text-gray-400 font-medium mt-0.5">Staf yang clock-in onsite lewat dari Jam Masuk + Toleransi akan ditandai terlambat dan wajib menulis alasan.</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-gray-400 uppercase tracking-wider text-[9px]">Longitude *</label>
-                  <input type="number" step="any" required value={officeLng} onChange={e => setOfficeLng(Number(e.target.value))}
-                    className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none" />
+              </div>
+
+              {/* Dynamic Permission Types */}
+              <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 flex flex-col gap-5">
+                <h2 className="font-extrabold text-base border-b border-gray-100 pb-3 flex items-center gap-2 text-indigo-700">
+                  <ShieldCheck size={18} />
+                  Daftar Tipe Izin & Sakit
+                </h2>
+
+                <div className="flex flex-col gap-4 text-xs font-semibold">
+                  <span className="text-[10px] text-gray-400 font-medium -mt-2">Atur tipe izin/sakit apa saja yang bisa diajukan oleh staf, beserta kewajiban melampirkan file/gambar bukti pendukung.</span>
+
+                  <div className="border border-gray-100 rounded-xl overflow-hidden">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="bg-gray-50 border-b border-gray-200 text-gray-400 font-bold uppercase tracking-wider text-[9px]">
+                          <th className="p-3">Nama Izin</th>
+                          <th className="p-3 text-center">Wajib Bukti</th>
+                          <th className="p-3 text-right">Aksi</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {permissionTypes.length === 0 ? (
+                          <tr>
+                            <td colSpan={3} className="p-4 text-center text-gray-400 italic font-medium">Belum ada tipe izin kustom.</td>
+                          </tr>
+                        ) : (
+                          permissionTypes.map((pt) => (
+                            <tr key={pt.id} className="border-b border-gray-100 hover:bg-gray-50/50">
+                              <td className="p-3 font-bold text-gray-800">{pt.name}</td>
+                              <td className="p-3 text-center">
+                                <span className={`px-2 py-0.5 rounded font-bold text-[9px] ${
+                                  pt.requires_attachment 
+                                    ? 'bg-amber-50 text-amber-700 border border-amber-200' 
+                                    : 'bg-slate-100 text-slate-500'
+                                }`}>
+                                  {pt.requires_attachment ? 'YA (Wajib Gambar)' : 'TIDAK'}
+                                </span>
+                              </td>
+                              <td className="p-3 text-right">
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeletePermissionType(pt.id)}
+                                  className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Add Permission Form */}
+                  <div className="bg-slate-50 p-4 border border-slate-100 rounded-xl flex flex-col gap-3">
+                    <span className="font-extrabold text-xs text-gray-800 uppercase tracking-wide">Tambah Tipe Izin</span>
+                    
+                    <div className="flex flex-col gap-1">
+                      <label className="text-gray-400 uppercase tracking-wider text-[9px]">Nama Izin *</label>
+                      <input 
+                        type="text"
+                        placeholder="cth: Sakit Rawat Inap, Izin Duka, dll"
+                        value={newPermissionName}
+                        onChange={e => setNewPermissionName(e.target.value)}
+                        className="px-3 py-2 bg-white border border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500 font-semibold"
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-2 py-1">
+                      <input 
+                        type="checkbox"
+                        id="requires_attachment"
+                        checked={newPermissionRequiresAttachment}
+                        onChange={e => setNewPermissionRequiresAttachment(e.target.checked)}
+                        className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <label htmlFor="requires_attachment" className="text-gray-700 font-bold select-none cursor-pointer">Wajib sertakan bukti lampiran (foto / gambar)</label>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleAddPermissionType}
+                      className="py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg font-bold transition-all flex items-center justify-center gap-1"
+                    >
+                      <Plus size={14} /> Tambah Ke List
+                    </button>
+                  </div>
                 </div>
               </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-gray-400 uppercase tracking-wider text-[9px]">Radius Toleransi (Meter) *</label>
-                <input type="number" required value={officeRadius} onChange={e => setOfficeRadius(Number(e.target.value))}
-                  className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none" />
-              </div>
-              <button onClick={handleMockSaveGps}
-                className="w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-bold text-xs shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-1.5">
-                <Check size={16} /> SIMPAN PENGATURAN GPS
+            </div>
+
+            {/* General Save Settings */}
+            <div className="flex justify-end pt-3 border-t border-gray-200">
+              <button 
+                onClick={handleSaveSettings}
+                className="px-8 py-3.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-bold text-xs shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+              >
+                <Check size={16} /> SIMPAN SEMUA PENGATURAN ABSENSI
               </button>
             </div>
           </div>
         )}
+
 
         {/* ── AUDIT LOGS ── */}
         {activeTab === 'audit' && (
@@ -1163,17 +1482,15 @@ export default function BackofficePage() {
                         onClick={() => setEditingTemplate(tpl)}
                         className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-xs font-bold border border-gray-200 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-700 transition-colors"
                       >
-                        <Eye size={12} /> {tpl.is_builtin ? 'Lihat' : 'Edit'}
+                        <Eye size={12} /> Edit
                       </button>
-                      {!tpl.is_builtin && (
-                        <button
-                          onClick={() => handleDeleteTemplate(tpl.id)}
-                          disabled={deletingId === tpl.id}
-                          className="flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold border border-red-100 text-red-500 hover:bg-red-50 transition-colors disabled:opacity-40"
-                        >
-                          <Trash2 size={12} /> Hapus
-                        </button>
-                      )}
+                      <button
+                        onClick={() => handleDeleteTemplate(tpl.id)}
+                        disabled={deletingId === tpl.id}
+                        className="flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold border border-red-100 text-red-500 hover:bg-red-50 transition-colors disabled:opacity-40"
+                      >
+                        <Trash2 size={12} /> Hapus
+                      </button>
                     </div>
                   </div>
                 ))}

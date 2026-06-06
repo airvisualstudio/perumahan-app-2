@@ -43,7 +43,8 @@ export async function GET(request: Request) {
       personalLeaves,
       allLeaves,
       allRecords,
-      officeSettings
+      officeSettings,
+      settings: data.settings
     });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
@@ -75,11 +76,20 @@ export async function POST(request: Request) {
         }, { status: 400 });
       }
 
-      // Check if late (default start is 09:00)
+      // Check if late dynamically based on work_hours_start & late_threshold_minutes
       const now = new Date();
       const currentHours = now.getHours();
       const currentMinutes = now.getMinutes();
-      const isLate = workMode === 'onsite' && (currentHours > 9 || (currentHours === 9 && currentMinutes > data.settings.late_threshold_minutes));
+      const workStartStr = data.settings.work_hours_start || '09:00';
+      const [startHour, startMinute] = workStartStr.split(':').map(Number);
+      const thresholdMinutes = startHour * 60 + startMinute + (data.settings.late_threshold_minutes || 0);
+      const currentMinutesToday = currentHours * 60 + currentMinutes;
+      const isLate = workMode === 'onsite' && currentMinutesToday > thresholdMinutes;
+
+      // Validate late reason
+      if (isLate && (!notes || notes.trim() === '')) {
+        return NextResponse.json({ success: false, error: 'Alasan terlambat wajib diisi.' }, { status: 400 });
+      }
 
       const recordStatus = isLate ? 'late' : 'present';
 
@@ -119,23 +129,51 @@ export async function POST(request: Request) {
         return NextResponse.json({ success: false, error: 'Belum melakukan Clock-In hari ini.' }, { status: 400 });
       }
 
-      record.clock_out_at = new Date().toISOString();
+      const clockOutDate = new Date();
+      record.clock_out_at = clockOutDate.toISOString();
       record.clock_out_lat = latitude;
       record.clock_out_lng = longitude;
+
+      // Calculate overtime based on work_hours_end (default 18:00)
+      const workEndStr = data.settings.work_hours_end || '18:00';
+      const [endHour, endMinute] = workEndStr.split(':').map(Number);
+      
+      const clockOutHour = clockOutDate.getHours();
+      const clockOutMinute = clockOutDate.getMinutes();
+      
+      const endTotalMinutes = endHour * 60 + endMinute;
+      const clockOutTotalMinutes = clockOutHour * 60 + clockOutMinute;
+      
+      if (clockOutTotalMinutes > endTotalMinutes) {
+        const diffMinutes = clockOutTotalMinutes - endTotalMinutes;
+        record.overtime_hours = Math.round((diffMinutes / 60) * 10) / 10;
+      } else {
+        record.overtime_hours = 0;
+      }
 
       db.save(data);
       return NextResponse.json({ success: true, record });
     }
 
     if (action === 'apply_leave') {
-      const { leave_type, start_date, end_date, total_days, reason } = body;
+      const { leave_type, start_date, end_date, total_days, reason, category, attachment_url } = body;
       const user = data.users.find(u => u.id === userId);
       if (!user) {
         return NextResponse.json({ success: false, error: 'User not found' }, { status: 400 });
       }
 
-      if (leave_type === 'Cuti Tahunan' && user.annual_leave_balance < total_days) {
+      // Check annual leave balance
+      if (category === 'cuti' && leave_type === 'Cuti Tahunan' && user.annual_leave_balance < total_days) {
         return NextResponse.json({ success: false, error: `Saldo cuti tahunan tidak mencukupi (Sisa: ${user.annual_leave_balance} hari).` }, { status: 400 });
+      }
+
+      // For dynamic permissions, check if attachment is required
+      if (category === 'izin') {
+        const permTypes = data.settings.permission_types || [];
+        const matchedType = permTypes.find((pt: any) => pt.name === leave_type);
+        if (matchedType?.requires_attachment && (!attachment_url || attachment_url.trim() === '')) {
+          return NextResponse.json({ success: false, error: `Bukti gambar/dokumen wajib dilampirkan untuk izin: ${leave_type}.` }, { status: 400 });
+        }
       }
 
       const newRequest: LeaveRequest = {
@@ -147,7 +185,9 @@ export async function POST(request: Request) {
         total_days: Number(total_days),
         reason,
         status: 'pending',
-        created_at: new Date().toISOString()
+        attachment_url: attachment_url || undefined,
+        created_at: new Date().toISOString(),
+        category: category || (leave_type === 'Cuti Tahunan' || leave_type === 'Cuti Khusus' ? 'cuti' : 'izin')
       };
 
       data.leaves.unshift(newRequest);
@@ -177,6 +217,38 @@ export async function POST(request: Request) {
 
       db.save(data);
       return NextResponse.json({ success: true, leave: request });
+    }
+
+    if (action === 'save_settings') {
+      const { office_locations, late_threshold_minutes, work_hours_start, work_hours_end, permission_types } = body;
+      
+      if (office_locations) {
+        data.settings.office_locations = office_locations;
+      }
+      if (late_threshold_minutes !== undefined) {
+        data.settings.late_threshold_minutes = Number(late_threshold_minutes);
+      }
+      if (work_hours_start) {
+        data.settings.work_hours_start = work_hours_start;
+      }
+      if (work_hours_end) {
+        data.settings.work_hours_end = work_hours_end;
+      }
+      if (permission_types) {
+        data.settings.permission_types = permission_types;
+      }
+
+      // Audit log
+      data.auditLogs.unshift({
+        id: 'aud-' + Math.random().toString(36).substr(2, 9),
+        user_id: actor_id || 'usr-admin',
+        action: 'system.update_settings',
+        entity_type: 'settings',
+        created_at: new Date().toISOString()
+      });
+
+      db.save(data);
+      return NextResponse.json({ success: true, settings: data.settings });
     }
 
     if (action === 'sync_offline') {
