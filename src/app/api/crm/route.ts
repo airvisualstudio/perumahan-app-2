@@ -492,6 +492,54 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, units: data.units, clusters: data.clusters });
     }
 
+    if (action === 'update_prospect') {
+      const { prospect_id, full_name, phone, email, occupation, company_name, estimated_income, notes, actor_id } = body;
+      const prospect = data.prospects.find(p => p.id === prospect_id);
+      if (!prospect) {
+        return NextResponse.json({ success: false, error: 'Prospect not found' }, { status: 444 });
+      }
+
+      prospect.full_name = full_name;
+      prospect.phone = phone;
+      prospect.email = email;
+      prospect.occupation = occupation;
+      prospect.company_name = company_name;
+      prospect.estimated_income = estimated_income ? Number(estimated_income) : undefined;
+      prospect.notes = notes;
+      prospect.updated_at = new Date().toISOString();
+
+      data.prospectHistory.unshift({
+        id: 'ph-' + Math.random().toString(36).substr(2, 9),
+        prospect_id,
+        event_type: 'prospect_updated',
+        actor_id,
+        description: `Data prospek diperbarui oleh sales agent`,
+        created_at: new Date().toISOString()
+      });
+
+      db.save(data);
+      return NextResponse.json({ success: true, prospect, prospects: data.prospects });
+    }
+
+    if (action === 'delete_prospect') {
+      const { prospect_id, actor_id } = body;
+      data.prospects = data.prospects.filter(p => p.id !== prospect_id);
+      data.prospectHistory = data.prospectHistory.filter(ph => ph.prospect_id !== prospect_id);
+      data.followups = data.followups.filter(f => f.prospect_id !== prospect_id);
+
+      data.auditLogs.unshift({
+        id: 'aud-' + Math.random().toString(36).substr(2, 9),
+        user_id: actor_id,
+        action: 'prospect.delete',
+        entity_type: 'prospect',
+        entity_id: prospect_id,
+        created_at: new Date().toISOString()
+      });
+
+      db.save(data);
+      return NextResponse.json({ success: true, prospects: data.prospects });
+    }
+
     return NextResponse.json({ success: false, error: 'Unknown action' }, { status: 400 });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

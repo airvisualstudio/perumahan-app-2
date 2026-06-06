@@ -18,7 +18,12 @@ import {
   AlertCircle, 
   MessageSquare,
   DollarSign,
-  ChevronRight
+  ChevronRight,
+  Eye,
+  Edit2,
+  Trash2,
+  Grid,
+  List
 } from 'lucide-react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -191,6 +196,98 @@ export default function CRMModulePage() {
   const [formType, setFormType] = useState('');
   const [formNotes, setFormNotes] = useState('');
 
+  // View mode and modal states for Prospects Tab
+  const [prospectViewMode, setProspectViewMode] = useState<'table' | 'card'>('table');
+  const [selectedProspectDetail, setSelectedProspectDetail] = useState<Prospect | null>(null);
+  const [editingProspect, setEditingProspect] = useState<Prospect | null>(null);
+
+  // Edit form states
+  const [editFormName, setEditFormName] = useState('');
+  const [editFormPhone, setEditFormPhone] = useState('');
+  const [editFormEmail, setEditFormEmail] = useState('');
+  const [editFormOccupation, setEditFormOccupation] = useState('');
+  const [editFormCompany, setEditFormCompany] = useState('');
+  const [editFormIncome, setEditFormIncome] = useState('');
+  const [editFormNotes, setEditFormNotes] = useState('');
+
+  const startEditProspect = (prospect: Prospect) => {
+    setEditingProspect(prospect);
+    setEditFormName(prospect.full_name || '');
+    setEditFormPhone(prospect.phone || '');
+    setEditFormEmail(prospect.email || '');
+    setEditFormOccupation(prospect.occupation || '');
+    setEditFormCompany(prospect.company_name || '');
+    setEditFormIncome(prospect.estimated_income ? String(prospect.estimated_income) : '');
+    setEditFormNotes(prospect.notes || '');
+  };
+
+  const handleUpdateProspect = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingProspect) return;
+
+    try {
+      const res = await fetch('/api/crm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'update_prospect',
+          prospect_id: editingProspect.id,
+          full_name: editFormName,
+          phone: editFormPhone,
+          email: editFormEmail,
+          occupation: editFormOccupation,
+          company_name: editFormCompany,
+          estimated_income: editFormIncome ? Number(editFormIncome) : undefined,
+          notes: editFormNotes,
+          actor_id: user?.id
+        })
+      });
+      const result = await res.json();
+      if (result.success) {
+        // Slack webhook log
+        const message = `Sales Agent ${user?.name} memperbarui data prospek *${editFormName}*`;
+        window.dispatchEvent(new CustomEvent('simulated-slack-webhook', {
+          detail: { timestamp: new Date().toLocaleTimeString('id-ID'), channel: 'marketing-notif', message }
+        }));
+
+        setEditingProspect(null);
+        fetchData();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteProspect = async (prospectId: string, prospectName: string) => {
+    if (!window.confirm(`Apakah Anda yakin ingin menghapus prospek "${prospectName}"? Tindakan ini tidak dapat dibatalkan.`)) {
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/crm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'delete_prospect',
+          prospect_id: prospectId,
+          actor_id: user?.id
+        })
+      });
+      const result = await res.json();
+      if (result.success) {
+        // Slack webhook log
+        const message = `Sales Agent ${user?.name} menghapus prospek *${prospectName}*`;
+        window.dispatchEvent(new CustomEvent('simulated-slack-webhook', {
+          detail: { timestamp: new Date().toLocaleTimeString('id-ID'), channel: 'marketing-notif', message }
+        }));
+
+        fetchData();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const fetchData = async () => {
     try {
       const res = await fetch('/api/crm');
@@ -328,10 +425,10 @@ export default function CRMModulePage() {
         </div>
 
         {/* CRM Module Navigation Tabs */}
-        <div className="flex border-b border-gray-200 gap-2">
+        <div className="flex border-b border-gray-200 gap-2 overflow-x-auto no-scrollbar whitespace-nowrap">
           <button
             onClick={() => setActiveTab('units')}
-            className={`pb-3.5 px-4 font-bold text-sm border-b-2 transition-all ${
+            className={`pb-3.5 px-4 font-bold text-sm border-b-2 transition-all whitespace-nowrap flex-shrink-0 ${
               activeTab === 'units' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-900'
             }`}
           >
@@ -339,7 +436,7 @@ export default function CRMModulePage() {
           </button>
           <button
             onClick={() => setActiveTab('pipeline')}
-            className={`pb-3.5 px-4 font-bold text-sm border-b-2 transition-all ${
+            className={`pb-3.5 px-4 font-bold text-sm border-b-2 transition-all whitespace-nowrap flex-shrink-0 ${
               activeTab === 'pipeline' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-900'
             }`}
           >
@@ -347,7 +444,7 @@ export default function CRMModulePage() {
           </button>
           <button
             onClick={() => setActiveTab('prospects')}
-            className={`pb-3.5 px-4 font-bold text-sm border-b-2 transition-all ${
+            className={`pb-3.5 px-4 font-bold text-sm border-b-2 transition-all whitespace-nowrap flex-shrink-0 ${
               activeTab === 'prospects' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-900'
             }`}
           >
@@ -575,23 +672,23 @@ export default function CRMModulePage() {
         {activeTab === 'prospects' && (
           <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm flex flex-col">
             {/* Table search controls */}
-            <div className="p-4 border-b border-gray-200 flex flex-col md:flex-row gap-4 justify-between items-center">
-              <div className="relative w-full md:max-w-xs">
-                <Search size={16} className="absolute left-3 top-3.5 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Cari prospek (nama/telepon)..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-blue-500 font-semibold"
-                />
-              </div>
+            <div className="p-4 border-b border-gray-200 flex flex-col md:flex-row gap-4 justify-between items-center bg-white">
+              <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto items-stretch md:items-center">
+                <div className="relative w-full md:max-w-xs">
+                  <Search size={16} className="absolute left-3 top-3.5 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Cari prospek (nama/telepon)..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-9 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-blue-500 font-semibold"
+                  />
+                </div>
 
-              <div className="flex gap-2 w-full md:w-auto">
                 <select
                   value={filterStage}
                   onChange={(e) => setFilterStage(e.target.value)}
-                  className="flex-1 md:flex-initial px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold focus:outline-none focus:border-blue-500"
+                  className="px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold focus:outline-none focus:border-blue-500"
                 >
                   <option value="">Semua Tahapan Pipeline</option>
                   {pipelineStages.map(s => (
@@ -599,63 +696,216 @@ export default function CRMModulePage() {
                   ))}
                 </select>
               </div>
+
+              {/* View Mode Switcher */}
+              <div className="flex bg-gray-100 p-1 rounded-xl self-stretch md:self-auto gap-1">
+                <button
+                  onClick={() => setProspectViewMode('table')}
+                  className={`flex-1 md:flex-initial px-3.5 py-1.5 rounded-lg font-bold text-xs transition-all flex items-center justify-center gap-1.5 ${
+                    prospectViewMode === 'table' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-800'
+                  }`}
+                >
+                  <List size={14} />
+                  Tabel
+                </button>
+                <button
+                  onClick={() => setProspectViewMode('card')}
+                  className={`flex-1 md:flex-initial px-3.5 py-1.5 rounded-lg font-bold text-xs transition-all flex items-center justify-center gap-1.5 ${
+                    prospectViewMode === 'card' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-800'
+                  }`}
+                >
+                  <Grid size={14} />
+                  Kartu
+                </button>
+              </div>
             </div>
 
-            {/* Table layout */}
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
-                <thead>
-                  <tr className="bg-gray-50 border-b border-gray-200 font-bold text-gray-500 uppercase tracking-wider">
-                    <th className="p-4">Nama Prospek</th>
-                    <th className="p-4">Telepon</th>
-                    <th className="p-4">Cluster Minat</th>
-                    <th className="p-4">Sumber Lead</th>
-                    <th className="p-4">Tahapan Pipeline</th>
-                    <th className="p-4">Kesegaran Follow-up</th>
-                    <th className="p-4 text-center">Detail</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredProspects.length === 0 ? (
-                    <tr>
-                      <td colSpan={7} className="p-8 text-center text-gray-400 italic">Tidak ada data prospek ditemukan</td>
+            {/* Layout depending on view mode */}
+            {prospectViewMode === 'table' ? (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-gray-50 border-b border-gray-200 font-bold text-gray-500 uppercase tracking-wider">
+                      <th className="p-4">Nama Prospek</th>
+                      <th className="p-4">Telepon</th>
+                      <th className="p-4">Cluster Minat</th>
+                      <th className="p-4">Sumber Lead</th>
+                      <th className="p-4">Tahapan Pipeline</th>
+                      <th className="p-4">Kesegaran Follow-up</th>
+                      <th className="p-4 text-center">Aksi</th>
                     </tr>
-                  ) : (
-                    filteredProspects.map((p) => {
+                  </thead>
+                  <tbody>
+                    {filteredProspects.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="p-8 text-center text-gray-400 italic">Tidak ada data prospek ditemukan</td>
+                      </tr>
+                    ) : (
+                      filteredProspects.map((p) => {
+                        const cluster = clusters.find(c => c.id === p.interested_cluster_id);
+                        const stage = pipelineStages.find(s => s.key === p.pipeline_stage);
+                        const fu = getFollowupIndicator(p.last_followup_at);
+                        return (
+                          <tr key={p.id} className="border-b border-gray-100 hover:bg-gray-50/50">
+                            <td className="p-4 font-bold text-gray-900 whitespace-nowrap">
+                              <button 
+                                onClick={() => setSelectedProspectDetail(p)}
+                                className="text-left font-bold text-gray-900 hover:text-blue-600 transition-colors"
+                              >
+                                {p.full_name}
+                              </button>
+                            </td>
+                            <td className="p-4 font-semibold text-gray-500 whitespace-nowrap">{p.phone}</td>
+                            <td className="p-4 whitespace-nowrap">
+                              <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded border border-blue-100 font-bold whitespace-nowrap">{cluster?.name || '-'}</span>
+                            </td>
+                            <td className="p-4 capitalize font-medium text-gray-600 whitespace-nowrap">{p.lead_source.replace('_', ' ')}</td>
+                            <td className="p-4 whitespace-nowrap">
+                              <span className={`px-2 py-0.5 rounded border text-[10px] font-black whitespace-nowrap ${stage?.color}`}>
+                                {stage?.label}
+                              </span>
+                            </td>
+                            <td className="p-4 whitespace-nowrap">
+                              <div className="flex items-center gap-2">
+                                <span className={`w-2 h-2 rounded-full ${fu.color}`}></span>
+                                <span className="font-semibold text-gray-700">{fu.label}</span>
+                              </div>
+                            </td>
+                            <td className="p-4 text-center whitespace-nowrap">
+                              <div className="flex items-center justify-center gap-1">
+                                <button
+                                  onClick={() => setSelectedProspectDetail(p)}
+                                  className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                                  title="Lihat Detail"
+                                >
+                                  <Eye size={16} />
+                                </button>
+                                <button
+                                  onClick={() => startEditProspect(p)}
+                                  className="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg transition-all"
+                                  title="Edit Prospek"
+                                >
+                                  <Edit2 size={16} />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteProspect(p.id, p.full_name)}
+                                  className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                                  title="Hapus Prospek"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                                <Link 
+                                  href={`/prospects/${p.id}`} 
+                                  className="p-1.5 text-slate-600 hover:bg-slate-100 rounded-lg transition-all"
+                                  title="Kelola Follow-up"
+                                >
+                                  <ChevronRight size={16} />
+                                </Link>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="p-5 bg-gray-50/50">
+                {filteredProspects.length === 0 ? (
+                  <div className="text-center py-12 text-gray-400 italic">Tidak ada data prospek ditemukan</div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                    {filteredProspects.map((p) => {
                       const cluster = clusters.find(c => c.id === p.interested_cluster_id);
                       const stage = pipelineStages.find(s => s.key === p.pipeline_stage);
                       const fu = getFollowupIndicator(p.last_followup_at);
+                      const initials = p.full_name
+                        .split(' ')
+                        .map(n => n[0])
+                        .join('')
+                        .slice(0, 2)
+                        .toUpperCase();
+
                       return (
-                        <tr key={p.id} className="border-b border-gray-100 hover:bg-gray-50/50">
-                          <td className="p-4 font-bold text-gray-900">{p.full_name}</td>
-                          <td className="p-4 font-semibold text-gray-500">{p.phone}</td>
-                          <td className="p-4">
-                            <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded border border-blue-100 font-bold">{cluster?.name || '-'}</span>
-                          </td>
-                          <td className="p-4 capitalize font-medium text-gray-600">{p.lead_source.replace('_', ' ')}</td>
-                          <td className="p-4">
-                            <span className={`px-2 py-0.5 rounded border text-[10px] font-black ${stage?.color}`}>
+                        <div 
+                          key={p.id}
+                          className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col gap-4 group hover:-translate-y-0.5 premium-card relative overflow-hidden text-left"
+                        >
+                          <div className="absolute top-4 right-4 flex items-center gap-1.5 bg-gray-50 border border-gray-100 rounded-full px-2.5 py-1 text-[9px] font-bold">
+                            <span className={`w-2 h-2 rounded-full ${fu.color}`}></span>
+                            <span className="text-gray-500">{fu.label}</span>
+                          </div>
+
+                          <div className="flex gap-3.5 items-center">
+                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center font-bold text-sm uppercase shadow-inner flex-shrink-0">
+                              {initials}
+                            </div>
+                            <div className="flex flex-col min-w-0 pr-24">
+                              <h4 
+                                onClick={() => setSelectedProspectDetail(p)}
+                                className="font-extrabold text-sm text-gray-950 hover:text-blue-600 cursor-pointer transition-colors truncate"
+                              >
+                                {p.full_name}
+                              </h4>
+                              <p className="text-[11px] text-gray-400 font-bold mt-0.5">{p.phone}</p>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3 border-t border-gray-100 pt-3.5 text-[11px]">
+                            <div className="flex flex-col gap-0.5">
+                              <span className="text-gray-400 font-semibold text-[10px]">Cluster Minat</span>
+                              <span className="font-bold text-slate-800 truncate">{cluster?.name || '-'}</span>
+                            </div>
+                            <div className="flex flex-col gap-0.5">
+                              <span className="text-gray-400 font-semibold text-[10px]">Sumber Lead</span>
+                              <span className="font-bold text-slate-800 capitalize truncate">{p.lead_source.replace('_', ' ')}</span>
+                            </div>
+                          </div>
+
+                          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-gray-100 pt-3.5 mt-auto">
+                            <span className={`px-2 py-0.5 rounded border text-[9px] font-black tracking-wide uppercase ${stage?.color}`}>
                               {stage?.label}
                             </span>
-                          </td>
-                          <td className="p-4">
-                            <div className="flex items-center gap-2">
-                              <span className={`w-2 h-2 rounded-full ${fu.color}`}></span>
-                              <span className="font-semibold text-gray-700">{fu.label}</span>
+
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                onClick={() => setSelectedProspectDetail(p)}
+                                className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                                title="Lihat Detail"
+                              >
+                                <Eye size={14} />
+                              </button>
+                              <button
+                                onClick={() => startEditProspect(p)}
+                                className="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg transition-all"
+                                title="Edit Prospek"
+                              >
+                                <Edit2 size={14} />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteProspect(p.id, p.full_name)}
+                                className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                                title="Hapus Prospek"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                              <Link 
+                                href={`/prospects/${p.id}`}
+                                className="p-1.5 text-slate-600 hover:bg-slate-100 rounded-lg transition-all"
+                                title="Kelola Follow-up"
+                              >
+                                <ChevronRight size={14} />
+                              </Link>
                             </div>
-                          </td>
-                          <td className="p-4 text-center">
-                            <Link href={`/prospects/${p.id}`} className="inline-flex p-1.5 hover:bg-blue-50 text-blue-600 rounded-lg">
-                              <ChevronRight size={18} />
-                            </Link>
-                          </td>
-                        </tr>
+                          </div>
+                        </div>
                       );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -997,6 +1247,272 @@ export default function CRMModulePage() {
             </div>
           );
         })()}
+
+        {/* MODAL: DETAIL PROSPEK */}
+        {selectedProspectDetail && (() => {
+          const p = selectedProspectDetail;
+          const cluster = clusters.find(c => c.id === p.interested_cluster_id);
+          const type = unitTypes.find(t => t.id === p.interested_type_id);
+          const stage = pipelineStages.find(s => s.key === p.pipeline_stage);
+          const fu = getFollowupIndicator(p.last_followup_at);
+          const salesAgent = availableUsers.find(u => u.id === p.assigned_to);
+
+          return (
+            <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+              <div className="bg-white max-w-lg w-full rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] animate-scaleUp text-left">
+                
+                {/* Header */}
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 flex justify-between items-center border-b border-gray-100">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-sm uppercase">
+                      {p.full_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                    </div>
+                    <div>
+                      <h3 className="font-extrabold text-base text-slate-900 leading-tight">
+                        {p.full_name}
+                      </h3>
+                      <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">{p.phone}</span>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => setSelectedProspectDetail(null)} 
+                    className="text-gray-400 hover:text-gray-600 text-xs font-bold uppercase tracking-wider p-1"
+                  >
+                    Tutup
+                  </button>
+                </div>
+
+                {/* Body */}
+                <div className="p-6 overflow-y-auto flex flex-col gap-5 text-xs">
+                  {/* Pipeline & Follow-up status */}
+                  <div className="flex flex-wrap gap-3">
+                    <div className="flex flex-col gap-1 bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 flex-1 min-w-[120px]">
+                      <span className="text-gray-400 font-bold text-[9px] uppercase tracking-wider">Tahapan Pipeline</span>
+                      <span className={`px-2 py-0.5 rounded border text-[10px] font-black self-start mt-0.5 ${stage?.color}`}>
+                        {stage?.label}
+                      </span>
+                    </div>
+                    <div className="flex flex-col gap-1 bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 flex-1 min-w-[120px]">
+                      <span className="text-gray-400 font-bold text-[9px] uppercase tracking-wider">Kesegaran Follow-up</span>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <span className={`w-2.5 h-2.5 rounded-full ${fu.color}`}></span>
+                        <span className="font-bold text-gray-800">{fu.label}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Contact Details */}
+                  <div className="flex flex-col gap-2.5">
+                    <h4 className="font-extrabold text-slate-900 uppercase tracking-widest text-[9px] text-blue-600">Rincian Kontak & Pekerjaan</h4>
+                    <div className="grid grid-cols-2 gap-3.5 bg-slate-50/50 p-4 border border-slate-100 rounded-2xl text-left">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-gray-400 font-bold text-[9px] uppercase tracking-wider">Email</span>
+                        <span className="font-bold text-slate-700 truncate">{p.email || '-'}</span>
+                      </div>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-gray-400 font-bold text-[9px] uppercase tracking-wider">Sumber Lead</span>
+                        <span className="font-bold text-slate-700 capitalize">{p.lead_source.replace('_', ' ')}</span>
+                      </div>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-gray-400 font-bold text-[9px] uppercase tracking-wider">Pekerjaan</span>
+                        <span className="font-bold text-slate-700 truncate">{p.occupation || '-'}</span>
+                      </div>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-gray-400 font-bold text-[9px] uppercase tracking-wider">Perusahaan</span>
+                        <span className="font-bold text-slate-700 truncate">{p.company_name || '-'}</span>
+                      </div>
+                      <div className="flex flex-col gap-0.5 col-span-2">
+                        <span className="text-gray-400 font-bold text-[9px] uppercase tracking-wider">Estimasi Pendapatan Bulanan</span>
+                        <span className="font-black text-slate-800 text-sm">
+                          {p.estimated_income ? formatIDR(p.estimated_income) : '-'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Interested Property */}
+                  <div className="flex flex-col gap-2.5">
+                    <h4 className="font-extrabold text-slate-900 uppercase tracking-widest text-[9px] text-indigo-600">Properti Yang Diminati</h4>
+                    <div className="grid grid-cols-2 gap-3.5 bg-indigo-50/10 p-4 border border-indigo-100/30 rounded-2xl text-left">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-gray-400 font-bold text-[9px] uppercase tracking-wider">Cluster</span>
+                        <span className="font-extrabold text-slate-800">{cluster?.name || '-'}</span>
+                      </div>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-gray-400 font-bold text-[9px] uppercase tracking-wider">Tipe Unit</span>
+                        <span className="font-bold text-slate-700">{type?.name || '-'}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Sales Agent handling */}
+                  {salesAgent && (
+                    <div className="flex flex-col gap-2.5">
+                      <h4 className="font-extrabold text-slate-900 uppercase tracking-widest text-[9px] text-teal-600">Sales Agent Pengampu</h4>
+                      <div className="flex items-center gap-3 bg-teal-50/20 p-4 border border-teal-100/30 rounded-2xl text-left">
+                        <div className="w-8 h-8 rounded-full bg-teal-50 border border-teal-100 flex items-center justify-center text-teal-700 font-black text-xs uppercase">
+                          {salesAgent.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="font-extrabold text-slate-800">{salesAgent.name}</span>
+                          <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wide">
+                            {salesAgent.role} · {salesAgent.department}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Initial Notes */}
+                  {p.notes && (
+                    <div className="flex flex-col gap-1.5">
+                      <span className="text-gray-400 font-bold text-[9px] uppercase tracking-wider">Catatan Prospek</span>
+                      <p className="text-slate-600 font-semibold bg-gray-50 p-3 rounded-xl border border-gray-100 leading-relaxed text-left">
+                        {p.notes}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Footer Actions */}
+                <div className="bg-slate-50 border-t border-gray-100 p-4 flex gap-2 justify-end">
+                  <button
+                    onClick={() => {
+                      setSelectedProspectDetail(null);
+                      startEditProspect(p);
+                    }}
+                    className="px-4 py-2 border border-gray-200 text-gray-700 bg-white font-bold text-xs rounded-xl shadow-sm hover:bg-gray-50 transition-colors uppercase tracking-wider"
+                  >
+                    Edit Data
+                  </button>
+                  <Link
+                    href={`/prospects/${p.id}`}
+                    onClick={() => setSelectedProspectDetail(null)}
+                    className="px-4 py-2 bg-blue-600 text-white font-bold text-xs rounded-xl shadow-md hover:bg-blue-700 transition-colors uppercase tracking-wider flex items-center gap-1.5 text-center justify-center"
+                  >
+                    Kelola Follow-up
+                    <ChevronRight size={14} />
+                  </Link>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* MODAL: EDIT PROSPEK */}
+        {editingProspect && (
+          <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white max-w-lg w-full rounded-2xl shadow-2xl p-6 flex flex-col gap-4 max-h-[90vh] overflow-y-auto text-left">
+              <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+                <h3 className="font-extrabold text-lg flex items-center gap-2 text-slate-800">
+                  <Edit2 size={20} className="text-amber-600" />
+                  Edit Data Prospek
+                </h3>
+                <button 
+                  onClick={() => setEditingProspect(null)} 
+                  className="p-1 hover:bg-gray-100 rounded text-gray-400 text-xs font-bold"
+                >
+                  BATAL
+                </button>
+              </div>
+
+              <form onSubmit={handleUpdateProspect} className="flex flex-col gap-4 text-xs font-semibold">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-gray-500 uppercase tracking-wider text-[10px]">Nama Lengkap *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Nama lengkap..."
+                      value={editFormName}
+                      onChange={(e) => setEditFormName(e.target.value)}
+                      className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 font-medium"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-gray-500 uppercase tracking-wider text-[10px]">Nomor Telepon (WA) *</label>
+                    <input
+                      type="tel"
+                      required
+                      placeholder="Nomor telepon..."
+                      value={editFormPhone}
+                      onChange={(e) => setEditFormPhone(e.target.value)}
+                      className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 font-medium"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-gray-500 uppercase tracking-wider text-[10px]">Email</label>
+                    <input
+                      type="email"
+                      placeholder="Email..."
+                      value={editFormEmail}
+                      onChange={(e) => setEditFormEmail(e.target.value)}
+                      className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 font-medium"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-gray-500 uppercase tracking-wider text-[10px]">Pekerjaan</label>
+                    <input
+                      type="text"
+                      placeholder="Pekerjaan..."
+                      value={editFormOccupation}
+                      onChange={(e) => setEditFormOccupation(e.target.value)}
+                      className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 font-medium"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-gray-500 uppercase tracking-wider text-[10px]">Nama Perusahaan</label>
+                    <input
+                      type="text"
+                      placeholder="Nama perusahaan..."
+                      value={editFormCompany}
+                      onChange={(e) => setEditFormCompany(e.target.value)}
+                      className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 font-medium"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-gray-500 uppercase tracking-wider text-[10px]">Estimasi Penghasilan (IDR/Bulan)</label>
+                    <input
+                      type="number"
+                      placeholder="Estimasi penghasilan..."
+                      value={editFormIncome}
+                      onChange={(e) => setEditFormIncome(e.target.value)}
+                      className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 font-medium"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-gray-500 uppercase tracking-wider text-[10px]">Catatan Prospek</label>
+                  <textarea
+                    placeholder="Masukkan catatan prospek..."
+                    value={editFormNotes}
+                    onChange={(e) => setEditFormNotes(e.target.value)}
+                    rows={3}
+                    className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 resize-none font-medium"
+                  ></textarea>
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full py-3 mt-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl font-bold text-xs shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-1.5"
+                >
+                  <Check size={16} />
+                  SIMPAN PERUBAHAN
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
 
       </div>
     </AppShell>

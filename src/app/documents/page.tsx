@@ -465,10 +465,10 @@ export default function DocumentHubPage() {
         </div>
 
         {/* Tab switchers */}
-        <div className="flex border-b border-gray-200 gap-2">
+        <div className="flex border-b border-gray-200 gap-2 overflow-x-auto no-scrollbar whitespace-nowrap">
           <button
             onClick={() => setActiveTab('list')}
-            className={`pb-3.5 px-4 font-bold text-sm border-b-2 transition-all ${
+            className={`pb-3.5 px-4 font-bold text-sm border-b-2 transition-all whitespace-nowrap flex-shrink-0 ${
               activeTab === 'list' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-900'
             }`}
           >
@@ -476,7 +476,7 @@ export default function DocumentHubPage() {
           </button>
           <button
             onClick={() => setActiveTab('create')}
-            className={`pb-3.5 px-4 font-bold text-sm border-b-2 transition-all ${
+            className={`pb-3.5 px-4 font-bold text-sm border-b-2 transition-all whitespace-nowrap flex-shrink-0 ${
               activeTab === 'create' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-900'
             }`}
           >
@@ -484,7 +484,7 @@ export default function DocumentHubPage() {
           </button>
           <button
             onClick={() => setActiveTab('queue')}
-            className={`pb-3.5 px-4 font-bold text-sm border-b-2 transition-all ${
+            className={`pb-3.5 px-4 font-bold text-sm border-b-2 transition-all whitespace-nowrap flex-shrink-0 ${
               activeTab === 'queue' ? 'border-blue-600 text-blue-600 animate-pulse' : 'border-transparent text-gray-500 hover:text-gray-900'
             }`}
           >

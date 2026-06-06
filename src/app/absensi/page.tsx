@@ -82,6 +82,94 @@ export default function AttendancePage() {
 
   const [isLoading, setIsLoading] = useState(true);
 
+  // Calendar View State
+  const [calendarViewMode, setCalendarViewMode] = useState<'list' | 'calendar'>('list');
+  const [currentCalendarYear, setCurrentCalendarYear] = useState<number>(new Date().getFullYear());
+  const [currentCalendarMonth, setCurrentCalendarMonth] = useState<number>(new Date().getMonth());
+  const [selectedDayDetail, setSelectedDayDetail] = useState<{
+    dateStr: string;
+    record?: any;
+    leave?: any;
+  } | null>(null);
+
+  const MONTHS = [
+    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+  ];
+  const DAYS = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+
+  const getLocalDateString = (date: Date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  };
+
+  const generateCalendarDays = () => {
+    const year = currentCalendarYear;
+    const month = currentCalendarMonth;
+    const firstDayOfMonth = new Date(year, month, 1);
+    const startDayOfWeek = firstDayOfMonth.getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const prevMonthDays = new Date(year, month, 0).getDate();
+
+    const calendarDays = [];
+
+    // Leading days from previous month
+    for (let i = startDayOfWeek - 1; i >= 0; i--) {
+      const d = new Date(year, month - 1, prevMonthDays - i);
+      calendarDays.push({
+        date: d,
+        isCurrentMonth: false,
+        dateStr: getLocalDateString(d)
+      });
+    }
+
+    // Current month days
+    for (let i = 1; i <= daysInMonth; i++) {
+      const d = new Date(year, month, i);
+      calendarDays.push({
+        date: d,
+        isCurrentMonth: true,
+        dateStr: getLocalDateString(d)
+      });
+    }
+
+    // Trailing days from next month
+    const totalSlots = 42; // standard 6 rows
+    const remainingSlots = totalSlots - calendarDays.length;
+    for (let i = 1; i <= remainingSlots; i++) {
+      const d = new Date(year, month + 1, i);
+      calendarDays.push({
+        date: d,
+        isCurrentMonth: false,
+        dateStr: getLocalDateString(d)
+      });
+    }
+
+    return calendarDays;
+  };
+
+  const handlePrevMonth = () => {
+    if (currentCalendarMonth === 0) {
+      setCurrentCalendarMonth(11);
+      setCurrentCalendarYear(prev => prev - 1);
+    } else {
+      setCurrentCalendarMonth(prev => prev - 1);
+    }
+    setSelectedDayDetail(null);
+  };
+
+  const handleNextMonth = () => {
+    if (currentCalendarMonth === 11) {
+      setCurrentCalendarMonth(0);
+      setCurrentCalendarYear(prev => prev + 1);
+    } else {
+      setCurrentCalendarMonth(prev => prev + 1);
+    }
+    setSelectedDayDetail(null);
+  };
+
   // Check connection status
   useEffect(() => {
     setIsOnline(navigator.onLine);
@@ -692,47 +780,276 @@ export default function AttendancePage() {
 
         {/* History Logs */}
         <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm flex flex-col gap-4 text-left">
-          <h2 className="font-extrabold text-base border-b border-gray-100 pb-3 text-slate-800 flex items-center gap-2">
-            <Coffee size={18} className="text-indigo-600" />
-            Riwayat Kehadiran Harian
-          </h2>
-          
-          <div className="max-h-60 overflow-y-auto flex flex-col gap-2.5 pr-1">
-            {history.length === 0 ? (
-              <span className="text-xs text-gray-400 italic text-center py-4">Belum ada riwayat presensi harian.</span>
-            ) : (
-              history.map((h) => {
-                const clockInTime = h.clock_in_at ? new Date(h.clock_in_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '—';
-                const clockOutTime = h.clock_out_at ? new Date(h.clock_out_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '—';
-                return (
-                  <div key={h.id} className="p-3 border border-gray-100 rounded-xl bg-slate-50 flex justify-between items-center text-xs">
-                    <div className="flex flex-col gap-1">
-                      <span className="font-bold text-gray-800">{new Date(h.date).toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}</span>
-                      <div className="flex gap-2 text-[10px] text-gray-400 font-semibold">
-                        <span>Mode: <strong className="text-indigo-600 uppercase">{h.work_mode}</strong></span>
-                        {h.overtime_hours > 0 && (
-                          <span className="text-purple-600 bg-purple-50 px-1 rounded">Lembur: {h.overtime_hours} jam</span>
+          <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+            <h2 className="font-extrabold text-base text-slate-800 flex items-center gap-2">
+              <Coffee size={18} className="text-indigo-600" />
+              Riwayat Kehadiran Harian
+            </h2>
+            
+            {/* View Mode Toggle */}
+            <div className="flex bg-gray-100 p-0.5 rounded-lg text-[10px]">
+              <button
+                type="button"
+                onClick={() => setCalendarViewMode('list')}
+                className={`px-2.5 py-1 rounded-md font-bold transition-all ${
+                  calendarViewMode === 'list' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-800'
+                }`}
+              >
+                Daftar
+              </button>
+              <button
+                type="button"
+                onClick={() => setCalendarViewMode('calendar')}
+                className={`px-2.5 py-1 rounded-md font-bold transition-all ${
+                  calendarViewMode === 'calendar' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-800'
+                }`}
+              >
+                Kalender
+              </button>
+            </div>
+          </div>
+
+          {calendarViewMode === 'list' ? (
+            <div className="max-h-60 overflow-y-auto flex flex-col gap-2.5 pr-1">
+              {history.length === 0 ? (
+                <span className="text-xs text-gray-400 italic text-center py-4">Belum ada riwayat presensi harian.</span>
+              ) : (
+                history.map((h) => {
+                  const clockInTime = h.clock_in_at ? new Date(h.clock_in_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '—';
+                  const clockOutTime = h.clock_out_at ? new Date(h.clock_out_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '—';
+                  return (
+                    <div key={h.id} className="p-3 border border-gray-100 rounded-xl bg-slate-50 flex justify-between items-center text-xs">
+                      <div className="flex flex-col gap-1">
+                        <span className="font-bold text-gray-800">{new Date(h.date).toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                        <div className="flex gap-2 text-[10px] text-gray-400 font-semibold">
+                          <span>Mode: <strong className="text-indigo-600 uppercase">{h.work_mode}</strong></span>
+                          {h.overtime_hours > 0 && (
+                            <span className="text-purple-600 bg-purple-50 px-1 rounded">Lembur: {h.overtime_hours} jam</span>
+                          )}
+                        </div>
+                        {h.notes && (
+                          <span className="text-[10px] text-amber-600 font-medium italic block max-w-xs truncate">Catatan: &quot;{h.notes}&quot;</span>
                         )}
                       </div>
-                      {h.notes && (
-                        <span className="text-[10px] text-amber-600 font-medium italic block max-w-xs truncate">Catatan: &quot;{h.notes}&quot;</span>
+                      <div className="text-right flex flex-col gap-1">
+                        <span className="font-mono font-bold text-gray-700">{clockInTime} - {clockOutTime}</span>
+                        <span className={`px-2 py-0.5 rounded font-bold text-[9px] self-end uppercase ${
+                          h.status === 'present' ? 'bg-green-50 text-green-700' :
+                          h.status === 'late' ? 'bg-red-50 text-red-700' :
+                          'bg-gray-100 text-gray-600'
+                        }`}>
+                          {h.status === 'present' ? 'Hadir' : h.status === 'late' ? 'Terlambat' : h.status}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          ) : (
+            <div className="flex flex-col gap-4">
+              {/* Calendar Controls */}
+              <div className="flex justify-between items-center bg-gray-50 p-2 rounded-xl border border-gray-200/50">
+                <button
+                  type="button"
+                  onClick={handlePrevMonth}
+                  className="px-3 py-1.5 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-bold transition-all"
+                >
+                  &larr; Prev
+                </button>
+                <span className="font-extrabold text-xs text-gray-800 uppercase tracking-wide">
+                  {MONTHS[currentCalendarMonth]} {currentCalendarYear}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleNextMonth}
+                  className="px-3 py-1.5 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-bold transition-all"
+                >
+                  Next &rarr;
+                </button>
+              </div>
+
+              {/* Day headers */}
+              <div className="grid grid-cols-7 gap-1 text-center text-[9px] font-bold text-gray-400 uppercase tracking-wider">
+                {DAYS.map(day => (
+                  <div key={day} className="py-1">{day}</div>
+                ))}
+              </div>
+
+              {/* Calendar Grid */}
+              <div className="grid grid-cols-7 gap-1">
+                {generateCalendarDays().map((day, idx) => {
+                  const isToday = day.dateStr === new Date().toISOString().split('T')[0];
+                  const dayRecord = history.find(h => h.date === day.dateStr);
+                  const dayLeave = leaves.find(l => {
+                    if (l.status !== 'approved') return false;
+                    return day.dateStr >= l.start_date && day.dateStr <= l.end_date;
+                  });
+
+                  let cellClass = "h-11 flex flex-col items-center justify-between p-1 rounded-lg border text-[10px] font-bold transition-all cursor-pointer ";
+                  let dotColor = "";
+                  let statusLabel = "";
+
+                  if (dayRecord) {
+                    if (dayRecord.status === 'present') {
+                      cellClass += "bg-green-50 text-green-700 border-green-200 hover:bg-green-100/60";
+                      dotColor = "bg-green-500";
+                      statusLabel = "Hadir";
+                    } else if (dayRecord.status === 'late') {
+                      cellClass += "bg-red-50 text-red-700 border-red-200 hover:bg-red-100/60";
+                      dotColor = "bg-red-500";
+                      statusLabel = "Terlambat";
+                    } else {
+                      cellClass += "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100";
+                      dotColor = "bg-slate-400";
+                      statusLabel = dayRecord.status;
+                    }
+                  } else if (dayLeave) {
+                    cellClass += "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100/60";
+                    dotColor = "bg-blue-500";
+                    statusLabel = dayLeave.leave_type;
+                  } else {
+                    const isPast = new Date(day.dateStr) < new Date(new Date().toISOString().split('T')[0]);
+                    const isWeekend = day.date.getDay() === 0 || day.date.getDay() === 6;
+                    if (isPast) {
+                      if (isWeekend) {
+                        cellClass += "bg-slate-50/50 border-slate-100 text-slate-300 cursor-default";
+                      } else {
+                        cellClass += "bg-gray-100 border-gray-200/50 text-gray-400 hover:bg-gray-200/50";
+                        dotColor = "bg-gray-400";
+                        statusLabel = "Mangkir";
+                      }
+                    } else {
+                      cellClass += "bg-white border-gray-100 text-gray-400 hover:bg-gray-50";
+                    }
+                  }
+
+                  if (!day.isCurrentMonth) {
+                    cellClass += " opacity-25";
+                  }
+
+                  if (isToday) {
+                    cellClass += " ring-2 ring-indigo-500 ring-offset-1 z-10";
+                  }
+
+                  const clockInTime = dayRecord?.clock_in_at 
+                    ? new Date(dayRecord.clock_in_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+                    : null;
+
+                  return (
+                    <div
+                      key={idx}
+                      onClick={() => {
+                        if (dayRecord || dayLeave || statusLabel === 'Mangkir') {
+                          setSelectedDayDetail({
+                            dateStr: day.dateStr,
+                            record: dayRecord,
+                            leave: dayLeave
+                          });
+                        } else {
+                          setSelectedDayDetail(null);
+                        }
+                      }}
+                      className={cellClass}
+                    >
+                      <div className="flex justify-between items-center w-full px-0.5">
+                        <span className="text-[9px] font-bold">{day.date.getDate()}</span>
+                        {dotColor && <span className={`w-1 h-1 rounded-full ${dotColor}`}></span>}
+                      </div>
+                      
+                      {clockInTime ? (
+                        <span className="text-[8px] font-mono text-gray-500 leading-none">{clockInTime}</span>
+                      ) : statusLabel ? (
+                        <span className="text-[7px] truncate max-w-full font-bold uppercase tracking-tighter opacity-80 leading-none">{statusLabel.split(' ')[0]}</span>
+                      ) : (
+                        <span className="h-1.5"></span>
                       )}
                     </div>
-                    <div className="text-right flex flex-col gap-1">
-                      <span className="font-mono font-bold text-gray-700">{clockInTime} - {clockOutTime}</span>
-                      <span className={`px-2 py-0.5 rounded font-bold text-[9px] self-end uppercase ${
-                        h.status === 'present' ? 'bg-green-50 text-green-700' :
-                        h.status === 'late' ? 'bg-red-50 text-red-700' :
-                        'bg-gray-100 text-gray-600'
-                      }`}>
-                        {h.status === 'present' ? 'Hadir' : h.status === 'late' ? 'Terlambat' : h.status}
-                      </span>
-                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Selected Day Detail Card */}
+              {selectedDayDetail && (
+                <div className="mt-2 p-3.5 border border-indigo-100 rounded-xl bg-indigo-50/20 text-xs text-left relative">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedDayDetail(null)}
+                    className="absolute top-2.5 right-2.5 p-1 hover:bg-indigo-100/40 rounded-full text-gray-400"
+                  >
+                    <X size={14} />
+                  </button>
+                  <div className="font-extrabold text-gray-800 flex items-center gap-1.5 mb-2.5">
+                    <Calendar size={14} className="text-indigo-600" />
+                    <span>
+                      Detail Tanggal: {new Date(selectedDayDetail.dateStr).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                    </span>
                   </div>
-                );
-              })
-            )}
-          </div>
+
+                  {selectedDayDetail.record ? (
+                    <div className="grid grid-cols-2 gap-2 mt-1 font-semibold">
+                      <div className="flex flex-col">
+                        <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Status Kehadiran</span>
+                        <span className={`font-bold mt-0.5 ${selectedDayDetail.record.status === 'present' ? 'text-green-600' : 'text-red-500'}`}>
+                          {selectedDayDetail.record.status === 'present' ? 'Hadir Tepat Waktu' : 'Terlambat'}
+                        </span>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Mode Kerja</span>
+                        <span className="font-bold text-gray-700 capitalize mt-0.5">{selectedDayDetail.record.work_mode}</span>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Jam Clock-In</span>
+                        <span className="font-bold text-gray-700 mt-0.5">
+                          {new Date(selectedDayDetail.record.clock_in_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB
+                        </span>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Jam Clock-Out</span>
+                        <span className="font-bold text-gray-700 mt-0.5">
+                          {selectedDayDetail.record.clock_out_at 
+                            ? `${new Date(selectedDayDetail.record.clock_out_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB` 
+                            : 'Belum Clock-Out'}
+                        </span>
+                      </div>
+                      {selectedDayDetail.record.notes && (
+                        <div className="col-span-2 flex flex-col border-t border-indigo-100/30 pt-2 mt-1">
+                          <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Catatan/Alasan</span>
+                          <span className="text-gray-600 italic mt-0.5">&quot;{selectedDayDetail.record.notes}&quot;</span>
+                        </div>
+                      )}
+                    </div>
+                  ) : selectedDayDetail.leave ? (
+                    <div className="flex flex-col gap-1.5 mt-1 font-semibold">
+                      <div className="flex justify-between items-center">
+                        <div className="flex flex-col">
+                          <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Jenis Cuti / Izin</span>
+                          <span className="font-bold text-indigo-700 mt-0.5">{selectedDayDetail.leave.leave_type}</span>
+                        </div>
+                        <span className="px-2.5 py-0.5 bg-green-100 text-green-700 border border-green-200 rounded-full text-[9px] font-black uppercase">APPROVED</span>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Durasi Pengajuan</span>
+                        <span className="font-bold text-gray-700 mt-0.5">
+                          {selectedDayDetail.leave.start_date} s/d {selectedDayDetail.leave.end_date} ({selectedDayDetail.leave.total_days} Hari)
+                        </span>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Alasan Pengajuan</span>
+                        <span className="text-gray-600 italic mt-0.5">&quot;{selectedDayDetail.leave.reason}&quot;</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col mt-1 font-semibold">
+                      <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Status Kehadiran</span>
+                      <span className="font-bold text-red-600 mt-0.5">Mangkir (Absent)</span>
+                      <p className="text-[10px] text-gray-400 mt-1.5 leading-relaxed font-normal">Tidak terdeteksi log masuk onsite/wfh dan tidak ada pengajuan cuti/izin yang disetujui pada hari kerja ini.</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* History Cuti & Izin Requests */}

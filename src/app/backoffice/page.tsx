@@ -1104,7 +1104,7 @@ export default function BackofficePage() {
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-gray-200 gap-2">
+        <div className="flex border-b border-gray-200 gap-2 overflow-x-auto no-scrollbar whitespace-nowrap">
           {([
             ['users', 'User Management', <Users size={14} />],
             ['gps', 'GPS & Lokasi', <MapPin size={14} />],
@@ -1115,7 +1115,7 @@ export default function BackofficePage() {
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`pb-3.5 px-4 font-bold text-sm border-b-2 transition-all flex items-center gap-1.5 ${
+              className={`pb-3.5 px-4 font-bold text-sm border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap flex-shrink-0 ${
                 activeTab === tab ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-900'
               }`}
             >

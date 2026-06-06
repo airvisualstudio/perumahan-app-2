@@ -79,22 +79,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 text-gray-900 pb-20 md:pb-0">
-      <header className="sticky top-0 md:top-4 z-40 w-full md:w-[calc(100%-2rem)] md:max-w-7xl md:mx-auto bg-white/70 dark:bg-slate-900/70 backdrop-blur-lg border-b border-gray-200/40 md:border md:rounded-2xl px-6 py-3.5 flex items-center justify-between md:shadow-md transition-all">
+      <header className="sticky top-0 md:top-4 z-40 w-full md:w-[calc(100%-2rem)] md:max-w-7xl md:mx-auto bg-white/70 dark:bg-slate-900/70 backdrop-blur-lg border-b border-gray-200/40 md:border md:rounded-full px-4 md:px-8 py-3 flex items-center justify-between md:shadow-md transition-all">
         <div className="flex items-center gap-3">
-          <button 
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
-            className="p-1 md:hidden hover:bg-gray-100 rounded-lg text-gray-600"
-          >
-            {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
-          
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold text-lg shadow-sm">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold text-lg shadow-sm">
               D
             </div>
             <div>
               <span className="font-bold text-lg bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">Domus</span>
-              <span className="text-gray-500 text-xs ml-1.5 font-medium border border-gray-200 px-1.5 py-0.5 rounded">PWA</span>
+              <span className="text-gray-500 text-xs ml-1.5 font-medium border border-gray-200 px-2 py-0.5 rounded-full">PWA</span>
             </div>
           </div>
         </div>
@@ -108,9 +101,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               <Link
                 key={item.name}
                 href={item.href}
-                className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-all ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
                   isActive 
-                    ? 'bg-blue-50 text-blue-600 shadow-sm border border-blue-100/50' 
+                    ? 'bg-blue-50 text-blue-600' 
                     : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                 }`}
               >
@@ -136,7 +129,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             </button>
 
             {showNotifications && (
-              <div className="absolute right-0 mt-2.5 w-80 bg-white border border-gray-200 rounded-xl shadow-lg py-2 z-50">
+              <div className="absolute right-0 mt-2.5 w-80 bg-white border border-gray-200 rounded-2xl shadow-lg py-2 z-50">
                 <div className="px-4 py-1.5 border-b border-gray-100 flex justify-between items-center">
                   <span className="font-semibold text-sm">Notifikasi In-App</span>
                   <button 
@@ -177,13 +170,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       {/* Mobile Drawer Navigation Menu */}
       {isMobileMenuOpen && (
         <div className="fixed inset-0 bg-gray-900/30 backdrop-blur-xs z-50 md:hidden" onClick={() => setIsMobileMenuOpen(false)}>
-          <div className="w-72 max-w-[85vw] h-full bg-white/80 backdrop-blur-lg border-r border-gray-200/30 shadow-2xl flex flex-col p-5" onClick={e => e.stopPropagation()}>
+          <div className="w-72 max-w-[85vw] h-full bg-white/80 backdrop-blur-lg border-r border-gray-200/30 rounded-r-3xl shadow-2xl flex flex-col p-5" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-6">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-lg">D</div>
+                <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-lg">D</div>
                 <span className="font-bold text-lg">Domus Somnia</span>
               </div>
-              <button onClick={() => setIsMobileMenuOpen(false)} className="p-1 hover:bg-gray-100 rounded-lg">
+              <button onClick={() => setIsMobileMenuOpen(false)} className="p-1 hover:bg-gray-100 rounded-full">
                 <X size={20} />
               </button>
             </div>
@@ -197,9 +190,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                     key={item.name}
                     href={item.href}
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                    className={`flex items-center gap-3 px-4 py-2.5 rounded-full text-sm font-medium transition-all ${
                       isActive 
-                        ? 'bg-blue-50 text-blue-600 shadow-sm border border-blue-100' 
+                        ? 'bg-blue-50 text-blue-600' 
                         : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                     }`}
                   >
@@ -212,7 +205,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
             <button 
               onClick={logout}
-              className="mt-auto flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 transition-all"
+              className="mt-auto flex items-center gap-3 px-4 py-2.5 rounded-full text-sm font-medium text-red-600 hover:bg-red-50 transition-all"
             >
               <LogOut size={18} />
               Keluar Sistem
@@ -227,7 +220,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </main>
 
       {/* Persistent Bottom Mobile Nav (floating modern blur dock) */}
-      <div className="md:hidden fixed bottom-4 left-4 right-4 z-40 bg-white/75 backdrop-blur-lg border border-gray-200/40 flex justify-around py-2.5 rounded-2xl shadow-xl px-2">
+      <div className="md:hidden fixed bottom-4 left-4 right-4 z-40 bg-white/75 backdrop-blur-lg border border-gray-200/40 flex justify-around py-3 rounded-full shadow-xl px-2">
         {filteredNavItems.slice(0, 4).map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
@@ -235,22 +228,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             <Link
               key={item.name}
               href={item.href}
-              className={`flex flex-col items-center gap-0.5 px-2.5 py-1 text-xs font-bold transition-all duration-200 ${
-                isActive ? 'text-blue-600 scale-105' : 'text-gray-400 hover:text-gray-700'
+              className={`flex flex-col items-center gap-0.5 px-1 py-1 text-[10px] font-bold transition-all duration-200 ${
+                isActive ? 'text-blue-600' : 'text-gray-400 hover:text-gray-700'
               }`}
             >
               <Icon size={18} />
-              <span>{item.name.split(' ')[0]}</span>
+              <span className="truncate max-w-[60px]">{item.name.split(' ')[0]}</span>
             </Link>
           );
         })}
-        <button 
-          onClick={() => setIsMobileMenuOpen(true)}
-          className="flex flex-col items-center gap-0.5 px-2.5 py-1 text-xs font-bold text-gray-400 hover:text-gray-700"
-        >
-          <Menu size={18} />
-          <span>Menu</span>
-        </button>
       </div>
 
       {/* Simulated Slack Webhook Console (Bottom Panel) */}
@@ -290,7 +276,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       {/* Floating Role Switcher Widget (Bottom Right) */}
       <div className="fixed bottom-16 md:bottom-4 right-4 z-50 flex flex-col items-end gap-2">
         <div className="relative group">
-          <div className="flex items-center gap-1.5 bg-white border border-gray-200 px-3.5 py-2 rounded-xl shadow-xl hover:shadow-2xl transition-all cursor-pointer hover:border-blue-400">
+          <div className="flex items-center gap-1.5 bg-white border border-gray-200 px-3.5 py-2 rounded-full shadow-xl hover:shadow-2xl transition-all cursor-pointer hover:border-blue-400">
             <Layers size={16} className="text-blue-600 animate-spin" style={{ animationDuration: '6s' }} />
             <div className="flex flex-col text-left">
               <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">MOCK TESTING ROLE</span>
@@ -300,7 +286,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </div>
           
           {/* Dropdown list */}
-          <div className="absolute bottom-full right-0 mb-2.5 w-60 bg-white border border-gray-200 rounded-xl shadow-2xl py-2 invisible group-hover:visible group-focus-within:visible opacity-0 group-hover:opacity-100 transition-all z-[99]">
+          <div className="absolute bottom-full right-0 mb-2.5 w-60 bg-white border border-gray-200 rounded-2xl shadow-2xl py-2 invisible group-hover:visible group-focus-within:visible opacity-0 group-hover:opacity-100 transition-all z-[99]">
             <div className="px-4 py-1.5 border-b border-gray-100 font-bold text-xs text-gray-500">
               PILIH ROLE EVALUASI
             </div>
