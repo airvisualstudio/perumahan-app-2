@@ -636,6 +636,13 @@ export default function BackofficePage() {
   const [uOrientation, setUOrientation] = useState<'hook' | 'middle' | 'corner'>('middle');
   const [uStatus, setUStatus] = useState<string>('available');
   const [uNotes, setUNotes] = useState('');
+  const [uConstructionStatus, setUConstructionStatus] = useState<string>('belum_terbangun');
+  const [uLegalStatus, setULegalStatus] = useState<'shm' | 'shgb' | 'ajb' | 'other'>('shm');
+  const [uPbbStatus, setUPbbStatus] = useState<'paid' | 'unpaid' | 'not_registered'>('not_registered');
+  const [uLandDocuments, setULandDocuments] = useState<any[]>([]);
+  const [uTaxDocuments, setUTaxDocuments] = useState<any[]>([]);
+  const [uPbbNop, setUPbbNop] = useState('');
+  const [uPbbOwnerName, setUPbbOwnerName] = useState('');
 
   const fetchBackofficeData = async () => {
     try {
@@ -914,6 +921,13 @@ export default function BackofficePage() {
           orientation: uOrientation,
           status: uStatus,
           notes: uNotes,
+          construction_status: uConstructionStatus,
+          legal_status: uLegalStatus,
+          pbb_status: uPbbStatus,
+          pbb_nop: uPbbNop,
+          pbb_owner_name: uPbbOwnerName,
+          land_documents: uLandDocuments,
+          tax_documents: uTaxDocuments,
           actor_id: user?.id
         })
       });
@@ -925,6 +939,13 @@ export default function BackofficePage() {
         setUBlockNumber('');
         setUSellPrice('');
         setUNotes('');
+        setUConstructionStatus('belum_terbangun');
+        setULegalStatus('shm');
+        setUPbbStatus('not_registered');
+        setUPbbNop('');
+        setUPbbOwnerName('');
+        setULandDocuments([]);
+        setUTaxDocuments([]);
         fetchBackofficeData();
       }
     } catch (err) {
@@ -964,6 +985,13 @@ export default function BackofficePage() {
     setUOrientation(unit.orientation);
     setUStatus(unit.status);
     setUNotes(unit.notes || '');
+    setUConstructionStatus(unit.construction_status || 'belum_terbangun');
+    setULegalStatus(unit.legal_status || 'shm');
+    setUPbbStatus(unit.pbb_status || 'not_registered');
+    setUPbbNop(unit.pbb_nop || '');
+    setUPbbOwnerName(unit.pbb_owner_name || '');
+    setULandDocuments(unit.land_documents || []);
+    setUTaxDocuments(unit.tax_documents || []);
     setIsAddingUnit(true);
   };
 
@@ -1935,10 +1963,15 @@ export default function BackofficePage() {
                                 <label className="text-gray-400 uppercase tracking-wider text-[9px]">Status Ketersediaan</label>
                                 <select
                                   value={uStatus}
-                                  onChange={e => setUStatus(e.target.value)}
+                                  onChange={e => {
+                                    setUStatus(e.target.value);
+                                    if (e.target.value !== 'available') {
+                                      setUConstructionStatus('belum_terbangun');
+                                    }
+                                  }}
                                   className="px-3 py-2 border border-gray-200 bg-white rounded-xl focus:outline-none font-medium text-xs"
                                 >
-                                  <option value="available">Tersedia (Available)</option>
+                                  <option value="available">Tersedia / Kosong (Available)</option>
                                   <option value="reserved">Minat (Reserved)</option>
                                   <option value="booking">Booking Fee Paid</option>
                                   <option value="kpr_process">Proses KPR</option>
@@ -1947,6 +1980,35 @@ export default function BackofficePage() {
                                 </select>
                               </div>
 
+                              {uStatus === 'available' ? (
+                                <div className="flex flex-col gap-1.5">
+                                  <label className="text-gray-400 uppercase tracking-wider text-[9px]">Tahap Pembangunan *</label>
+                                  <select
+                                    value={uConstructionStatus}
+                                    onChange={e => setUConstructionStatus(e.target.value)}
+                                    className="px-3 py-2 border border-gray-200 bg-white rounded-xl focus:outline-none font-bold text-xs text-indigo-700"
+                                  >
+                                    <option value="belum_terbangun">Belum Terbangun</option>
+                                    <option value="proses_pembangunan">Proses Pembangunan</option>
+                                    <option value="finishing">Finishing</option>
+                                    <option value="ready">Ready (Siap Huni)</option>
+                                  </select>
+                                </div>
+                              ) : (
+                                <div className="flex flex-col gap-1.5">
+                                  <label className="text-gray-400 uppercase tracking-wider text-[9px]">Catatan Unit</label>
+                                  <input
+                                    type="text"
+                                    placeholder="Dekat fasilitas umum, dll..."
+                                    value={uNotes}
+                                    onChange={e => setUNotes(e.target.value)}
+                                    className="px-3 py-2 border border-gray-200 bg-white rounded-xl focus:outline-none focus:border-blue-500 font-medium text-xs"
+                                  />
+                                </div>
+                              )}
+                            </div>
+
+                            {uStatus === 'available' && (
                               <div className="flex flex-col gap-1.5">
                                 <label className="text-gray-400 uppercase tracking-wider text-[9px]">Catatan Unit</label>
                                 <input
@@ -1956,6 +2018,174 @@ export default function BackofficePage() {
                                   onChange={e => setUNotes(e.target.value)}
                                   className="px-3 py-2 border border-gray-200 bg-white rounded-xl focus:outline-none focus:border-blue-500 font-medium text-xs"
                                 />
+                              </div>
+                            )}
+
+                            {/* Legalitas & Perpajakan */}
+                            <div className="border-t border-dashed border-gray-200 pt-3.5 mt-1 flex flex-col gap-3.5">
+                              <h5 className="font-extrabold text-[10px] text-indigo-600 uppercase tracking-widest">⚖️ Legalitas & Perpajakan</h5>
+                              
+                              <div className="grid grid-cols-2 gap-4">
+                                <div className="flex flex-col gap-1.5">
+                                  <label className="text-gray-400 uppercase tracking-wider text-[9px]">Status Sertifikat Tanah</label>
+                                  <select
+                                    value={uLegalStatus}
+                                    onChange={e => setULegalStatus(e.target.value as any)}
+                                    className="px-3 py-2 border border-gray-200 bg-white rounded-xl focus:outline-none font-medium text-xs text-slate-800"
+                                  >
+                                    <option value="shm">SHM (Sertifikat Hak Milik)</option>
+                                    <option value="shgb">SHGB (Sertifikat Hak Guna Bangunan)</option>
+                                    <option value="ajb">AJB (Akta Jual Beli)</option>
+                                    <option value="other">Lainnya (HGB / Girik / Surat)</option>
+                                  </select>
+                                </div>
+
+                                <div className="flex flex-col gap-1.5">
+                                  <label className="text-gray-400 uppercase tracking-wider text-[9px]">Status Pajak PBB</label>
+                                  <select
+                                    value={uPbbStatus}
+                                    onChange={e => setUPbbStatus(e.target.value as any)}
+                                    className="px-3 py-2 border border-gray-200 bg-white rounded-xl focus:outline-none font-medium text-xs text-slate-800"
+                                  >
+                                    <option value="paid">Lunas (Paid)</option>
+                                    <option value="unpaid">Belum Bayar (Unpaid)</option>
+                                    <option value="not_registered">Belum Terdaftar</option>
+                                  </select>
+                                </div>
+                              </div>
+
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-1">
+                                {/* Dokumen Pertanahan Uploader */}
+                                <div className="flex flex-col gap-2 p-3 bg-indigo-50/20 border border-indigo-100/50 rounded-xl">
+                                  <span className="text-[10px] font-extrabold text-indigo-700 uppercase tracking-wide flex items-center gap-1">📁 Dokumen Pertanahan</span>
+                                  <label className="px-3 py-1.5 border border-dashed border-indigo-300 hover:bg-indigo-50 hover:border-indigo-400 rounded-lg cursor-pointer flex items-center justify-center gap-1 font-bold text-[10px] text-indigo-700 bg-white transition-all">
+                                    <span>+ Unggah Sertifikat/AJB</span>
+                                    <input
+                                      type="file"
+                                      accept=".pdf,.jpg,.jpeg,.png,.docx"
+                                      onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (!file) return;
+                                        const reader = new FileReader();
+                                        reader.onload = (event) => {
+                                          const url = event.target?.result as string;
+                                          const newDoc = {
+                                            id: 'land-' + Math.random().toString(36).substr(2, 9),
+                                            name: file.name,
+                                            url,
+                                            uploaded_at: new Date().toLocaleDateString('id-ID')
+                                          };
+                                          setULandDocuments(prev => [...prev, newDoc]);
+                                        };
+                                        reader.readAsDataURL(file);
+                                      }}
+                                      className="hidden"
+                                    />
+                                  </label>
+
+                                  {/* List of land documents */}
+                                  <div className="flex flex-col gap-1.5 overflow-y-auto max-h-32">
+                                    {uLandDocuments.length === 0 ? (
+                                      <span className="text-[9px] text-gray-400 italic text-center py-2">Belum ada berkas pertanahan.</span>
+                                    ) : (
+                                      uLandDocuments.map((doc, idx) => (
+                                        <div key={doc.id || idx} className="flex justify-between items-center bg-white p-1.5 border border-gray-100 rounded-lg shadow-sm">
+                                          <div className="flex items-center gap-1 min-w-0">
+                                            <span className="text-[10px]">📄</span>
+                                            <a href={doc.url} download={doc.name} className="text-[9px] font-bold text-slate-700 hover:text-indigo-600 hover:underline truncate" title={doc.name}>
+                                              {doc.name}
+                                            </a>
+                                          </div>
+                                          <button
+                                            type="button"
+                                            onClick={() => setULandDocuments(prev => prev.filter(d => d.id !== doc.id))}
+                                            className="text-gray-400 hover:text-red-600 font-black text-[9px] px-1"
+                                          >
+                                            ✕
+                                          </button>
+                                        </div>
+                                      ))
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Dokumen Perpajakan Uploader */}
+                                <div className="flex flex-col gap-2 p-3 bg-emerald-50/20 border border-emerald-100/50 rounded-xl">
+                                  <span className="text-[10px] font-extrabold text-emerald-700 uppercase tracking-wide flex items-center gap-1">📁 Dokumen Perpajakan (PBB)</span>
+                                  
+                                  {/* NOP & Atas Nama inputs */}
+                                  <div className="flex flex-col gap-1.5 mt-1 border-b border-emerald-100/50 pb-2">
+                                    <div>
+                                      <label className="text-[8px] text-slate-500 uppercase tracking-wider font-semibold">Nomor Objek Pajak (NOP)</label>
+                                      <input
+                                        type="text"
+                                        placeholder="NOP PBB (18 digit)"
+                                        value={uPbbNop}
+                                        onChange={e => setUPbbNop(e.target.value)}
+                                        className="w-full px-2 py-1 border border-gray-200 bg-white rounded-md focus:outline-none text-[10px] font-medium text-slate-800"
+                                      />
+                                    </div>
+                                    <div className="mt-1">
+                                      <label className="text-[8px] text-slate-500 uppercase tracking-wider font-semibold">Atas Nama Wajib Pajak</label>
+                                      <input
+                                        type="text"
+                                        placeholder="Atas nama di PBB"
+                                        value={uPbbOwnerName}
+                                        onChange={e => setUPbbOwnerName(e.target.value)}
+                                        className="w-full px-2 py-1 border border-gray-200 bg-white rounded-md focus:outline-none text-[10px] font-medium text-slate-800"
+                                      />
+                                    </div>
+                                  </div>
+                                  <label className="px-3 py-1.5 border border-dashed border-emerald-300 hover:bg-emerald-50 hover:border-emerald-400 rounded-lg cursor-pointer flex items-center justify-center gap-1 font-bold text-[10px] text-emerald-700 bg-white transition-all">
+                                    <span>+ Unggah Bukti PBB</span>
+                                    <input
+                                      type="file"
+                                      accept=".pdf,.jpg,.jpeg,.png,.docx"
+                                      onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (!file) return;
+                                        const reader = new FileReader();
+                                        reader.onload = (event) => {
+                                          const url = event.target?.result as string;
+                                          const newDoc = {
+                                            id: 'tax-' + Math.random().toString(36).substr(2, 9),
+                                            name: file.name,
+                                            url,
+                                            uploaded_at: new Date().toLocaleDateString('id-ID')
+                                          };
+                                          setUTaxDocuments(prev => [...prev, newDoc]);
+                                        };
+                                        reader.readAsDataURL(file);
+                                      }}
+                                      className="hidden"
+                                    />
+                                  </label>
+
+                                  {/* List of tax documents */}
+                                  <div className="flex flex-col gap-1.5 overflow-y-auto max-h-32">
+                                    {uTaxDocuments.length === 0 ? (
+                                      <span className="text-[9px] text-gray-400 italic text-center py-2">Belum ada bukti PBB.</span>
+                                    ) : (
+                                      uTaxDocuments.map((doc, idx) => (
+                                        <div key={doc.id || idx} className="flex justify-between items-center bg-white p-1.5 border border-gray-100 rounded-lg shadow-sm">
+                                          <div className="flex items-center gap-1 min-w-0">
+                                            <span className="text-[10px]">📄</span>
+                                            <a href={doc.url} download={doc.name} className="text-[9px] font-bold text-slate-700 hover:text-emerald-600 hover:underline truncate" title={doc.name}>
+                                              {doc.name}
+                                            </a>
+                                          </div>
+                                          <button
+                                            type="button"
+                                            onClick={() => setUTaxDocuments(prev => prev.filter(d => d.id !== doc.id))}
+                                            className="text-gray-400 hover:text-red-600 font-black text-[9px] px-1"
+                                          >
+                                            ✕
+                                          </button>
+                                        </div>
+                                      ))
+                                    )}
+                                  </div>
+                                </div>
                               </div>
                             </div>
 
@@ -1991,6 +2221,8 @@ export default function BackofficePage() {
                                 <th className="p-3">Blok</th>
                                 <th className="p-3">Tipe</th>
                                 <th className="p-3">Harga</th>
+                                <th className="p-3">Legalitas</th>
+                                <th className="p-3">PBB</th>
                                 <th className="p-3">Orientasi</th>
                                 <th className="p-3 text-center">Status</th>
                                 <th className="p-3 text-center">Aksi</th>
@@ -1999,7 +2231,7 @@ export default function BackofficePage() {
                             <tbody>
                               {clusterUnits.length === 0 ? (
                                 <tr>
-                                  <td colSpan={6} className="p-4 text-center text-gray-400 italic text-[11px]">
+                                  <td colSpan={8} className="p-4 text-center text-gray-400 italic text-[11px]">
                                     Belum ada unit kavling terdaftar untuk perumahan ini.
                                   </td>
                                 </tr>
@@ -2012,6 +2244,30 @@ export default function BackofficePage() {
                                       <td className="p-3 font-semibold text-gray-600">{type?.name || "N/A"}</td>
                                       <td className="p-3 font-bold text-gray-800">
                                         {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(unit.sell_price)}
+                                      </td>
+                                      <td className="p-3 font-extrabold text-[10px] text-indigo-600 uppercase">
+                                        {unit.legal_status ? unit.legal_status.toUpperCase() : 'SHM'}
+                                        {unit.land_documents && unit.land_documents.length > 0 && (
+                                          <span className="ml-1 text-[8px] bg-indigo-50 text-indigo-700 px-1 py-0.5 rounded border border-indigo-100">
+                                            {unit.land_documents.length} berkas
+                                          </span>
+                                        )}
+                                      </td>
+                                      <td className="p-3 text-[10px] font-bold">
+                                        <div className="flex flex-col items-start gap-1">
+                                          <span className={`px-1.5 py-0.5 rounded text-[8px] border ${
+                                            unit.pbb_status === 'paid' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                                            unit.pbb_status === 'unpaid' ? 'bg-rose-50 text-rose-700 border-rose-200' :
+                                            'bg-slate-100 text-slate-600 border-slate-200'
+                                          }`}>
+                                            {unit.pbb_status === 'paid' ? 'LUNAS' : unit.pbb_status === 'unpaid' ? 'BELUM BAYAR' : 'BELUM DAFTAR'}
+                                          </span>
+                                          {unit.tax_documents && unit.tax_documents.length > 0 && (
+                                            <span className="text-[8px] bg-emerald-50 text-emerald-700 px-1 py-0.5 rounded border border-emerald-100 font-extrabold">
+                                              {unit.tax_documents.length} berkas
+                                            </span>
+                                          )}
+                                        </div>
                                       </td>
                                       <td className="p-3 capitalize font-medium text-gray-500">{unit.orientation}</td>
                                       <td className="p-3 text-center">

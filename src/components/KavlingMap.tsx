@@ -111,8 +111,25 @@ export default function KavlingMap({ units, unitTypes, prospects, activeClusterI
     
     if (blockNumber && unit) {
       const config = statusConfig[unit.status];
-      props.fill = config.fill;
-      props.stroke = config.stroke;
+      let fill = config.fill;
+      let stroke = config.stroke;
+      if (unit.status === 'available') {
+        if ((unit as any).construction_status === 'belum_terbangun') {
+          fill = '#94a3b8';
+          stroke = '#64748b';
+        } else if ((unit as any).construction_status === 'proses_pembangunan') {
+          fill = '#3b82f6';
+          stroke = '#1d4ed8';
+        } else if ((unit as any).construction_status === 'finishing') {
+          fill = '#8b5cf6';
+          stroke = '#6d28d9';
+        } else if ((unit as any).construction_status === 'ready') {
+          fill = '#10b981';
+          stroke = '#047857';
+        }
+      }
+      props.fill = fill;
+      props.stroke = stroke;
       props.strokeWidth = hoveredUnit?.id === unit.id ? 3.5 : (props.strokeWidth || 1.5);
       props.style = { ...props.style, cursor: 'pointer', transition: 'all 0.2s' };
       
@@ -187,9 +204,26 @@ export default function KavlingMap({ units, unitTypes, prospects, activeClusterI
       };
     }
     const config = statusConfig[unit.status];
+    let fill = config.fill;
+    let stroke = config.stroke;
+    if (unit.status === 'available') {
+      if ((unit as any).construction_status === 'belum_terbangun') {
+        fill = '#94a3b8';
+        stroke = '#64748b';
+      } else if ((unit as any).construction_status === 'proses_pembangunan') {
+        fill = '#3b82f6';
+        stroke = '#1d4ed8';
+      } else if ((unit as any).construction_status === 'finishing') {
+        fill = '#8b5cf6';
+        stroke = '#6d28d9';
+      } else if ((unit as any).construction_status === 'ready') {
+        fill = '#10b981';
+        stroke = '#047857';
+      }
+    }
     return {
-      fill: config.fill,
-      stroke: config.stroke,
+      fill,
+      stroke,
       cursor: 'pointer',
       opacity: 1
     };
@@ -623,8 +657,20 @@ export default function KavlingMap({ units, unitTypes, prospects, activeClusterI
                 </div>
                 
                 <div className="flex items-center gap-1.5 mt-2 py-1 px-2.5 rounded-lg border text-[10px] font-bold justify-center bg-white">
-                  <span className={`w-2 h-2 rounded-full ${statusConfig[hoveredUnit.status].dot}`}></span>
-                  <span className="capitalize text-slate-800">{statusConfig[hoveredUnit.status].label}</span>
+                  <span className={`w-2 h-2 rounded-full ${
+                    hoveredUnit.status === 'available' && (hoveredUnit as any).construction_status === 'belum_terbangun' ? 'bg-slate-400' :
+                    hoveredUnit.status === 'available' && (hoveredUnit as any).construction_status === 'proses_pembangunan' ? 'bg-blue-500' :
+                    hoveredUnit.status === 'available' && (hoveredUnit as any).construction_status === 'finishing' ? 'bg-purple-500' :
+                    statusConfig[hoveredUnit.status].dot
+                  }`}></span>
+                  <span className="text-slate-800">
+                    {hoveredUnit.status === 'available' && (hoveredUnit as any).construction_status ? (
+                      (hoveredUnit as any).construction_status === 'belum_terbangun' ? 'Tersedia (Belum Terbangun)' :
+                      (hoveredUnit as any).construction_status === 'proses_pembangunan' ? 'Tersedia (Proses Pembangunan)' :
+                      (hoveredUnit as any).construction_status === 'finishing' ? 'Tersedia (Tahap Finishing)' :
+                      'Tersedia (Ready)'
+                    ) : statusConfig[hoveredUnit.status].label}
+                  </span>
                 </div>
 
                 {linkedProspect && (

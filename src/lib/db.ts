@@ -56,6 +56,13 @@ export interface PropertyUnit {
   status: 'available' | 'reserved' | 'booking' | 'kpr_process' | 'sold' | 'unavailable';
   reserved_for?: string; // Prospect ID
   notes?: string;
+  construction_status?: 'belum_terbangun' | 'proses_pembangunan' | 'finishing' | 'ready';
+  legal_status?: 'shm' | 'shgb' | 'ajb' | 'other';
+  pbb_status?: 'paid' | 'unpaid' | 'not_registered';
+  pbb_nop?: string;
+  pbb_owner_name?: string;
+  land_documents?: Array<{ id: string; name: string; url: string; uploaded_at: string }>;
+  tax_documents?: Array<{ id: string; name: string; url: string; uploaded_at: string }>;
   updated_at: string;
   bank_name?: string;
   akad_date?: string;
@@ -1219,6 +1226,73 @@ class JsonDatabase {
                 needsSave = true;
               }
             });
+          }
+
+          // Standardize existing units construction_status to 'belum_terbangun' if missing or legacy 'Fase Mendatang'
+          if (this.schema.units) {
+            this.schema.units.forEach(u => {
+              if (!u.construction_status || (u.construction_status as string) === 'fase_mendatang' || (u.construction_status as string) === 'Fase Mendatang') {
+                u.construction_status = 'belum_terbangun';
+                needsSave = true;
+              }
+            });
+          }
+
+          // Generate missing units from predefined blocks and custom SVG files
+          if (this.schema.units && this.schema.clusters) {
+            let unitsAdded = false;
+            this.schema.clusters.forEach(cluster => {
+              const blocks: string[] = [];
+              if (cluster.id === 'cls-melati') {
+                blocks.push('A-01', 'A-02', 'A-03', 'A-04', 'A-05', 'A-06', 'A-07', 'A-08', 'A-09', 'A-10', 'A-11', 'A-12', 'A-13', 'A-14');
+              } else if (cluster.id === 'cls-anggrek') {
+                blocks.push('B-01', 'B-02', 'B-03', 'B-04', 'B-05', 'B-06', 'B-07', 'B-08', 'B-09');
+              }
+
+              // Extract from SVG if present
+              if (cluster.svg_content) {
+                const matches = cluster.svg_content.match(/id="([A-Za-z0-9\-]+)"/g);
+                if (matches) {
+                  matches.forEach(m => {
+                    const match = m.match(/id="([A-Za-z0-9\-]+)"/);
+                    if (match && match[1]) {
+                      const idVal = match[1];
+                      if ((idVal.match(/^[A-Z]-[0-9]+$/i) || idVal.match(/^[A-Z][0-9]+$/i)) && !blocks.includes(idVal)) {
+                        blocks.push(idVal);
+                      }
+                    }
+                  });
+                }
+              }
+
+              // Find unit type
+              const types = this.schema!.unitTypes ? this.schema!.unitTypes.filter(t => t.cluster_id === cluster.id) : [];
+              const defaultTypeId = types.length > 0 ? types[0].id : (cluster.id === 'cls-melati' ? 'typ-melati-36' : 'typ-anggrek-54');
+              const defaultPrice = types.length > 0 ? types[0].base_price : (cluster.id === 'cls-melati' ? 450000000 : 850000000);
+
+              blocks.forEach(block => {
+                const exists = this.schema!.units.some(u => u.cluster_id === cluster.id && u.block_number.toLowerCase() === block.toLowerCase());
+                if (!exists) {
+                  const newUnit: PropertyUnit = {
+                    id: 'unt-' + Math.random().toString(36).substr(2, 9),
+                    cluster_id: cluster.id,
+                    unit_type_id: defaultTypeId,
+                    block_number: block,
+                    sell_price: defaultPrice,
+                    orientation: 'middle',
+                    status: 'available',
+                    construction_status: 'belum_terbangun',
+                    updated_at: new Date().toISOString()
+                  };
+                  this.schema!.units.push(newUnit);
+                  cluster.total_units = (cluster.total_units || 0) + 1;
+                  unitsAdded = true;
+                }
+              });
+            });
+            if (unitsAdded) {
+              needsSave = true;
+            }
           }
           
           // Seed holidays if not present

@@ -325,7 +325,7 @@ export async function POST(request: Request) {
     }
 
     if (action === 'create_unit') {
-      const { cluster_id, unit_type_id, block_number, sell_price, orientation, status, notes, actor_id } = body;
+      const { cluster_id, unit_type_id, block_number, sell_price, orientation, status, notes, construction_status, legal_status, pbb_status, pbb_nop, pbb_owner_name, land_documents, tax_documents, actor_id } = body;
       
       const newUnit = {
         id: 'unt-' + Math.random().toString(36).substr(2, 9),
@@ -336,6 +336,13 @@ export async function POST(request: Request) {
         orientation: orientation || 'middle',
         status: status || 'available',
         notes,
+        construction_status: construction_status || 'belum_terbangun',
+        legal_status: legal_status || 'shm',
+        pbb_status: pbb_status || 'not_registered',
+        pbb_nop: pbb_nop || '',
+        pbb_owner_name: pbb_owner_name || '',
+        land_documents: land_documents || [],
+        tax_documents: tax_documents || [],
         updated_at: new Date().toISOString()
       };
 
@@ -439,7 +446,7 @@ export async function POST(request: Request) {
     }
 
     if (action === 'update_unit') {
-      const { unit_id, unit_type_id, block_number, sell_price, orientation, status, notes, actor_id } = body;
+      const { unit_id, unit_type_id, block_number, sell_price, orientation, status, notes, construction_status, legal_status, pbb_status, pbb_nop, pbb_owner_name, land_documents, tax_documents, actor_id } = body;
       const unit = data.units.find(u => u.id === unit_id);
       if (!unit) {
         return NextResponse.json({ success: false, error: 'Unit not found' }, { status: 444 });
@@ -451,6 +458,17 @@ export async function POST(request: Request) {
       unit.orientation = orientation;
       unit.status = status;
       unit.notes = notes;
+      unit.construction_status = construction_status;
+      unit.legal_status = legal_status;
+      unit.pbb_status = pbb_status;
+      unit.pbb_nop = pbb_nop;
+      unit.pbb_owner_name = pbb_owner_name;
+      if (land_documents !== undefined) {
+        unit.land_documents = land_documents;
+      }
+      if (tax_documents !== undefined) {
+        unit.tax_documents = tax_documents;
+      }
       unit.updated_at = new Date().toISOString();
 
       data.auditLogs.unshift({
