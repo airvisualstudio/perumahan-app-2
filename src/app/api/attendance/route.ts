@@ -44,7 +44,17 @@ export async function GET(request: Request) {
       allLeaves,
       allRecords,
       officeSettings,
-      settings: data.settings
+      settings: data.settings,
+      users: data.users.map(u => ({
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        role: u.role,
+        department: u.department,
+        employee_id: u.employee_id,
+        annual_leave_balance: u.annual_leave_balance,
+        is_active: u.is_active
+      }))
     });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
@@ -91,6 +101,11 @@ export async function POST(request: Request) {
         return NextResponse.json({ success: false, error: 'Alasan terlambat wajib diisi.' }, { status: 400 });
       }
 
+      let lateMinutes = 0;
+      if (isLate) {
+        lateMinutes = Math.max(0, currentMinutesToday - (startHour * 60 + startMinute));
+      }
+
       const recordStatus = isLate ? 'late' : 'present';
 
       const newRecord: AttendanceRecord = {
@@ -104,7 +119,10 @@ export async function POST(request: Request) {
         status: recordStatus,
         work_mode: workMode || 'onsite',
         is_offline_sync: !!isOffline,
-        notes
+        notes,
+        late_minutes: lateMinutes,
+        work_hours: 0,
+        overtime_hours: 0
       };
 
       data.attendance.push(newRecord);
@@ -133,6 +151,12 @@ export async function POST(request: Request) {
       record.clock_out_at = clockOutDate.toISOString();
       record.clock_out_lat = latitude;
       record.clock_out_lng = longitude;
+
+      // Calculate work hours
+      if (record.clock_in_at) {
+        const diffMs = clockOutDate.getTime() - new Date(record.clock_in_at).getTime();
+        record.work_hours = Math.round((diffMs / (1000 * 60 * 60)) * 10) / 10;
+      }
 
       // Calculate overtime based on work_hours_end (default 18:00)
       const workEndStr = data.settings.work_hours_end || '18:00';
@@ -249,6 +273,90 @@ export async function POST(request: Request) {
 
       db.save(data);
       return NextResponse.json({ success: true, settings: data.settings });
+    }
+
+    if (action === 'add_attendance_log') {
+      const { user_id, date, clock_in_at, clock_out_at, work_mode, status, notes } = body;
+      
+      // Calculate work_hours and late_minutes
+      let work_hours = 0;
+      if (clock_in_at && clock_out_at) {
+        const diffMs = new Date(clock_out_at).getTime() - new Date(clock_in_at).getTime();
+        work_hours = Math.round((diffMs / (1000 * 60 * 60)) * 10) / 10;
+      }
+      
+      let late_minutes = 0;
+      if (status === 'late' && clock_in_at) {
+        const clockInDate = new Date(clock_in_at);
+        const workStartStr = data.settings.work_hours_start || '09:00';
+        const [startHour, startMinute] = workStartStr.split(':').map(Number);
+        const clockInMins = clockInDate.getHours() * 60 + clockInDate.getMinutes();
+        late_minutes = Math.max(0, clockInMins - (startHour * 60 + startMinute));
+      }
+
+      const newRecord: AttendanceRecord = {
+        id: 'att-man-' + Math.random().toString(36).substr(2, 9),
+        user_id,
+        date,
+        clock_in_at: clock_in_at || undefined,
+        clock_out_at: clock_out_at || undefined,
+        status: status || 'present',
+        work_mode: work_mode || 'onsite',
+        is_offline_sync: false,
+        notes,
+        work_hours,
+        late_minutes,
+        overtime_hours: 0
+      };
+
+      data.attendance.push(newRecord);
+      db.save(data);
+      return NextResponse.json({ success: true, record: newRecord });
+    }
+
+    if (action === 'edit_attendance_log') {
+      const { id, clock_in_at, clock_out_at, work_mode, status, notes } = body;
+      const record = data.attendance.find(a => a.id === id);
+      if (!record) {
+        return NextResponse.json({ success: false, error: 'Log absensi tidak ditemukan.' }, { status: 444 });
+      }
+
+      if (clock_in_at !== undefined) record.clock_in_at = clock_in_at || undefined;
+      if (clock_out_at !== undefined) record.clock_out_at = clock_out_at || undefined;
+      if (work_mode !== undefined) record.work_mode = work_mode;
+      if (status !== undefined) record.status = status;
+      if (notes !== undefined) record.notes = notes;
+
+      // Re-calculate work_hours and late_minutes
+      if (record.clock_in_at && record.clock_out_at) {
+        const diffMs = new Date(record.clock_out_at).getTime() - new Date(record.clock_in_at).getTime();
+        record.work_hours = Math.round((diffMs / (1000 * 60 * 60)) * 10) / 10;
+      }
+      
+      if (record.status === 'late' && record.clock_in_at) {
+        const clockInDate = new Date(record.clock_in_at);
+        const workStartStr = data.settings.work_hours_start || '09:00';
+        const [startHour, startMinute] = workStartStr.split(':').map(Number);
+        const clockInMins = clockInDate.getHours() * 60 + clockInDate.getMinutes();
+        record.late_minutes = Math.max(0, clockInMins - (startHour * 60 + startMinute));
+      } else {
+        record.late_minutes = 0;
+      }
+
+      db.save(data);
+      return NextResponse.json({ success: true, record });
+    }
+
+    if (action === 'delete_attendance_log') {
+      const { id } = body;
+      const index = data.attendance.findIndex(a => a.id === id);
+      if (index === -1) {
+        return NextResponse.json({ success: false, error: 'Log absensi tidak ditemukan.' }, { status: 444 });
+      }
+
+      data.attendance.splice(index, 1);
+      db.save(data);
+      return NextResponse.json({ success: true });
     }
 
     if (action === 'sync_offline') {

@@ -392,10 +392,19 @@ export default function DocumentHubPage() {
     const activeStep = doc.approval_chain.find(c => c.status === 'pending');
     if (!activeStep) return false;
     
-    // Keuangan role matches finance staff or admin
-    if (activeStep.role === 'Keuangan' && (user?.department === 'Keuangan' || user?.role === 'admin')) return true;
-    if (activeStep.role === 'manager' && user?.role === 'manager') return true;
-    if (activeStep.role === 'admin' && user?.role === 'admin') return true;
+    // Admin can see and approve ALL steps in the chain (including bypasses)
+    if ((user?.role as string) === 'admin') return true;
+    
+    // Staff Pemasaran role matches marketing staff (Rina Sales)
+    if (activeStep.role === 'Staff Pemasaran' && user?.role === 'staff' && user?.department === 'Pemasaran') return true;
+    
+    // Manager Pemasaran role matches marketing manager (Budi Manager)
+    if (activeStep.role === 'Manager Pemasaran' && user?.role === 'manager' && user?.department === 'Pemasaran') return true;
+    
+    // Backward compatibility for legacy roles in templates
+    if (activeStep.role === 'Keuangan' && user?.department === 'Keuangan') return true;
+    if (activeStep.role === 'manager' && (user?.role as string) === 'manager') return true;
+    if (activeStep.role === 'admin' && (user?.role as string) === 'admin') return true;
     return false;
   });
 

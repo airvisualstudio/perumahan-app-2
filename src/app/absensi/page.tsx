@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import AppShell from '@/components/AppShell';
 import { useAuth } from '@/context/AuthContext';
 import { 
@@ -50,6 +50,45 @@ export default function AttendancePage() {
   const [fullSettings, setFullSettings] = useState<any>(null);
   const [permissionTypes, setPermissionTypes] = useState<any[]>([]);
   
+  // Tab & Team States
+  const [activeTab, setActiveTab] = useState<'personal' | 'team'>('personal');
+  const [teamSubTab, setTeamSubTab] = useState<'logs' | 'settings'>('logs');
+  const [allUsers, setAllUsers] = useState<any[]>([]);
+  const [allLeaves, setAllLeaves] = useState<any[]>([]);
+  const [allRecords, setAllRecords] = useState<any[]>([]);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
+  const [reviewNotes, setReviewNotes] = useState('');
+
+  // Locations CRUD states
+  const [locations, setLocations] = useState<any[]>([]);
+  const [editingLocId, setEditingLocId] = useState<string | null>(null);
+  const [locName, setLocName] = useState('');
+  const [locLat, setLocLat] = useState(0);
+  const [locLng, setLocLng] = useState(0);
+  const [locRadius, setLocRadius] = useState(100);
+
+  // Holidays CRUD states
+  const [holidaysState, setHolidaysState] = useState<any[]>([]);
+  const [editingHolId, setEditingHolId] = useState<string | null>(null);
+  const [holDate, setHolDate] = useState('');
+  const [holName, setHolName] = useState('');
+
+  // Settings Edit states
+  const [lateThreshold, setLateThreshold] = useState(15);
+  const [whStart, setWhStart] = useState('09:00');
+  const [whEnd, setWhEnd] = useState('18:00');
+
+  // Log CRUD states
+  const [isLogModalOpen, setIsLogModalOpen] = useState(false);
+  const [editingLogRecord, setEditingLogRecord] = useState<any | null>(null); 
+  const [logUserId, setLogUserId] = useState('');
+  const [logDate, setLogDate] = useState('');
+  const [logClockIn, setLogClockIn] = useState('');
+  const [logClockOut, setLogClockOut] = useState('');
+  const [logStatus, setLogStatus] = useState<'present' | 'late'>('present');
+  const [logWorkMode, setLogWorkMode] = useState<'onsite' | 'wfh'>('onsite');
+  const [logNotes, setLogNotes] = useState('');
+
   // GPS & Status State
   const [coordinates, setCoordinates] = useState<{ lat: number; lng: number } | null>(null);
   const [gpsDistance, setGpsDistance] = useState<number | null>(null);
@@ -234,6 +273,9 @@ export default function AttendancePage() {
         setTodayRecord(json.todayRecord);
         setHistory(json.personalHistory || []);
         setLeaves(json.personalLeaves || []);
+        setAllLeaves(json.allLeaves || []);
+        setAllRecords(json.allRecords || []);
+        setAllUsers(json.users || []);
         setOfficeSettings(json.officeSettings);
         setFullSettings(json.settings);
         if (json.settings) {
@@ -249,6 +291,101 @@ export default function AttendancePage() {
       console.error(err);
     }
   };
+
+  // Dynamic Leaflet map loader and coordinate syncer
+  const mapRef = useRef<any>(null);
+  const markerRef = useRef<any>(null);
+  const [leafletLoaded, setLeafletLoaded] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    if (!document.getElementById('leaflet-css')) {
+      const link = document.createElement('link');
+      link.id = 'leaflet-css';
+      link.rel = 'stylesheet';
+      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+      document.head.appendChild(link);
+    }
+
+    if (!document.getElementById('leaflet-js')) {
+      const script = document.createElement('script');
+      script.id = 'leaflet-js';
+      script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+      script.onload = () => {
+        setLeafletLoaded(true);
+      };
+      document.body.appendChild(script);
+    } else {
+      setLeafletLoaded(true);
+    }
+  }, []);
+
+  // Initialize and sync map picker when tab is settings and leaflet is loaded
+  useEffect(() => {
+    if (!leafletLoaded || typeof window === 'undefined' || teamSubTab !== 'settings') return;
+    const L = (window as any).L;
+    if (!L) return;
+
+    const mapContainer = document.getElementById('map-picker');
+    if (!mapContainer) return;
+
+    if (mapRef.current) {
+      mapRef.current.remove();
+      mapRef.current = null;
+    }
+
+    const startLat = locLat || -6.9174;
+    const startLng = locLng || 107.6191;
+
+    const map = L.map('map-picker').setView([startLat, startLng], 14);
+    mapRef.current = map;
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    const marker = L.marker([startLat, startLng], { draggable: true }).addTo(map);
+    markerRef.current = marker;
+
+    marker.on('dragend', () => {
+      const latlng = marker.getLatLng();
+      setLocLat(Number(latlng.lat.toFixed(6)));
+      setLocLng(Number(latlng.lng.toFixed(6)));
+    });
+
+    map.on('click', (e: any) => {
+      const { lat, lng } = e.latlng;
+      marker.setLatLng([lat, lng]);
+      setLocLat(Number(lat.toFixed(6)));
+      setLocLng(Number(lng.toFixed(6)));
+    });
+
+    return () => {
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+    };
+  }, [leafletLoaded, teamSubTab, editingLocId]);
+
+  // Sync inputs to map marker position
+  useEffect(() => {
+    if (!leafletLoaded || typeof window === 'undefined' || teamSubTab !== 'settings') return;
+    const L = (window as any).L;
+    if (!L) return;
+
+    if (mapRef.current && markerRef.current) {
+      const currentMarkerLatLng = markerRef.current.getLatLng();
+      if (
+        Math.abs(currentMarkerLatLng.lat - (locLat || -6.9174)) > 0.0001 ||
+        Math.abs(currentMarkerLatLng.lng - (locLng || 107.6191)) > 0.0001
+      ) {
+        markerRef.current.setLatLng([locLat || -6.9174, locLng || 107.6191]);
+        mapRef.current.panTo([locLat || -6.9174, locLng || 107.6191]);
+      }
+    }
+  }, [locLat, locLng]);
 
   useEffect(() => {
     if (user) {
@@ -521,6 +658,214 @@ export default function AttendancePage() {
     reader.readAsDataURL(file);
   };
 
+  const handleReviewLeave = async (leaveId: string, status: 'approved' | 'rejected') => {
+    if (!user) return;
+    try {
+      const res = await fetch('/api/attendance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'review_leave',
+          leave_id: leaveId,
+          status,
+          review_notes: reviewNotes || (status === 'approved' ? 'Disetujui oleh Atasan' : 'Ditolak oleh Atasan'),
+          reviewer_id: user.id
+        })
+      });
+      const json = await res.json();
+      if (json.success) {
+        // Trigger simulated Slack alert
+        const leaveRequest = allLeaves.find(l => l.id === leaveId);
+        const employeeName = allUsers.find(u => u.id === leaveRequest?.user_id)?.name || 'Karyawan';
+        const message = `Atasan *${user.name}* telah *${status.toUpperCase()}* pengajuan cuti *${leaveRequest?.leave_type}* oleh *${employeeName}*. Catatan: "${reviewNotes || '-'}"`;
+        window.dispatchEvent(new CustomEvent('simulated-slack-webhook', {
+          detail: { timestamp: new Date().toLocaleTimeString('id-ID'), channel: 'hr-notif', message }
+        }));
+        
+        setReviewNotes('');
+        fetchAttendanceDetails();
+      } else {
+        alert(json.error);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleSaveSettings = async (updatedSettings: any) => {
+    try {
+      const res = await fetch('/api/attendance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'save_settings',
+          ...updatedSettings
+        })
+      });
+      const json = await res.json();
+      if (json.success) {
+        alert("Pengaturan berhasil disimpan!");
+        fetchAttendanceDetails();
+      } else {
+        alert(json.error);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleAddLocation = () => {
+    const newLoc = {
+      id: 'loc-' + Math.random().toString(36).substr(2, 9),
+      name: locName || 'Lokasi Baru',
+      latitude: Number(locLat),
+      longitude: Number(locLng),
+      radius_meters: Number(locRadius),
+      is_active: true
+    };
+    const newLocations = [...locations, newLoc];
+    setLocations(newLocations);
+    handleSaveSettings({ office_locations: newLocations });
+    setLocName('');
+    setLocLat(0);
+    setLocLng(0);
+    setLocRadius(100);
+  };
+
+  const handleEditLocation = (loc: any) => {
+    setEditingLocId(loc.id);
+    setLocName(loc.name);
+    setLocLat(loc.latitude);
+    setLocLng(loc.longitude);
+    setLocRadius(loc.radius_meters);
+  };
+
+  const handleUpdateLocation = () => {
+    const newLocations = locations.map(l => {
+      if (l.id === editingLocId) {
+        return {
+          ...l,
+          name: locName,
+          latitude: Number(locLat),
+          longitude: Number(locLng),
+          radius_meters: Number(locRadius)
+        };
+      }
+      return l;
+    });
+    setLocations(newLocations);
+    handleSaveSettings({ office_locations: newLocations });
+    setEditingLocId(null);
+    setLocName('');
+    setLocLat(0);
+    setLocLng(0);
+    setLocRadius(100);
+  };
+
+  const handleDeleteLocation = (id: string) => {
+    if (locations.length <= 1) {
+      alert("Minimal harus ada satu lokasi absensi.");
+      return;
+    }
+    const newLocations = locations.filter(l => l.id !== id);
+    setLocations(newLocations);
+    handleSaveSettings({ office_locations: newLocations });
+  };
+
+  // Holidays handlers
+  const handleAddHoliday = () => {
+    const newHol = {
+      id: 'hol-' + Math.random().toString(36).substr(2, 9),
+      date: holDate,
+      name: holName
+    };
+    const newHols = [...holidaysState, newHol];
+    setHolidaysState(newHols);
+    handleSaveSettings({ holidays: newHols });
+    setHolDate('');
+    setHolName('');
+  };
+
+  const handleDeleteHoliday = (id: string) => {
+    const newHols = holidaysState.filter(h => h.id !== id);
+    setHolidaysState(newHols);
+    handleSaveSettings({ holidays: newHols });
+  };
+
+  // Attendance log CRUD handlers
+  const handleSaveAttendanceLog = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const action = editingLogRecord ? 'edit_attendance_log' : 'add_attendance_log';
+      
+      let parsedClockIn = '';
+      let parsedClockOut = '';
+      
+      if (logClockIn) {
+        parsedClockIn = `${logDate}T${logClockIn}:00Z`;
+      }
+      if (logClockOut) {
+        parsedClockOut = `${logDate}T${logClockOut}:00Z`;
+      }
+
+      const body: any = {
+        action,
+        clock_in_at: parsedClockIn,
+        clock_out_at: parsedClockOut,
+        work_mode: logWorkMode,
+        status: logStatus,
+        notes: logNotes
+      };
+      
+      if (editingLogRecord) {
+        body.id = editingLogRecord.id;
+      } else {
+        body.user_id = logUserId;
+        body.date = logDate;
+      }
+
+      const res = await fetch('/api/attendance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const json = await res.json();
+      if (json.success) {
+        alert(editingLogRecord ? "Log absensi berhasil diubah!" : "Log absensi baru berhasil ditambahkan!");
+        setIsLogModalOpen(false);
+        setEditingLogRecord(null);
+        fetchAttendanceDetails();
+      } else {
+        alert(json.error);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteAttendanceLog = async (id: string) => {
+    if (!confirm("Apakah Anda yakin ingin menghapus log absensi ini?")) return;
+    try {
+      const res = await fetch('/api/attendance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'delete_attendance_log',
+          id
+        })
+      });
+      const json = await res.json();
+      if (json.success) {
+        alert("Log absensi berhasil dihapus!");
+        fetchAttendanceDetails();
+      } else {
+        alert(json.error);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   if (isLoading) {
     return (
       <AppShell>
@@ -547,14 +892,49 @@ export default function AttendancePage() {
 
   return (
     <AppShell>
-      <div className="flex flex-col gap-6 w-full max-w-2xl mx-auto">
+      <div className={`flex flex-col gap-6 w-full ${activeTab === 'team' ? 'max-w-6xl' : 'max-w-2xl'} mx-auto transition-all duration-300`}>
         {/* Mobile Header Title */}
         <div className="text-center">
           <h1 className="text-3xl font-extrabold tracking-tight">Presensi Kehadiran</h1>
           <p className="text-gray-500 text-sm mt-1">Lakukan clock-in dan clock-out harian berbasis GPS verifikasi dari HP Anda.</p>
         </div>
 
-        {/* Offline & Sync warning banner */}
+        {/* Tab switcher for Manager & Admin */}
+        {['admin', 'manager'].includes(user?.role || '') && (
+          <div className="flex border-b border-gray-200 gap-2 mb-2 no-print">
+            <button
+              onClick={() => setActiveTab('personal')}
+              className={`pb-3.5 px-4 font-bold text-sm border-b-2 transition-all ${
+                activeTab === 'personal' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-900'
+              }`}
+            >
+              Presensi Saya
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('team');
+                if (allUsers.length > 0 && !selectedEmployeeId) {
+                  const firstEmp = allUsers.find(u => u.role !== 'admin');
+                  if (firstEmp) setSelectedEmployeeId(firstEmp.id);
+                }
+              }}
+              className={`pb-3.5 px-4 font-bold text-sm border-b-2 transition-all flex items-center gap-1.5 ${
+                activeTab === 'team' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-900'
+              }`}
+            >
+              Dashboard Tim / Approval Cuti
+              {allLeaves.filter(l => l.status === 'pending').length > 0 && (
+                <span className="bg-red-500 text-white text-[9px] px-1.5 py-0.5 rounded-full animate-pulse font-black">
+                  {allLeaves.filter(l => l.status === 'pending').length}
+                </span>
+              )}
+            </button>
+          </div>
+        )}
+
+        {activeTab === 'personal' ? (
+          <>
+            {/* Offline & Sync warning banner */}
         {!isOnline && (
           <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-2xl p-4 flex items-center gap-3 font-semibold text-xs">
             <WifiOff size={18} className="text-amber-600 animate-bounce" />
@@ -908,6 +1288,11 @@ export default function AttendancePage() {
                     cellClass += "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100/60";
                     dotColor = "bg-blue-500";
                     statusLabel = dayLeave.leave_type;
+                  } else if ((fullSettings?.holidays || []).some((h: any) => h.date === day.dateStr)) {
+                    const hol = (fullSettings?.holidays || []).find((h: any) => h.date === day.dateStr);
+                    cellClass += "bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100/60";
+                    dotColor = "bg-rose-500";
+                    statusLabel = hol ? hol.name : "Libur Nasional";
                   } else {
                     const isPast = new Date(day.dateStr) < new Date(new Date().toISOString().split('T')[0]);
                     const isWeekend = day.date.getDay() === 0 || day.date.getDay() === 6;
@@ -1104,6 +1489,623 @@ export default function AttendancePage() {
             )}
           </div>
         </div>
+      </>
+    ) : (
+      /* ==================== TAB: TEAM / EMPLOYEES DASHBOARD ==================== */
+      <div className="flex flex-col gap-6 w-full text-left">
+        {/* Sub-tab switcher */}
+        <div className="flex bg-slate-100 p-1 rounded-xl mb-2 self-start font-bold text-xs gap-1 no-print">
+          <button
+            onClick={() => setTeamSubTab('logs')}
+            className={`px-4 py-2 rounded-lg transition-all ${
+              teamSubTab === 'logs' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-800'
+            }`}
+          >
+            📋 Log & Kehadiran Tim
+          </button>
+          <button
+            onClick={() => setTeamSubTab('settings')}
+            className={`px-4 py-2 rounded-lg transition-all ${
+              teamSubTab === 'settings' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-800'
+            }`}
+          >
+            ⚙ Pengaturan Aturan & Lokasi
+          </button>
+        </div>
+
+        {teamSubTab === 'logs' ? (
+          <>
+            {/* 1. Today's Team Attendance Recap */}
+            <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
+              <h2 className="font-extrabold text-base border-b border-gray-100 pb-3 text-slate-800 flex items-center gap-2">
+                <UserCheck size={18} className="text-blue-600" />
+                Ringkasan Kehadiran Hari Ini ({new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })})
+              </h2>
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-center mt-4 font-semibold">
+                {(() => {
+                  const todayStr = new Date().toISOString().split('T')[0];
+                  const todayRecords = allRecords.filter(r => r.date === todayStr);
+                  const staffUsers = allUsers.filter(u => u.role !== 'admin');
+                  const present = todayRecords.filter(r => r.status === 'present').length;
+                  const late = todayRecords.filter(r => r.status === 'late').length;
+                  const onLeave = allLeaves.filter(l => l.status === 'approved' && todayStr >= l.start_date && todayStr <= l.end_date).length;
+                  const absent = Math.max(0, staffUsers.length - (present + late + onLeave));
+
+                  return (
+                    <>
+                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-3">
+                        <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Total Staf</span>
+                        <span className="text-xl font-black text-slate-700">{staffUsers.length}</span>
+                      </div>
+                      <div className="bg-green-50 border border-green-100 rounded-xl p-3">
+                        <span className="text-[9px] text-green-500 uppercase tracking-wider block">Hadir</span>
+                        <span className="text-xl font-black text-green-700">{present}</span>
+                      </div>
+                      <div className="bg-red-50 border border-red-100 rounded-xl p-3">
+                        <span className="text-[9px] text-red-500 uppercase tracking-wider block">Terlambat</span>
+                        <span className="text-xl font-black text-red-700">{late}</span>
+                      </div>
+                      <div className="bg-blue-50 border border-blue-100 rounded-xl p-3">
+                        <span className="text-[9px] text-blue-500 uppercase tracking-wider block">Cuti / Izin</span>
+                        <span className="text-xl font-black text-blue-700">{onLeave}</span>
+                      </div>
+                      <div className="bg-amber-50 border border-amber-100 rounded-xl p-3">
+                        <span className="text-[9px] text-amber-500 uppercase tracking-wider block">Belum Absen</span>
+                        <span className="text-xl font-black text-amber-700">{absent}</span>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            </div>
+
+            {/* 2. Leave & Excuse Approvals Queue */}
+            <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
+              <h2 className="font-extrabold text-base border-b border-gray-100 pb-3 text-slate-800 flex justify-between items-center">
+                <span className="flex items-center gap-2">
+                  <Plane size={18} className="text-indigo-600 animate-pulse" />
+                  Antrean Persetujuan Cuti & Izin Karyawan
+                </span>
+                <span className="bg-indigo-50 text-indigo-700 font-black text-[10px] px-2 py-0.5 rounded-full">
+                  {allLeaves.filter(l => l.status === 'pending').length} MENUNGGU
+                </span>
+              </h2>
+
+              <div className="flex flex-col gap-3 mt-4 max-h-[300px] overflow-y-auto pr-1 no-scrollbar flex-1">
+                {allLeaves.filter(l => l.status === 'pending').length === 0 ? (
+                  <div className="text-center py-8 text-xs text-gray-400 italic font-semibold">
+                    Tidak ada pengajuan cuti atau izin yang perlu disetujui.
+                  </div>
+                ) : (
+                  allLeaves.filter(l => l.status === 'pending').map((leave) => {
+                    const requester = allUsers.find(u => u.id === leave.user_id);
+                    return (
+                      <div key={leave.id} className="p-4 border border-gray-100 rounded-xl bg-slate-50/50 flex flex-col gap-3 text-xs">
+                        <div className="flex justify-between items-start">
+                          <div className="flex flex-col text-left">
+                            <span className="font-bold text-gray-900 text-sm">
+                              {requester?.name || leave.user_id} ({requester?.department} · {requester?.role})
+                            </span>
+                            <span className="text-[10px] text-gray-400 font-semibold mt-0.5">
+                              Tipe: <code className="bg-white px-1.5 py-0.5 rounded border border-gray-200 font-mono text-[9px] text-indigo-600">{leave.leave_type}</code>
+                            </span>
+                            <span className="text-[10px] text-gray-400 font-semibold mt-1">
+                              Periode: 📅 {leave.start_date} s/d {leave.end_date} ({leave.total_days} Hari)
+                            </span>
+                          </div>
+                          <span className="px-2 py-0.5 bg-blue-50 border border-blue-100 text-blue-600 font-black text-[9px] uppercase tracking-wider rounded">PENDING REVIEW</span>
+                        </div>
+
+                        <p className="text-xs text-gray-600 italic bg-white p-3 rounded-lg border border-gray-100/50 leading-relaxed text-left">&quot;{leave.reason}&quot;</p>
+
+                        {leave.attachment_url && (
+                          <div className="flex items-center gap-2 text-xs">
+                            <span className="text-[10px] text-indigo-600 font-extrabold uppercase">Lampiran Bukti:</span>
+                            <a href={leave.attachment_url} target="_blank" rel="noreferrer" className="text-blue-500 hover:underline flex items-center gap-1 font-bold">
+                              <ImageIcon size={12} /> Lihat Gambar Bukti Lampiran
+                            </a>
+                          </div>
+                        )}
+
+                        {/* Action Inputs */}
+                        <div className="flex flex-col sm:flex-row gap-2 border-t border-gray-100/50 pt-3 mt-1">
+                          <input 
+                            type="text"
+                            placeholder="Tuliskan catatan persetujuan / penolakan (Opsional)..."
+                            value={reviewNotes}
+                            onChange={(e) => setReviewNotes(e.target.value)}
+                            className="flex-1 px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs focus:outline-none"
+                          />
+                          <div className="flex gap-2 shrink-0">
+                            <button
+                              onClick={() => handleReviewLeave(leave.id, 'approved')}
+                              className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm"
+                            >
+                              Setujui (Approve)
+                            </button>
+                            <button
+                              onClick={() => handleReviewLeave(leave.id, 'rejected')}
+                              className="px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-lg text-xs font-bold transition-colors"
+                            >
+                              Tolak (Reject)
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+
+            {/* 3. Detailed Employee Attendance Viewer */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+              {/* Employee list selection */}
+              <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden flex flex-col">
+                <div className="p-4 bg-gray-50 border-b border-gray-100 font-extrabold text-xs text-gray-500 uppercase tracking-wider">
+                  Daftar Karyawan
+                </div>
+                <div className="flex flex-col max-h-[380px] overflow-y-auto no-scrollbar">
+                  {allUsers.filter(u => u.role !== 'admin').map((emp) => (
+                    <div
+                      key={emp.id}
+                      onClick={() => {
+                        setSelectedEmployeeId(emp.id);
+                        setSelectedDayDetail(null);
+                      }}
+                      className={`p-3.5 border-b border-gray-100 cursor-pointer flex flex-col gap-0.5 text-left transition-all ${
+                        selectedEmployeeId === emp.id ? 'bg-blue-50/50 border-l-4 border-l-blue-600 pl-2.5' : 'hover:bg-gray-50'
+                      }`}
+                    >
+                      <span className="font-bold text-gray-900 text-xs">{emp.name}</span>
+                      <span className="text-[10px] text-gray-400 font-semibold">{emp.employee_id} · {emp.department} · {emp.role.toUpperCase()}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Employee Details Viewer */}
+              <div className="lg:col-span-2 bg-white border border-gray-200 rounded-2xl p-5 shadow-sm flex flex-col gap-5 min-h-[440px]">
+                {(() => {
+                  const emp = allUsers.find(u => u.id === selectedEmployeeId);
+                  if (!emp) {
+                    return (
+                      <div className="flex-1 flex flex-col items-center justify-center text-gray-400 italic text-xs py-20 font-semibold">
+                        Pilih salah satu karyawan dari daftar untuk melihat log detail absensi.
+                      </div>
+                    );
+                  }
+
+                  const empHistory = allRecords.filter(r => r.user_id === emp.id);
+                  const empLeaves = allLeaves.filter(l => l.user_id === emp.id);
+                  
+                  // Filter for current month (July 2026) vs last month (June 2026)
+                  const thisMonthHistory = empHistory.filter(r => r.date.startsWith('2026-07'));
+                  const lastMonthHistory = empHistory.filter(r => r.date.startsWith('2026-06'));
+
+                  const calcStats = (recs: any[]) => {
+                    const totalJam = recs.reduce((sum, r) => sum + (r.work_hours || 0), 0);
+                    const listPresent = recs.filter(r => r.status === 'present');
+                    const listLate = recs.filter(r => r.status === 'late');
+                    const kesianganCount = listLate.length;
+                    const totalLateMinutes = listLate.reduce((sum, r) => sum + (r.late_minutes || 0), 0);
+                    const avgJam = recs.length > 0 ? totalJam / recs.length : 0;
+                    
+                    return {
+                      totalJam: Math.round(totalJam * 10) / 10,
+                      avgJam: Math.round(avgJam * 10) / 10,
+                      kesianganCount,
+                      latenessHours: Math.round((totalLateMinutes / 60) * 10) / 10
+                    };
+                  };
+
+                  const currentStats = calcStats(thisMonthHistory);
+                  const historicStats = calcStats(lastMonthHistory);
+
+                  return (
+                    <>
+                      {/* Employee Meta details */}
+                      <div className="flex justify-between items-start border-b border-gray-100 pb-3.5">
+                        <div className="flex flex-col text-left">
+                          <span className="text-[9px] text-blue-600 font-black tracking-widest uppercase">KARTU PRESENSI KARYAWAN</span>
+                          <h3 className="text-base font-extrabold text-gray-950 mt-0.5">{emp.name}</h3>
+                          <span className="text-[10px] text-gray-400 font-semibold mt-0.5">{emp.employee_id} · {emp.department} · {emp.role.toUpperCase()}</span>
+                        </div>
+                        <div className="flex flex-col text-right text-[10px] font-semibold text-gray-400">
+                          <span>Sisa Saldo Cuti:</span>
+                          <span className="text-slate-800 font-black text-xs">{emp.annual_leave_balance} Hari</span>
+                        </div>
+                      </div>
+
+                      {/* STATS COMPARISON CARD (THIS MONTH VS LAST MONTH) */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
+                        {/* Bulan Ini Card */}
+                        <div className="bg-slate-50 border border-gray-200/60 rounded-xl p-4 text-xs">
+                          <h4 className="font-extrabold text-indigo-600 border-b border-gray-100 pb-1.5 mb-2.5 uppercase tracking-wide text-[10px]">Bulan Ini (Juli 2026)</h4>
+                          <div className="flex flex-col gap-2 font-semibold text-gray-600">
+                            <div className="flex justify-between">
+                              <span>Total Jam Kerja:</span>
+                              <span className="text-slate-900 font-bold">{currentStats.totalJam} Jam</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Rata-rata/Hari:</span>
+                              <span className="text-slate-900 font-bold">{currentStats.avgJam} Jam</span>
+                            </div>
+                            <div className="flex justify-between border-t border-dashed border-gray-200 pt-1.5">
+                              <span className="text-red-500 font-bold">Kesiangan (Late):</span>
+                              <span className="text-red-600 font-extrabold">{currentStats.kesianganCount} Kali</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-red-500 font-bold">Total Jam Terlambat:</span>
+                              <span className="text-red-600 font-extrabold">{currentStats.latenessHours} Jam</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Bulan Kemarin Card */}
+                        <div className="bg-slate-50 border border-gray-200/60 rounded-xl p-4 text-xs">
+                          <h4 className="font-extrabold text-gray-500 border-b border-gray-100 pb-1.5 mb-2.5 uppercase tracking-wide text-[10px]">Bulan Kemarin (Juni 2026)</h4>
+                          <div className="flex flex-col gap-2 font-semibold text-gray-600">
+                            <div className="flex justify-between">
+                              <span>Total Jam Kerja:</span>
+                              <span className="text-slate-900 font-bold">{historicStats.totalJam} Jam</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Rata-rata/Hari:</span>
+                              <span className="text-slate-900 font-bold">{historicStats.avgJam} Jam</span>
+                            </div>
+                            <div className="flex justify-between border-t border-dashed border-gray-200 pt-1.5">
+                              <span className="text-gray-500">Kesiangan (Late):</span>
+                              <span className="text-slate-950 font-bold">{historicStats.kesianganCount} Kali</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Total Jam Terlambat:</span>
+                              <span className="text-slate-950 font-bold">{historicStats.latenessHours} Jam</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Employee logs list */}
+                      <div className="flex flex-col gap-2.5">
+                        <div className="flex justify-between items-center border-b border-gray-150 pb-1.5">
+                          <span className="text-[9px] text-gray-400 font-black tracking-widest uppercase text-left">RIWAYAT PRESENSI BULANAN</span>
+                          <button
+                            onClick={() => {
+                              setEditingLogRecord(null);
+                              setLogUserId(emp.id);
+                              setLogDate(new Date().toISOString().split('T')[0]);
+                              setLogClockIn('09:00');
+                              setLogClockOut('18:00');
+                              setLogStatus('present');
+                              setLogWorkMode('onsite');
+                              setLogNotes('');
+                              setIsLogModalOpen(true);
+                            }}
+                            className="px-2 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-[9px] font-bold transition-all"
+                          >
+                            + Tambah Log Manual
+                          </button>
+                        </div>
+                        <div className="max-h-72 overflow-y-auto flex flex-col gap-2 pr-1 no-scrollbar text-xs">
+                          {empHistory.length === 0 ? (
+                            <span className="text-gray-400 italic text-center py-6">Karyawan belum memiliki riwayat presensi harian.</span>
+                          ) : (
+                            [...empHistory].reverse().map(h => {
+                              const inTime = h.clock_in_at ? new Date(h.clock_in_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '—';
+                              const outTime = h.clock_out_at ? new Date(h.clock_out_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '—';
+                              return (
+                                <div key={h.id} className="p-3 border border-gray-100 rounded-xl bg-gray-50/50 flex justify-between items-center text-left">
+                                  <div className="flex flex-col gap-0.5">
+                                    <span className="font-bold text-gray-800">
+                                      {new Date(h.date).toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
+                                    </span>
+                                    <div className="flex items-center gap-1.5 text-[9px] text-gray-400 font-semibold">
+                                      <span>Mode: <strong className="text-indigo-600 uppercase">{h.work_mode}</strong></span>
+                                      {h.work_hours ? (
+                                        <span className="text-indigo-700 bg-indigo-50 px-1 rounded font-black">Jam Kerja: {h.work_hours}j</span>
+                                      ) : null}
+                                      {h.status === 'late' && h.late_minutes ? (
+                                        <span className="text-red-700 bg-red-50 px-1 rounded font-black">Terlambat: {h.late_minutes}m</span>
+                                      ) : null}
+                                      {h.overtime_hours > 0 && <span className="text-purple-600 bg-purple-50 px-1 rounded font-black">Lembur {h.overtime_hours}j</span>}
+                                    </div>
+                                    {h.notes && <span className="text-[9px] text-amber-600 font-semibold italic mt-0.5">&quot;{h.notes}&quot;</span>}
+                                  </div>
+                                  <div className="text-right flex items-center gap-3">
+                                    <div className="flex flex-col gap-1">
+                                      <span className="font-mono font-bold text-gray-700">{inTime} - {outTime}</span>
+                                      <span className={`px-1.5 py-0.5 rounded font-black text-[8px] self-end uppercase ${
+                                        h.status === 'present' ? 'bg-green-50 text-green-700' :
+                                        h.status === 'late' ? 'bg-red-50 text-red-700' :
+                                        'bg-gray-100 text-gray-600'
+                                      }`}>
+                                        {h.status === 'present' ? 'Hadir' : h.status === 'late' ? 'Terlambat' : h.status}
+                                      </span>
+                                    </div>
+                                    {/* Action Buttons */}
+                                    <div className="flex flex-col gap-1 shrink-0 no-print">
+                                      <button
+                                        onClick={() => {
+                                          setEditingLogRecord(h);
+                                          setLogUserId(emp.id);
+                                          setLogDate(h.date);
+                                          setLogClockIn(h.clock_in_at ? new Date(h.clock_in_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':') : '');
+                                          setLogClockOut(h.clock_out_at ? new Date(h.clock_out_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':') : '');
+                                          setLogStatus(h.status);
+                                          setLogWorkMode(h.work_mode);
+                                          setLogNotes(h.notes || '');
+                                          setIsLogModalOpen(true);
+                                        }}
+                                        className="px-2 py-0.5 bg-blue-50 text-blue-600 rounded text-[9px] font-bold hover:bg-blue-100"
+                                      >
+                                        Edit
+                                      </button>
+                                      <button
+                                        onClick={() => handleDeleteAttendanceLog(h.id)}
+                                        className="px-2 py-0.5 bg-red-50 text-red-600 rounded text-[9px] font-bold hover:bg-red-100"
+                                      >
+                                        Hapus
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })
+                          )}
+                        </div>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            </div>
+          </>
+        ) : (
+          /* ==================== SUB-TAB: SETTINGS (work hours, geofences, holidays) ==================== */
+          <div className="flex flex-col gap-6 w-full font-semibold text-xs text-gray-600 text-left">
+            {/* 1. Work hours config */}
+            <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
+              <h2 className="font-extrabold text-base border-b border-gray-100 pb-3 text-slate-800 flex items-center gap-2 mb-4">
+                📋 Pengaturan Jam Kerja & Toleransi
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="flex flex-col gap-1.5 text-left">
+                  <label className="text-[10px] text-gray-400 uppercase font-bold tracking-wider font-extrabold">Jam Masuk (Start)</label>
+                  <input
+                    type="time"
+                    value={whStart}
+                    onChange={(e) => setWhStart(e.target.value)}
+                    className="px-3.5 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 font-semibold"
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5 text-left">
+                  <label className="text-[10px] text-gray-400 uppercase font-bold tracking-wider font-extrabold">Jam Keluar (End)</label>
+                  <input
+                    type="time"
+                    value={whEnd}
+                    onChange={(e) => setWhEnd(e.target.value)}
+                    className="px-3.5 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 font-semibold"
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5 text-left">
+                  <label className="text-[10px] text-gray-400 uppercase font-bold tracking-wider font-extrabold">Batas Keterlambatan (Menit)</label>
+                  <input
+                    type="number"
+                    value={lateThreshold}
+                    onChange={(e) => setLateThreshold(Number(e.target.value))}
+                    className="px-3.5 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 font-semibold"
+                  />
+                </div>
+              </div>
+              <button
+                onClick={() => handleSaveSettings({ work_hours_start: whStart, work_hours_end: whEnd, late_threshold_minutes: lateThreshold })}
+                className="mt-4 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all shadow-sm"
+              >
+                Simpan Aturan Jam Kerja
+              </button>
+            </div>
+
+            {/* 2. Office locations CRUD */}
+            <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
+              <h2 className="font-extrabold text-base border-b border-gray-100 pb-3 text-slate-800 flex items-center gap-2 mb-4">
+                📍 Pengaturan Lokasi Absensi (Geofencing GPS)
+              </h2>
+              {/* Location List */}
+              <div className="flex flex-col gap-2 mb-4">
+                {locations.map((loc) => (
+                  <div key={loc.id} className="p-3 border border-gray-150 rounded-xl bg-slate-50 flex justify-between items-center">
+                    <div className="flex flex-col gap-0.5 text-left">
+                      <span className="font-bold text-gray-900 text-xs">{loc.name}</span>
+                      <span className="text-[10px] text-gray-400 font-semibold">
+                        Koordinat: {loc.latitude}, {loc.longitude} · Radius: {loc.radius_meters} meter
+                      </span>
+                    </div>
+                    <div className="flex gap-2 shrink-0 font-bold text-[10px]">
+                      <button
+                        onClick={() => handleEditLocation(loc)}
+                        className="px-2 py-1 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDeleteLocation(loc.id)}
+                        className="px-2 py-1 bg-red-50 text-red-600 hover:bg-red-100 rounded"
+                      >
+                        Hapus
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Add / Edit Form */}
+              <div className="border-t border-gray-150 pt-4 text-left">
+                <h3 className="font-bold text-xs text-gray-800 mb-3">
+                  {editingLocId ? 'Edit Lokasi Absensi' : 'Tambah Lokasi Absensi Baru'}
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[9px] text-gray-400 uppercase font-bold">Nama Kantor/Lokasi</label>
+                    <input
+                      type="text"
+                      placeholder="Contoh: Kantor Cabang Dago"
+                      value={locName}
+                      onChange={(e) => setLocName(e.target.value)}
+                      className="px-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[9px] text-gray-400 uppercase font-bold">Latitude</label>
+                    <input
+                      type="number"
+                      step="any"
+                      placeholder="-6.9174"
+                      value={locLat || ''}
+                      onChange={(e) => setLocLat(Number(e.target.value))}
+                      className="px-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[9px] text-gray-400 uppercase font-bold">Longitude</label>
+                    <input
+                      type="number"
+                      step="any"
+                      placeholder="107.6191"
+                      value={locLng || ''}
+                      onChange={(e) => setLocLng(Number(e.target.value))}
+                      className="px-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[9px] text-gray-400 uppercase font-bold">Radius Toleransi (Meter)</label>
+                    <input
+                      type="number"
+                      placeholder="100"
+                      value={locRadius || ''}
+                      onChange={(e) => setLocRadius(Number(e.target.value))}
+                      className="px-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Leaflet Map Picker */}
+                <div className="mt-4">
+                  <label className="text-[10px] text-gray-400 uppercase font-black tracking-wider block mb-1">
+                    Geser pin merah atau klik pada peta untuk memposisikan koordinat secara akurat:
+                  </label>
+                  {!leafletLoaded ? (
+                    <div className="w-full h-72 rounded-xl border border-gray-200 bg-slate-50 flex items-center justify-center text-xs text-gray-400 font-semibold animate-pulse">
+                      Memuat Peta Interaktif Leaflet...
+                    </div>
+                  ) : null}
+                  <div 
+                    id="map-picker" 
+                    className={`w-full h-72 rounded-xl border border-gray-200 z-10 ${leafletLoaded ? 'block' : 'hidden'}`}
+                    style={{ minHeight: '280px' }}
+                  ></div>
+                </div>
+
+                <div className="flex gap-2 mt-4 font-bold text-xs">
+                  {editingLocId ? (
+                    <>
+                      <button
+                        onClick={handleUpdateLocation}
+                        className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                      >
+                        Simpan Perubahan
+                      </button>
+                      <button
+                        onClick={() => {
+                          setEditingLocId(null);
+                          setLocName('');
+                          setLocLat(0);
+                          setLocLng(0);
+                          setLocRadius(100);
+                        }}
+                        className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200"
+                      >
+                        Batal
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={handleAddLocation}
+                      className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                    >
+                      + Tambah Lokasi
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* 3. Indonesian Holidays CRUD */}
+            <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
+              <h2 className="font-extrabold text-base border-b border-gray-100 pb-3 text-slate-800 flex items-center gap-2 mb-4">
+                🇮🇩 Pengaturan Hari Libur Nasional (Kalender Indonesia)
+              </h2>
+              {/* Holidays Table */}
+              <div className="max-h-60 overflow-y-auto flex flex-col gap-2 mb-4 pr-1 no-scrollbar">
+                {holidaysState.length === 0 ? (
+                  <span className="text-gray-400 italic text-center py-4">Belum ada hari libur nasional terdaftar.</span>
+                ) : (
+                  holidaysState.map((hol) => (
+                    <div key={hol.id} className="p-3 border border-gray-150 rounded-xl bg-slate-50 flex justify-between items-center text-xs">
+                      <div className="flex flex-col gap-0.5 text-left">
+                        <span className="font-bold text-gray-900">{hol.name}</span>
+                        <span className="text-[10px] text-gray-400 font-semibold">
+                          📅 {new Date(hol.date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => handleDeleteHoliday(hol.id)}
+                        className="px-2.5 py-1 bg-red-50 text-red-600 hover:bg-red-100 rounded font-bold text-[10px]"
+                      >
+                        Hapus
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Add Holiday Form */}
+              <div className="border-t border-gray-150 pt-4 text-left">
+                <h3 className="font-bold text-xs text-gray-800 mb-3 font-extrabold">Tambah Hari Libur Baru</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[9px] text-gray-400 uppercase font-bold">Tanggal Libur</label>
+                    <input
+                      type="date"
+                      value={holDate}
+                      onChange={(e) => setHolDate(e.target.value)}
+                      className="px-3 py-2 border border-gray-200 rounded-lg focus:outline-none font-semibold text-xs"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[9px] text-gray-400 uppercase font-bold">Nama Hari Libur / Keterangan</label>
+                    <input
+                      type="text"
+                      placeholder="Contoh: Hari Raya Idul Fitri"
+                      value={holName}
+                      onChange={(e) => setHolName(e.target.value)}
+                      className="px-3 py-2 border border-gray-200 rounded-lg focus:outline-none text-xs"
+                    />
+                  </div>
+                </div>
+                <button
+                  onClick={handleAddHoliday}
+                  disabled={!holDate || !holName}
+                  className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 font-bold"
+                >
+                  + Tambah Hari Libur
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    )}
 
         {/* MODAL: APPLY CUTI */}
         {isCutiOpen && (

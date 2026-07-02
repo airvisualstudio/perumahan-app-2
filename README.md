@@ -1,6 +1,7 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-## Getting Started
+## Tech Stack & Architecture
+For detailed information about the technical architecture, libraries, database schemas, PWA configurations, and custom GPS geofencing implementation, please read the [Tech Stack Documentation](file:///home/nygma/domus-somnia/perumahan-app-2/TECH_STACK.md).
 
 First, run the development server:
 

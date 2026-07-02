@@ -416,7 +416,7 @@ export default function MonitoringPage() {
       {/* ── OVERLAY UI LAYERS ── */}
 
       {/* 1. Top Bar Panel Overlay */}
-      <div className="absolute top-4 left-4 right-4 z-10 max-w-7xl mx-auto pointer-events-none">
+      <div className="absolute top-4 left-4 right-4 z-10 pointer-events-none">
         <div className="bg-slate-950/80 border border-slate-900/80 backdrop-blur-md px-6 py-3.5 rounded-2xl flex items-center justify-between shadow-2xl pointer-events-auto">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 rounded-xl animate-pulse">

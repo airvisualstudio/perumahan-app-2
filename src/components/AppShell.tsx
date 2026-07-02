@@ -33,11 +33,85 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSlackDrawerOpen, setIsSlackDrawerOpen] = useState(false);
   const [slackLogs, setSlackLogs] = useState<SlackLog[]>([]);
-  const [notifications, setNotifications] = useState<{ id: string; title: string; time: string; read: boolean }[]>([
-    { id: '1', title: 'Rencana Follow-up hari ini dengan Bapak Hendra.', time: '09:00', read: false },
-    { id: '2', title: 'Task baru ditugaskan oleh Budi Manager.', time: 'Kemarin', read: true }
-  ]);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [readIds, setReadIds] = useState<string[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
+
+  // Load read notification IDs on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('domus_read_notifications');
+      if (saved) {
+        setReadIds(JSON.parse(saved));
+      }
+    }
+  }, []);
+
+  const fetchNotifications = async () => {
+    if (!user) return;
+    try {
+      const res = await fetch(`/api/notifications?userId=${user.id}&role=${user.role}`);
+      const json = await res.json();
+      if (json.success) {
+        // Match against readIds from localStorage
+        const items = json.notifications.map((notif: any) => ({
+          ...notif,
+          read: readIds.includes(notif.id)
+        }));
+        setNotifications(items);
+      }
+    } catch (error) {
+      console.error('Failed to fetch notifications:', error);
+    }
+  };
+
+  // Poll for notifications in real-time
+  useEffect(() => {
+    if (user) {
+      fetchNotifications();
+      const interval = setInterval(fetchNotifications, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [user, readIds]);
+
+  const markAsRead = (id: string) => {
+    const updatedReadIds = [...readIds, id];
+    setReadIds(updatedReadIds);
+    localStorage.setItem('domus_read_notifications', JSON.stringify(updatedReadIds));
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+  };
+
+  const markAllAsRead = () => {
+    const allIds = notifications.map(n => n.id);
+    const updatedReadIds = Array.from(new Set([...readIds, ...allIds]));
+    setReadIds(updatedReadIds);
+    localStorage.setItem('domus_read_notifications', JSON.stringify(updatedReadIds));
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    setShowNotifications(false);
+  };
+
+  const handleNotificationClick = (id: string) => {
+    markAsRead(id);
+    setShowNotifications(false);
+  };
+
+  const formatTimeAgo = (timeStr: string) => {
+    try {
+      const date = new Date(timeStr);
+      const now = new Date();
+      const diffMs = now.getTime() - date.getTime();
+      const diffMins = Math.floor(diffMs / 60000);
+      if (diffMins < 1) return 'Baru saja';
+      if (diffMins < 60) return `${diffMins} menit yang lalu`;
+      const diffHours = Math.floor(diffMins / 60);
+      if (diffHours < 24) return `${diffHours} jam yang lalu`;
+      const diffDays = Math.floor(diffHours / 24);
+      if (diffDays === 1) return 'Kemarin';
+      return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+    } catch (e) {
+      return timeStr;
+    }
+  };
 
   // Subscribe to virtual Slack webhooks event
   useEffect(() => {
@@ -45,13 +119,16 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       const customEvent = e as CustomEvent<SlackLog>;
       setSlackLogs(prev => [customEvent.detail, ...prev].slice(0, 10)); // Keep last 10 logs
       setIsSlackDrawerOpen(true); // Auto expand to notify user
+      
+      // Instantly refresh when a system webhook triggers
+      fetchNotifications();
     };
 
     window.addEventListener('simulated-slack-webhook', handleSlackEvent);
     return () => {
       window.removeEventListener('simulated-slack-webhook', handleSlackEvent);
     };
-  }, []);
+  }, [user, readIds]);
 
   const navItems = [
     { name: 'Dashboard', href: '/', icon: Home, roles: ['admin', 'manager', 'staff'] },
@@ -79,7 +156,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 text-gray-900 pb-20 md:pb-0">
-      <header className="sticky top-0 md:top-4 z-40 w-full md:w-[calc(100%-2rem)] md:max-w-7xl md:mx-auto bg-white/70 dark:bg-slate-900/70 backdrop-blur-lg border-b border-gray-200/40 md:border md:rounded-full px-4 md:px-8 py-3 flex items-center justify-between transition-all">
+      <header className="sticky top-0 z-40 w-full bg-white/70 dark:bg-slate-900/70 backdrop-blur-lg border-b border-gray-200/40 px-4 md:px-8 py-4 flex items-center justify-between transition-all">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold text-lg">
@@ -129,26 +206,45 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             </button>
 
             {showNotifications && (
-              <div className="absolute right-0 mt-2.5 w-80 bg-white border border-gray-200 rounded-2xl py-2 z-50">
-                <div className="px-4 py-1.5 border-b border-gray-100 flex justify-between items-center">
-                  <span className="font-semibold text-sm">Notifikasi In-App</span>
-                  <button 
-                    onClick={() => {
-                      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-                      setShowNotifications(false);
-                    }}
-                    className="text-xs text-blue-600 hover:underline"
-                  >
-                    Tandai dibaca
-                  </button>
+              <div className="absolute right-0 mt-2.5 w-80 bg-white border border-gray-200 rounded-2xl py-2 z-50 shadow-xl overflow-hidden">
+                <div className="px-4 py-2 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                  <span className="font-bold text-xs text-gray-700 tracking-wide uppercase">Notifikasi In-App</span>
+                  {notifications.some(n => !n.read) && (
+                    <button 
+                      onClick={markAllAsRead}
+                      className="text-[10px] text-blue-600 hover:underline font-bold"
+                    >
+                      Tandai semua dibaca
+                    </button>
+                  )}
                 </div>
-                <div className="max-h-60 overflow-y-auto">
-                  {notifications.map(notif => (
-                    <div key={notif.id} className={`px-4 py-2.5 border-b border-gray-50 flex flex-col gap-0.5 hover:bg-gray-50 ${!notif.read ? 'bg-blue-50/40' : ''}`}>
-                      <span className="text-sm font-medium text-gray-800">{notif.title}</span>
-                      <span className="text-xs text-gray-400">{notif.time}</span>
+                <div className="max-h-[320px] overflow-y-auto divide-y divide-gray-100">
+                  {notifications.length === 0 ? (
+                    <div className="px-4 py-8 text-center text-xs text-gray-400">
+                      Tidak ada notifikasi aktif saat ini.
                     </div>
-                  ))}
+                  ) : (
+                    notifications.map(notif => (
+                      <Link 
+                        key={notif.id} 
+                        href={notif.link || '#'}
+                        onClick={() => handleNotificationClick(notif.id)}
+                        className={`px-4 py-3 text-left block transition-all duration-200 hover:bg-blue-50/40 ${!notif.read ? 'bg-blue-50/20' : ''}`}
+                      >
+                        <div className="flex flex-col gap-0.5">
+                          <span className={`text-[10px] font-bold uppercase tracking-wider ${!notif.read ? 'text-blue-600' : 'text-gray-400'}`}>
+                            {notif.title}
+                          </span>
+                          <p className={`text-xs text-gray-700 leading-normal ${!notif.read ? 'font-semibold' : ''}`}>
+                            {notif.description}
+                          </p>
+                          <span className="text-[9px] text-gray-400 font-medium mt-1">
+                            {formatTimeAgo(notif.time)}
+                          </span>
+                        </div>
+                      </Link>
+                    ))
+                  )}
                 </div>
               </div>
             )}
@@ -215,7 +311,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       )}
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-6 md:py-8">
+      <main className="flex-1 w-full px-4 md:px-8 py-6 md:py-8">
         {children}
       </main>
 

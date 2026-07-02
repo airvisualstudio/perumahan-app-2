@@ -242,8 +242,18 @@ export async function POST(request: Request) {
         return NextResponse.json({ success: false, error: 'No active pending approval step' }, { status: 400 });
       }
 
+      // Check if Admin is bypassing the Manager Pemasaran step
+      const isBypass = activeStep.role === 'Manager Pemasaran' && actor.role === 'admin';
+      
+      let displayedApproverName = actor.name;
+      if (isBypass) {
+        // Find the Manager Pemasaran name (Budi Purnomo)
+        const managerUser = data.users.find(u => u.role === 'manager' && u.department === 'Pemasaran');
+        displayedApproverName = managerUser ? managerUser.name : 'Budi Purnomo';
+      }
+
       activeStep.status = 'approved';
-      activeStep.decided_by = actor.name;
+      activeStep.decided_by = displayedApproverName; // Show as approved by "Budi Purnomo" on document UI
       activeStep.decided_at = new Date().toISOString();
       activeStep.remarks = remarks;
 
@@ -265,24 +275,45 @@ export async function POST(request: Request) {
                 new_status: 'sold',
                 changed_by: actor_id,
                 prospect_id: prospect.id,
-                notes: 'Kwitansi lunas disetujui, unit resmi terjual.',
+                notes: isBypass 
+                  ? 'Kwitansi lunas disetujui (Admin Bypass Manager), unit resmi terjual.'
+                  : 'Kwitansi lunas disetujui, unit resmi terjual.',
                 created_at: new Date().toISOString()
               });
             }
           }
         }
-
-        if (doc.data.prospect_id) {
-          data.prospectHistory.unshift({
-            id: 'ph-' + Math.random().toString(36).substr(2, 9),
-            prospect_id: doc.data.prospect_id,
-            event_type: 'document_approved',
-            actor_id,
-            description: `Dokumen ${doc.doc_type} (${doc.doc_number}) disetujui sepenuhnya!`,
-            created_at: new Date().toISOString()
-          });
-        }
       }
+
+      // System history log mentioning the real actor (Ahmad Admin)
+      const auditLogDescription = isBypass
+        ? `Dokumen ${doc.doc_type} (${doc.doc_number}) disetujui Level 2 oleh Admin IT (${actor.name}) sebagai bypass Manager Pemasaran`
+        : `Dokumen ${doc.doc_type} (${doc.doc_number}) disetujui Level ${activeStep.level} oleh ${actor.name}`;
+
+      if (doc.data.prospect_id) {
+        data.prospectHistory.unshift({
+          id: 'ph-' + Math.random().toString(36).substr(2, 9),
+          prospect_id: doc.data.prospect_id,
+          event_type: isBypass ? 'document_approved_bypass' : 'document_approved',
+          actor_id,
+          description: !hasPending 
+            ? (isBypass 
+                ? `Dokumen ${doc.doc_type} (${doc.doc_number}) disetujui sepenuhnya! (Bypass oleh Admin IT ${actor.name})`
+                : `Dokumen ${doc.doc_type} (${doc.doc_number}) disetujui sepenuhnya!`)
+            : auditLogDescription,
+          created_at: new Date().toISOString()
+        });
+      }
+
+      // Audit log
+      data.auditLogs.unshift({
+        id: 'log-' + Math.random().toString(36).substr(2, 9),
+        user_id: actor_id,
+        action: isBypass ? 'document.approve_bypass_admin' : 'document.approve',
+        entity_type: 'document',
+        entity_id: doc.id,
+        created_at: new Date().toISOString()
+      });
 
       db.save(data);
       return NextResponse.json({ success: true, document: doc });

@@ -173,6 +173,8 @@ export interface AttendanceRecord {
   is_offline_sync: boolean;
   notes?: string;
   overtime_hours?: number;
+  work_hours?: number;
+  late_minutes?: number;
 }
 
 export interface LeaveRequest {
@@ -289,6 +291,12 @@ export interface PermissionType {
   requires_attachment: boolean;
 }
 
+export interface Holiday {
+  id: string;
+  date: string;
+  name: string;
+}
+
 export interface SystemSettings {
   org_name: string;
   org_logo: string;
@@ -298,6 +306,7 @@ export interface SystemSettings {
   work_hours_start: string;
   work_hours_end: string;
   permission_types?: PermissionType[];
+  holidays?: Holiday[];
 }
 
 // Full Database Schema
@@ -835,7 +844,81 @@ const generateSeedData = (): DatabaseSchema => {
     }
   ];
 
+  // Generate historical attendance for June 2026
+  const historicalAttendance: AttendanceRecord[] = [];
+  const staffIds = ['usr-sales', 'usr-finance', 'usr-staff'];
+  for (let d = 1; d <= 30; d++) {
+    const dateStr = `2026-06-${String(d).padStart(2, '0')}`;
+    const dayOfWeek = new Date(2026, 5, d).getDay(); // 5 is June
+    if (dayOfWeek === 0 || dayOfWeek === 6) continue; // Skip weekends
+    if (d === 1 || d === 18) continue; // Skip holidays (Jun 1: Pancasila, Jun 18: Idul Adha)
+
+    staffIds.forEach(uId => {
+      const rand = Math.random();
+      if (rand < 0.88) {
+        // Clock-in between 08:35 and 08:59
+        const inMin = Math.floor(Math.random() * 25) + 35; 
+        const inStr = `08:${String(inMin).padStart(2, '0')}`;
+        // Clock-out between 17:00 and 17:20
+        const outMin = Math.floor(Math.random() * 20);
+        const outStr = `17:${String(outMin).padStart(2, '0')}`;
+        
+        const clockIn = `${dateStr}T${inStr}:00Z`;
+        const clockOut = `${dateStr}T${outStr}:00Z`;
+        const workHours = 8 + (outMin - (inMin - 60)) / 60;
+        
+        historicalAttendance.push({
+          id: `att-hist-${uId}-${d}`,
+          user_id: uId,
+          date: dateStr,
+          clock_in_at: clockIn,
+          clock_out_at: clockOut,
+          clock_in_lat: -6.917460 + (Math.random() - 0.5) * 0.0001,
+          clock_in_lng: 107.619120 + (Math.random() - 0.5) * 0.0001,
+          clock_out_lat: -6.917460 + (Math.random() - 0.5) * 0.0001,
+          clock_out_lng: 107.619120 + (Math.random() - 0.5) * 0.0001,
+          office_id: 'loc-1',
+          status: 'present',
+          work_mode: 'onsite',
+          is_offline_sync: false,
+          work_hours: Math.round(workHours * 10) / 10,
+          late_minutes: 0,
+          overtime_hours: 0
+        });
+      } else if (rand < 0.95) {
+        // Late clock in between 09:20 and 09:55
+        const inMin = Math.floor(Math.random() * 35) + 20; 
+        const inStr = `09:${String(inMin).padStart(2, '0')}`;
+        const outMin = Math.floor(Math.random() * 15);
+        const outStr = `17:${String(outMin).padStart(2, '0')}`;
+        
+        const clockIn = `${dateStr}T${inStr}:00Z`;
+        const clockOut = `${dateStr}T${outStr}:00Z`;
+        const workHours = 8 - (inMin / 60) + (outMin / 60);
+        
+        historicalAttendance.push({
+          id: `att-hist-${uId}-${d}`,
+          user_id: uId,
+          date: dateStr,
+          clock_in_at: clockIn,
+          clock_out_at: clockOut,
+          clock_in_lat: -6.917460 + (Math.random() - 0.5) * 0.0001,
+          clock_in_lng: 107.619120 + (Math.random() - 0.5) * 0.0001,
+          office_id: 'loc-1',
+          status: 'late',
+          work_mode: 'onsite',
+          is_offline_sync: false,
+          notes: 'Macet parah di jalan Soekarno-Hatta',
+          work_hours: Math.round(workHours * 10) / 10,
+          late_minutes: inMin + 15,
+          overtime_hours: 0
+        });
+      }
+    });
+  }
+
   const attendance: AttendanceRecord[] = [
+    ...historicalAttendance,
     {
       id: 'att-1',
       user_id: 'usr-sales',
@@ -846,10 +929,13 @@ const generateSeedData = (): DatabaseSchema => {
       clock_in_lng: 107.619120,
       clock_out_lat: -6.917465,
       clock_out_lng: 107.619125,
-      office_id: 'loc-main',
+      office_id: 'loc-1',
       status: 'present',
       work_mode: 'onsite',
-      is_offline_sync: false
+      is_offline_sync: false,
+      work_hours: 9.2,
+      late_minutes: 0,
+      overtime_hours: 1
     }
   ];
 
@@ -873,8 +959,8 @@ const generateSeedData = (): DatabaseSchema => {
       name: 'Standard Invoice Chain',
       doc_type: 'Invoice',
       chain: [
-        { level: 1, role: 'Keuangan' },
-        { level: 2, role: 'manager' }
+        { level: 1, role: 'Staff Pemasaran' },
+        { level: 2, role: 'Manager Pemasaran' }
       ]
     },
     {
@@ -882,7 +968,8 @@ const generateSeedData = (): DatabaseSchema => {
       name: 'Standard Receipt Chain',
       doc_type: 'Kwitansi',
       chain: [
-        { level: 1, role: 'Keuangan' }
+        { level: 1, role: 'Staff Pemasaran' },
+        { level: 2, role: 'Manager Pemasaran' }
       ]
     },
     {
@@ -890,8 +977,8 @@ const generateSeedData = (): DatabaseSchema => {
       name: 'Standard Letter Chain',
       doc_type: 'Surat',
       chain: [
-        { level: 1, role: 'manager' },
-        { level: 2, role: 'admin' }
+        { level: 1, role: 'Staff Pemasaran' },
+        { level: 2, role: 'Manager Pemasaran' }
       ]
     }
   ];
@@ -963,6 +1050,24 @@ const generateSeedData = (): DatabaseSchema => {
       { id: 'prm-keluarga', name: 'Izin Keperluan Keluarga', requires_attachment: false },
       { id: 'prm-menikah', name: 'Izin Menikah', requires_attachment: true },
       { id: 'prm-dinas', name: 'Tugas Dinas Luar', requires_attachment: false }
+    ],
+    holidays: [
+      { id: 'h1', date: '2026-01-01', name: 'Tahun Baru Masehi' },
+      { id: 'h2', date: '2026-01-29', name: 'Tahun Baru Imlek' },
+      { id: 'h3', date: '2026-02-15', name: 'Isra Mi\'raj' },
+      { id: 'h4', date: '2026-03-19', name: 'Hari Suci Nyepi' },
+      { id: 'h5', date: '2026-04-03', name: 'Wafat Isa Almasih' },
+      { id: 'h6', date: '2026-04-10', name: 'Hari Raya Idul Fitri Hari 1' },
+      { id: 'h7', date: '2026-04-11', name: 'Hari Raya Idul Fitri Hari 2' },
+      { id: 'h8', date: '2026-05-01', name: 'Hari Buruh Internasional' },
+      { id: 'h9', date: '2026-05-13', name: 'Hari Raya Waisak' },
+      { id: 'h10', date: '2026-05-14', name: 'Kenaikan Isa Almasih' },
+      { id: 'h11', date: '2026-06-01', name: 'Hari Lahir Pancasila' },
+      { id: 'h12', date: '2026-06-18', name: 'Hari Raya Idul Adha' },
+      { id: 'h13', date: '2026-07-07', name: 'Tahun Baru Islam' },
+      { id: 'h14', date: '2026-08-17', name: 'Hari Kemerdekaan RI' },
+      { id: 'h15', date: '2026-09-05', name: 'Maulid Nabi Muhammad SAW' },
+      { id: 'h16', date: '2026-12-25', name: 'Hari Raya Natal' }
     ]
   };
 
@@ -974,7 +1079,7 @@ const generateSeedData = (): DatabaseSchema => {
       doc_type_key: 'Invoice',
       prefix: 'INV',
       is_builtin: true,
-      approval_chain_roles: ['manager', 'admin'],
+      approval_chain_roles: ['Staff Pemasaran', 'Manager Pemasaran'],
       created_by: 'usr-admin',
       created_at: new Date().toISOString(),
       blocks: [
@@ -995,7 +1100,7 @@ const generateSeedData = (): DatabaseSchema => {
       doc_type_key: 'Kwitansi',
       prefix: 'KWT',
       is_builtin: true,
-      approval_chain_roles: ['manager', 'admin'],
+      approval_chain_roles: ['Staff Pemasaran', 'Manager Pemasaran'],
       created_by: 'usr-admin',
       created_at: new Date().toISOString(),
       blocks: [
@@ -1077,6 +1182,148 @@ class JsonDatabase {
       if (fs.existsSync(DB_PATH)) {
         const fileContent = fs.readFileSync(DB_PATH, 'utf-8');
         this.schema = JSON.parse(fileContent);
+        
+        // Auto-upgrade templates to use Staff Pemasaran and Manager Pemasaran
+        if (this.schema) {
+          let needsSave = false;
+          if (this.schema.approvalTemplates) {
+            const invoiceTpl = this.schema.approvalTemplates.find(t => t.id === 'tpl-invoice');
+            if (invoiceTpl && invoiceTpl.chain[0].role !== 'Staff Pemasaran') {
+              invoiceTpl.chain = [
+                { level: 1, role: 'Staff Pemasaran' },
+                { level: 2, role: 'Manager Pemasaran' }
+              ];
+              needsSave = true;
+            }
+            const receiptTpl = this.schema.approvalTemplates.find(t => t.id === 'tpl-receipt');
+            if (receiptTpl && receiptTpl.chain[0].role !== 'Staff Pemasaran') {
+              receiptTpl.chain = [
+                { level: 1, role: 'Staff Pemasaran' },
+                { level: 2, role: 'Manager Pemasaran' }
+              ];
+              needsSave = true;
+            }
+            const letterTpl = this.schema.approvalTemplates.find(t => t.id === 'tpl-letter');
+            if (letterTpl && letterTpl.chain[0].role !== 'Staff Pemasaran') {
+              letterTpl.chain = [
+                { level: 1, role: 'Staff Pemasaran' },
+                { level: 2, role: 'Manager Pemasaran' }
+              ];
+              needsSave = true;
+            }
+          }
+          if (this.schema.documentTemplates) {
+            this.schema.documentTemplates.forEach(t => {
+              if (t.is_builtin && t.approval_chain_roles[0] !== 'Staff Pemasaran') {
+                t.approval_chain_roles = ['Staff Pemasaran', 'Manager Pemasaran'];
+                needsSave = true;
+              }
+            });
+          }
+          
+          // Seed holidays if not present
+          if (!this.schema.settings.holidays || this.schema.settings.holidays.length === 0) {
+            this.schema.settings.holidays = [
+              { id: 'h1', date: '2026-01-01', name: 'Tahun Baru Masehi' },
+              { id: 'h2', date: '2026-01-29', name: 'Tahun Baru Imlek' },
+              { id: 'h3', date: '2026-02-15', name: 'Isra Mi\'raj' },
+              { id: 'h4', date: '2026-03-19', name: 'Hari Suci Nyepi' },
+              { id: 'h5', date: '2026-04-03', name: 'Wafat Isa Almasih' },
+              { id: 'h6', date: '2026-04-10', name: 'Hari Raya Idul Fitri Hari 1' },
+              { id: 'h7', date: '2026-04-11', name: 'Hari Raya Idul Fitri Hari 2' },
+              { id: 'h8', date: '2026-05-01', name: 'Hari Buruh Internasional' },
+              { id: 'h9', date: '2026-05-13', name: 'Hari Raya Waisak' },
+              { id: 'h10', date: '2026-05-14', name: 'Kenaikan Isa Almasih' },
+              { id: 'h11', date: '2026-06-01', name: 'Hari Lahir Pancasila' },
+              { id: 'h12', date: '2026-06-18', name: 'Hari Raya Idul Adha' },
+              { id: 'h13', date: '2026-07-07', name: 'Tahun Baru Islam' },
+              { id: 'h14', date: '2026-08-17', name: 'Hari Kemerdekaan RI' },
+              { id: 'h15', date: '2026-09-05', name: 'Maulid Nabi Muhammad SAW' },
+              { id: 'h16', date: '2026-12-25', name: 'Hari Raya Natal' }
+            ];
+            needsSave = true;
+          }
+
+          // Seed historical June 2026 attendance if not present
+          const hasJuneHistory = this.schema.attendance.some(r => r.date.startsWith('2026-06'));
+          if (!hasJuneHistory) {
+            const historicalAttendance: AttendanceRecord[] = [];
+            const staffIds = ['usr-sales', 'usr-finance', 'usr-staff'];
+            for (let d = 1; d <= 30; d++) {
+              const dateStr = `2026-06-${String(d).padStart(2, '0')}`;
+              const dayOfWeek = new Date(2026, 5, d).getDay(); // 5 is June
+              if (dayOfWeek === 0 || dayOfWeek === 6) continue; // Skip weekends
+              if (d === 1 || d === 18) continue; // Skip holidays (Jun 1: Pancasila, Jun 18: Idul Adha)
+
+              staffIds.forEach(uId => {
+                const rand = Math.random();
+                if (rand < 0.88) {
+                  const inMin = Math.floor(Math.random() * 25) + 35; 
+                  const inStr = `08:${String(inMin).padStart(2, '0')}`;
+                  const outMin = Math.floor(Math.random() * 20);
+                  const outStr = `17:${String(outMin).padStart(2, '0')}`;
+                  
+                  const clockIn = `${dateStr}T${inStr}:00Z`;
+                  const clockOut = `${dateStr}T${outStr}:00Z`;
+                  const workHours = 8 + (outMin - (inMin - 60)) / 60;
+                  
+                  historicalAttendance.push({
+                    id: `att-hist-${uId}-${d}`,
+                    user_id: uId,
+                    date: dateStr,
+                    clock_in_at: clockIn,
+                    clock_out_at: clockOut,
+                    clock_in_lat: -6.917460 + (Math.random() - 0.5) * 0.0001,
+                    clock_in_lng: 107.619120 + (Math.random() - 0.5) * 0.0001,
+                    clock_out_lat: -6.917460 + (Math.random() - 0.5) * 0.0001,
+                    clock_out_lng: 107.619120 + (Math.random() - 0.5) * 0.0001,
+                    office_id: 'loc-main',
+                    status: 'present',
+                    work_mode: 'onsite',
+                    is_offline_sync: false,
+                    work_hours: Math.round(workHours * 10) / 10,
+                    late_minutes: 0,
+                    overtime_hours: 0
+                  });
+                } else if (rand < 0.95) {
+                  const inMin = Math.floor(Math.random() * 35) + 20; 
+                  const inStr = `09:${String(inMin).padStart(2, '0')}`;
+                  const outMin = Math.floor(Math.random() * 15);
+                  const outStr = `17:${String(outMin).padStart(2, '0')}`;
+                  
+                  const clockIn = `${dateStr}T${inStr}:00Z`;
+                  const clockOut = `${dateStr}T${outStr}:00Z`;
+                  const workHours = 8 - (inMin / 60) + (outMin / 60);
+                  
+                  historicalAttendance.push({
+                    id: `att-hist-${uId}-${d}`,
+                    user_id: uId,
+                    date: dateStr,
+                    clock_in_at: clockIn,
+                    clock_out_at: clockOut,
+                    clock_in_lat: -6.917460 + (Math.random() - 0.5) * 0.0001,
+                    clock_in_lng: 107.619120 + (Math.random() - 0.5) * 0.0001,
+                    office_id: 'loc-main',
+                    status: 'late',
+                    work_mode: 'onsite',
+                    is_offline_sync: false,
+                    notes: 'Macet parah di jalan Soekarno-Hatta',
+                    work_hours: Math.round(workHours * 10) / 10,
+                    late_minutes: inMin + 15,
+                    overtime_hours: 0
+                  });
+                }
+              });
+            }
+            this.schema.attendance.push(...historicalAttendance);
+            needsSave = true;
+          }
+
+          if (needsSave) {
+            this.save(this.schema);
+          }
+        }
+        
         return this.schema!;
       }
     } catch (error) {
