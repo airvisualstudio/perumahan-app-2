@@ -31,7 +31,9 @@ import {
   Lock,
   LayoutTemplate,
   Home,
+  Building2,
 } from 'lucide-react';
+
 import { DocumentTemplate, DocumentTemplateBlock, TemplateBlockType } from '@/lib/db';
 import dynamic from 'next/dynamic';
 
@@ -568,7 +570,17 @@ function TemplateBuilder({
 export default function BackofficePage() {
   const { user } = useAuth();
   
-  const [activeTab, setActiveTab] = useState<'users' | 'gps' | 'audit' | 'templates' | 'properties'>('users');
+  const [activeTab, setActiveTab] = useState<'company' | 'users' | 'gps' | 'audit' | 'templates' | 'properties'>('company');
+
+  // Company Profile States
+  const [orgName, setOrgName] = useState('');
+  const [orgLogo, setOrgLogo] = useState('');
+  const [orgAddress, setOrgAddress] = useState('');
+  const [orgEmail, setOrgEmail] = useState('');
+  const [orgPhone, setOrgPhone] = useState('');
+  const [orgBankAccount, setOrgBankAccount] = useState('');
+  const [isSavingCompany, setIsSavingCompany] = useState(false);
+  const [companySaveSuccess, setCompanySaveSuccess] = useState('');
   
   const [usersList, setUsersList] = useState<User[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
@@ -618,6 +630,8 @@ export default function BackofficePage() {
   const [clStatus, setClStatus] = useState<'pre_launch' | 'active' | 'sold_out'>('active');
   const [clSvgContent, setClSvgContent] = useState('');
   const [selectedSvgFileName, setSelectedSvgFileName] = useState('');
+  const [clLogo, setClLogo] = useState('');
+  const [clAddress, setClAddress] = useState('');
 
   // UnitType Form State
   const [utName, setUtName] = useState('');
@@ -661,6 +675,13 @@ export default function BackofficePage() {
           setWorkHoursStart(settings.work_hours_start ?? '09:00');
           setWorkHoursEnd(settings.work_hours_end ?? '18:00');
           setPermissionTypes(settings.permission_types ?? []);
+          
+          setOrgName(settings.org_name ?? 'PT Domus Somnia Properti');
+          setOrgLogo(settings.org_logo ?? '');
+          setOrgAddress(settings.org_address ?? 'Grand Surapati Core Blok B-03, Jl. Phh. Mustofa No.39, Bandung');
+          setOrgEmail(settings.org_email ?? 'info@domus.com');
+          setOrgPhone(settings.org_phone ?? '(022) 1234567');
+          setOrgBankAccount(settings.org_bank_account ?? '131-00-1234567-8 a/n PT Domus Somnia Properti');
           
           const office = settings.office_locations?.[0];
           setOfficeSettings(office);
@@ -765,6 +786,70 @@ export default function BackofficePage() {
     }
   };
 
+  const handleSaveCompanySettings = async () => {
+    setIsSavingCompany(true);
+    setCompanySaveSuccess('');
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'save_company_settings',
+          actor_id: user?.id,
+          org_name: orgName,
+          org_logo: orgLogo,
+          org_address: orgAddress,
+          org_email: orgEmail,
+          org_phone: orgPhone,
+          org_bank_account: orgBankAccount
+        })
+      });
+      const json = await res.json();
+      if (json.success) {
+        setCompanySaveSuccess('Profil Perusahaan berhasil disimpan!');
+        const message = `Admin *${user?.name}* memperbarui profil perusahaan:
+- Nama: *${orgName}*
+- Email: *${orgEmail}*
+- Telp: *${orgPhone}*
+- Bank Rekening: *${orgBankAccount}*`;
+        window.dispatchEvent(new CustomEvent('simulated-slack-webhook', {
+          detail: { timestamp: new Date().toLocaleTimeString('id-ID'), channel: 'hr-notif', message }
+        }));
+        setTimeout(() => setCompanySaveSuccess(''), 3000);
+        fetchBackofficeData();
+      } else {
+        alert(json.error || 'Gagal menyimpan profil perusahaan');
+      }
+    } catch (error) {
+      console.error(error);
+      alert('Terjadi kesalahan koneksi');
+    } finally {
+      setIsSavingCompany(false);
+    }
+  };
+
+  const handleCompanyLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setOrgLogo(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleClusterLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setClLogo(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleAddPermissionType = () => {
     if (!newPermissionName.trim()) {
       alert('Nama tipe izin tidak boleh kosong.');
@@ -834,6 +919,8 @@ export default function BackofficePage() {
           description: clDesc,
           status: clStatus,
           svg_content: clSvgContent || undefined,
+          logo_url: clLogo || undefined,
+          address: clAddress || undefined,
           actor_id: user?.id
         })
       });
@@ -847,6 +934,8 @@ export default function BackofficePage() {
         setClDesc('');
         setClSvgContent('');
         setSelectedSvgFileName('');
+        setClLogo('');
+        setClAddress('');
         fetchBackofficeData();
       }
     } catch (err) {
@@ -961,6 +1050,8 @@ export default function BackofficePage() {
     setClStatus(cluster.status);
     setClSvgContent(cluster.svg_content || '');
     setSelectedSvgFileName(cluster.svg_content ? 'Peta Tersimpan.svg' : '');
+    setClLogo(cluster.logo_url || '');
+    setClAddress(cluster.address || '');
     setIsAddingCluster(true);
   };
 
@@ -1137,6 +1228,7 @@ export default function BackofficePage() {
         {/* Tabs */}
         <div className="flex border-b border-gray-200 gap-2 overflow-x-auto no-scrollbar whitespace-nowrap">
           {([
+            ['company', 'Profil Perusahaan', <Building2 size={14} />],
             ['users', 'User Management', <Users size={14} />],
             ['gps', 'GPS & Lokasi', <MapPin size={14} />],
             ['audit', 'Audit Logs', <Settings size={14} />],
@@ -1154,6 +1246,150 @@ export default function BackofficePage() {
             </button>
           ))}
         </div>
+
+        {/* ── COMPANY PROFILE ── */}
+        {activeTab === 'company' && (
+          <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm flex flex-col gap-6">
+            <div className="border-b border-gray-100 pb-3">
+              <h2 className="text-lg font-extrabold text-gray-900 font-sans tracking-tight">Profil & Identitas Perusahaan</h2>
+              <p className="text-xs text-gray-500 mt-0.5">Ubah nama perusahaan, alamat, email, nomor telepon, logo resmi, dan rekening pembayaran KPR / Booking.</p>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Form Inputs */}
+              <div className="lg:col-span-2 flex flex-col gap-4 text-xs font-semibold">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-gray-400 uppercase tracking-wider text-[9px]">Nama Perusahaan *</label>
+                  <input
+                    type="text"
+                    required
+                    value={orgName}
+                    onChange={e => setOrgName(e.target.value)}
+                    placeholder="Nama PT / CV Developer"
+                    className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 font-medium text-sm"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-gray-400 uppercase tracking-wider text-[9px]">Email Perusahaan</label>
+                    <input
+                      type="email"
+                      value={orgEmail}
+                      onChange={e => setOrgEmail(e.target.value)}
+                      placeholder="info@perusahaan.com"
+                      className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 font-medium text-sm"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-gray-400 uppercase tracking-wider text-[9px]">Nomor Telepon</label>
+                    <input
+                      type="text"
+                      value={orgPhone}
+                      onChange={e => setOrgPhone(e.target.value)}
+                      placeholder="(022) 123456"
+                      className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 font-medium text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-gray-400 uppercase tracking-wider text-[9px]">Logo Perusahaan (Link URL / Unggah Gambar)</label>
+                  <div className="flex gap-3">
+                    <input
+                      type="text"
+                      value={orgLogo}
+                      onChange={e => setOrgLogo(e.target.value)}
+                      placeholder="https://link-ke-gambar-logo.png"
+                      className="flex-1 px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 font-medium text-xs"
+                    />
+                    <label className="px-4 py-2.5 border border-dashed border-gray-300 rounded-xl bg-slate-50 hover:bg-slate-100 cursor-pointer flex items-center justify-center font-bold text-xs transition-all whitespace-nowrap gap-1">
+                      <span>Unggah Logo</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleCompanyLogoUpload}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-gray-400 uppercase tracking-wider text-[9px]">Alamat Resmi Kantor Pusat</label>
+                  <textarea
+                    rows={3}
+                    value={orgAddress}
+                    onChange={e => setOrgAddress(e.target.value)}
+                    placeholder="Alamat kantor lengkap..."
+                    className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 resize-none font-medium text-sm"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-gray-400 uppercase tracking-wider text-[9px]">Rekening Bank Untuk Pembayaran Tagihan</label>
+                  <input
+                    type="text"
+                    value={orgBankAccount}
+                    onChange={e => setOrgBankAccount(e.target.value)}
+                    placeholder="Contoh: Bank Mandiri 131-00-1234567-8 a/n PT Domus Somnia Properti"
+                    className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 font-medium text-sm"
+                  />
+                </div>
+
+                {companySaveSuccess && (
+                  <div className="p-3 bg-emerald-50 border border-emerald-100 text-emerald-800 rounded-xl text-xs font-bold animate-pulse">
+                    {companySaveSuccess}
+                  </div>
+                )}
+
+                <div className="flex justify-end mt-2">
+                  <button
+                    onClick={handleSaveCompanySettings}
+                    disabled={isSavingCompany}
+                    className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-bold shadow-md hover:shadow-lg transition-all flex items-center gap-1.5"
+                  >
+                    <Save size={16} /> Simpan Perubahan Profil
+                  </button>
+                </div>
+              </div>
+
+              {/* Visual Preview Card */}
+              <div className="bg-slate-50 border border-slate-200/60 rounded-2xl p-6 flex flex-col gap-6 h-fit text-left">
+                <span className="text-[10px] text-gray-400 uppercase font-black tracking-widest block border-b border-slate-200/50 pb-2">Kop Surat & Branding Preview</span>
+                
+                <div className="bg-white border border-gray-300 shadow-lg rounded-xl p-5 flex flex-col gap-4 font-sans text-[11px] text-gray-800">
+                  <div className="flex justify-between items-start border-b border-gray-800 pb-3 mb-1">
+                    <div className="flex items-center gap-2 text-left">
+                      {orgLogo ? (
+                        <img src={orgLogo} alt="Logo" className="w-10 h-10 object-cover rounded-lg border border-gray-100" />
+                      ) : (
+                        <div className="w-10 h-10 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-extrabold text-lg">
+                          {orgName ? orgName.charAt(0) : 'D'}
+                        </div>
+                      )}
+                      <div className="flex flex-col">
+                        <span className="font-extrabold text-xs text-gray-900 tracking-tight leading-none uppercase">{orgName || 'PT DEVELOPER PROPERTI'}</span>
+                        <span className="text-[8px] text-gray-400 font-bold uppercase tracking-wider mt-0.5">Property Developer</span>
+                      </div>
+                    </div>
+                    <div className="flex flex-col text-right text-[8px] text-gray-500 font-semibold leading-relaxed max-w-[130px]">
+                      <span className="truncate block" title={orgAddress}>{orgAddress || 'Alamat Kantor'}</span>
+                      <span>Telp: {orgPhone || 'Telepon'}</span>
+                      <span>Email: {orgEmail || 'Email'}</span>
+                    </div>
+                  </div>
+
+                  <div className="py-2 border border-dashed border-slate-200 rounded-lg bg-slate-50/50 flex flex-col gap-1 items-center justify-center">
+                    <span className="text-[8px] text-gray-400 font-bold uppercase">Pembayaran Via Transfer:</span>
+                    <span className="font-extrabold text-xs text-indigo-700 text-center px-1">{orgBankAccount || 'Rekening Bank'}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ── USER MANAGEMENT ── */}
         {activeTab === 'users' && (
@@ -1590,6 +1826,39 @@ export default function BackofficePage() {
                       value={clLocation}
                       onChange={e => setClLocation(e.target.value)}
                       className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 font-medium"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-gray-400 uppercase tracking-wider text-[9px]">Logo Perumahan / Cluster (URL / Unggah Gambar)</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={clLogo}
+                        onChange={e => setClLogo(e.target.value)}
+                        placeholder="https://link-logo-perumahan.png"
+                        className="flex-1 px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 font-medium"
+                      />
+                      <label className="px-3.5 py-2.5 border border-dashed border-gray-300 rounded-xl bg-slate-50 hover:bg-slate-100 cursor-pointer flex items-center justify-center font-bold transition-all whitespace-nowrap gap-1">
+                        <span>Pilih Gambar</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleClusterLogoUpload}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-gray-400 uppercase tracking-wider text-[9px]">Alamat Lengkap Perumahan</label>
+                    <textarea
+                      value={clAddress}
+                      onChange={e => setClAddress(e.target.value)}
+                      placeholder="Masukkan alamat proyek lengkap..."
+                      rows={2}
+                      className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 resize-none font-medium"
                     />
                   </div>
 
@@ -2339,7 +2608,10 @@ export default function BackofficePage() {
                       }}
                       className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-indigo-200 transition-all cursor-pointer flex flex-col gap-3 group text-left"
                     >
-                      <div className="flex justify-between items-start gap-2">
+                      <div className="flex justify-between items-start gap-3">
+                        {cluster.logo_url && (
+                          <img src={cluster.logo_url} alt="Logo" className="w-12 h-12 object-cover rounded-xl border border-gray-150 flex-shrink-0 mt-1" />
+                        )}
                         <div className="flex-1 min-w-0">
                           <div className="flex justify-between items-center w-full">
                             <span className="text-[9px] font-black bg-blue-50 text-blue-700 border border-blue-100 rounded px-2 py-0.5 uppercase tracking-wide">
@@ -2369,6 +2641,9 @@ export default function BackofficePage() {
                             {cluster.name}
                           </h3>
                           <p className="text-[10px] text-gray-400 font-semibold mt-0.5">{cluster.location}</p>
+                          {cluster.address && (
+                            <p className="text-[9px] text-gray-400 font-medium truncate mt-0.5" title={cluster.address}>{cluster.address}</p>
+                          )}
                           <p className="text-[10px] text-gray-500 mt-2 line-clamp-2 leading-relaxed">
                             {cluster.description || "Tidak ada deskripsi perumahan."}
                           </p>

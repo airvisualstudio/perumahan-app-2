@@ -42,9 +42,17 @@ export default function PublicVerificationPortal() {
   const [isScanning, setIsScanning] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
   const qrScannerRef = useRef<any>(null);
+  const [settings, setSettings] = useState<any>(null);
 
   // Read token from URL on mount (client-side only to avoid SSR issues)
   useEffect(() => {
+    fetch('/api/settings')
+      .then(res => res.json())
+      .then(json => {
+        if (json.success) setSettings(json.settings);
+      })
+      .catch(err => console.error(err));
+
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const t = params.get('token');
@@ -202,8 +210,14 @@ export default function PublicVerificationPortal() {
 
           {/* Logo & Branding */}
           <div className="flex flex-col items-center gap-1.5 border-b border-slate-900 pb-5 text-center">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-extrabold text-2xl shadow-lg">D</div>
-            <span className="font-extrabold text-base tracking-widest text-slate-300 mt-2 uppercase">PT DOMUS SOMNIA PROPERTI</span>
+            {settings?.org_logo ? (
+              <img src={settings.org_logo} alt="Logo" className="w-10 h-10 object-cover rounded-xl shadow-lg border border-slate-800" />
+            ) : (
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-extrabold text-2xl shadow-lg">
+                {settings?.org_name ? settings.org_name.charAt(0) : 'D'}
+              </div>
+            )}
+            <span className="font-extrabold text-base tracking-widest text-slate-300 mt-2 uppercase">{settings?.org_name || 'PT DOMUS SOMNIA PROPERTI'}</span>
             <span className="text-[10px] text-blue-500 font-bold uppercase tracking-widest">Portal Verifikasi Keabsahan Dokumen</span>
           </div>
 
@@ -267,7 +281,7 @@ export default function PublicVerificationPortal() {
                     </div>
                     <div>
                       <h2 className="text-md font-black text-emerald-500 tracking-wider">✓ DOKUMEN VALID & ASLI</h2>
-                      <p className="text-slate-500 text-[10px] font-semibold mt-1">Diterbitkan secara resmi oleh pengembang PT Domus Somnia.</p>
+                      <p className="text-slate-500 text-[10px] font-semibold mt-1">Diterbitkan secara resmi oleh pengembang {settings?.org_name || 'PT Domus Somnia'}.</p>
                     </div>
                   </div>
 
@@ -431,8 +445,8 @@ export default function PublicVerificationPortal() {
       </div>
 
       {/* Footer Info */}
-      <footer className="py-6 border-t border-slate-950 text-slate-600 text-[10px] font-bold text-center tracking-wider bg-slate-950/20">
-        PT DOMUS SOMNIA PROPERTI &copy; {new Date().getFullYear()} · ALL RIGHTS RESERVED
+      <footer className="py-6 border-t border-slate-950 text-slate-600 text-[10px] font-bold text-center tracking-wider bg-slate-950/20 uppercase">
+        {settings?.org_name || 'PT DOMUS SOMNIA PROPERTI'} &copy; {new Date().getFullYear()} · ALL RIGHTS RESERVED
       </footer>
     </div>
   );

@@ -36,6 +36,8 @@ interface Cluster {
   total_units: number;
   status: string;
   svg_content?: string;
+  logo_url?: string;
+  address?: string;
 }
 
 interface Unit {
@@ -494,16 +496,29 @@ export default function CRMModulePage() {
             </div>
 
             {activeCluster && (
-              <div className="bg-white border border-gray-200 rounded-2xl p-5 flex flex-col md:flex-row justify-between gap-6">
-                <div className="flex flex-col gap-1.5 max-w-xl">
-                  <h2 className="text-sm font-extrabold text-gray-950 flex items-center gap-1.5">
-                    <Layers className="text-blue-600" size={16} />
-                    Detail {activeCluster.name}
-                  </h2>
-                  <p className="text-xs text-gray-500 leading-relaxed">{activeCluster.description}</p>
-                  <div className="flex items-center gap-1.5 text-[11px] text-gray-400 font-bold mt-1">
-                    <MapPin size={12} />
-                    Lokasi: {activeCluster.location}
+              <div className="bg-white border border-gray-200 rounded-2xl p-5 flex flex-col md:flex-row justify-between gap-6 items-start md:items-center">
+                <div className="flex gap-4 items-start max-w-xl text-left">
+                  {activeCluster.logo_url && (
+                    <img src={activeCluster.logo_url} alt="Logo" className="w-14 h-14 object-cover rounded-2xl border border-gray-150 flex-shrink-0" />
+                  )}
+                  <div className="flex flex-col gap-1.5">
+                    <h2 className="text-sm font-extrabold text-gray-950 flex items-center gap-1.5">
+                      <Layers className="text-blue-600" size={16} />
+                      Detail {activeCluster.name}
+                    </h2>
+                    <p className="text-xs text-gray-500 leading-relaxed">{activeCluster.description}</p>
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-gray-400 font-bold mt-1">
+                      <div className="flex items-center gap-1">
+                        <MapPin size={12} />
+                        Lokasi: {activeCluster.location}
+                      </div>
+                      {activeCluster.address && (
+                        <div className="flex items-center gap-1 border-l border-gray-200 pl-3">
+                          <MapPin size={12} />
+                          Alamat: {activeCluster.address}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 

@@ -269,7 +269,7 @@ export async function POST(request: Request) {
     }
 
     if (action === 'create_cluster') {
-      const { name, location, description, status, svg_content, actor_id } = body;
+      const { name, location, description, status, svg_content, logo_url, address, actor_id } = body;
       
       const newCluster = {
         id: 'cls-' + Math.random().toString(36).substr(2, 9),
@@ -279,6 +279,8 @@ export async function POST(request: Request) {
         total_units: 0,
         status: status || 'active',
         svg_content,
+        logo_url: logo_url || '',
+        address: address || '',
         created_by: actor_id,
         created_at: new Date().toISOString()
       };
@@ -368,7 +370,7 @@ export async function POST(request: Request) {
     }
 
     if (action === 'update_cluster') {
-      const { cluster_id, name, location, description, status, svg_content, actor_id } = body;
+      const { cluster_id, name, location, description, status, svg_content, logo_url, address, actor_id } = body;
       const cluster = data.clusters.find(c => c.id === cluster_id);
       if (!cluster) {
         return NextResponse.json({ success: false, error: 'Cluster not found' }, { status: 444 });
@@ -380,6 +382,12 @@ export async function POST(request: Request) {
       cluster.status = status;
       if (svg_content !== undefined) {
         cluster.svg_content = svg_content;
+      }
+      if (logo_url !== undefined) {
+        cluster.logo_url = logo_url;
+      }
+      if (address !== undefined) {
+        cluster.address = address;
       }
 
       data.auditLogs.unshift({

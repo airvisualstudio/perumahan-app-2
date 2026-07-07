@@ -37,8 +37,17 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [readIds, setReadIds] = useState<string[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
 
-  // Load read notification IDs on mount
+  const [settings, setSettings] = useState<any>(null);
+
+  // Load read notification IDs and company settings on mount
   useEffect(() => {
+    fetch('/api/settings')
+      .then(res => res.json())
+      .then(json => {
+        if (json.success) setSettings(json.settings);
+      })
+      .catch(err => console.error(err));
+
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('domus_read_notifications');
       if (saved) {
@@ -157,13 +166,19 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 text-gray-900 pb-20 md:pb-0">
       <header className="sticky top-0 z-40 w-full bg-white/70 dark:bg-slate-900/70 backdrop-blur-lg border-b border-gray-200/40 px-4 md:px-8 py-4 flex items-center justify-between transition-all">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 text-left">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold text-lg">
-              D
-            </div>
+            {settings?.org_logo ? (
+              <img src={settings.org_logo} alt="Logo" className="w-8 h-8 object-cover rounded-full border border-gray-150 shadow-sm" />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold text-lg">
+                {settings?.org_name ? settings.org_name.charAt(0) : 'D'}
+              </div>
+            )}
             <div>
-              <span className="font-bold text-lg bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">Domus</span>
+              <span className="font-bold text-lg bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                {settings?.org_name ? settings.org_name.split(' ')[0] : 'Domus'}
+              </span>
               <span className="text-gray-500 text-xs ml-1.5 font-medium border border-gray-200 px-2 py-0.5 rounded-full">PWA</span>
             </div>
           </div>
@@ -268,9 +283,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <div className="fixed inset-0 bg-gray-900/30 backdrop-blur-xs z-50 md:hidden" onClick={() => setIsMobileMenuOpen(false)}>
           <div className="w-72 max-w-[85vw] h-full bg-white/80 backdrop-blur-lg border-r border-gray-200/30 rounded-r-3xl flex flex-col p-5" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-6">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-lg">D</div>
-                <span className="font-bold text-lg">Domus Somnia</span>
+              <div className="flex items-center gap-2 text-left">
+                {settings?.org_logo ? (
+                  <img src={settings.org_logo} alt="Logo" className="w-8 h-8 object-cover rounded-full border border-gray-150" />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-lg">
+                    {settings?.org_name ? settings.org_name.charAt(0) : 'D'}
+                  </div>
+                )}
+                <span className="font-bold text-lg">{settings?.org_name || 'Domus Somnia'}</span>
               </div>
               <button onClick={() => setIsMobileMenuOpen(false)} className="p-1 hover:bg-gray-100 rounded-full">
                 <X size={20} />

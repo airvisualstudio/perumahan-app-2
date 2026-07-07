@@ -98,6 +98,7 @@ export default function DocumentHubPage() {
   const [selectedTemplate, setSelectedTemplate] = useState<DocTemplate | null>(null);
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [settings, setSettings] = useState<any>(null);
 
   // Selected document for preview
   const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
@@ -131,10 +132,11 @@ export default function DocumentHubPage() {
 
   const fetchDocumentsData = async () => {
     try {
-      const [docsRes, crmRes, tplRes] = await Promise.all([
+      const [docsRes, crmRes, tplRes, settingsRes] = await Promise.all([
         fetch('/api/documents'),
         fetch('/api/crm'),
         fetch('/api/documents?templates=1'),
+        fetch('/api/settings'),
       ]);
       const json = await docsRes.json();
       if (json.success) {
@@ -156,6 +158,10 @@ export default function DocumentHubPage() {
         const firstTpl = tplJson.templates[0];
         setSelectedTemplate(firstTpl);
         setDocType(firstTpl.doc_type_key);
+      }
+      const settingsJson = await settingsRes.json();
+      if (settingsJson.success) {
+        setSettings(settingsJson.settings);
       }
       setIsLoading(false);
     } catch (error) {
@@ -220,7 +226,7 @@ export default function DocumentHubPage() {
         total_amount,
         due_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         payment_method: 'Transfer Bank Mandiri',
-        bank_account: '131-00-1234567-8 a/n PT Domus Somnia',
+        bank_account: settings?.org_bank_account || '131-00-1234567-8 a/n PT Domus Somnia',
         notes: invNotes
       };
     } else if (docType === 'Kwitansi') {
@@ -649,18 +655,23 @@ export default function DocumentHubPage() {
                     )}
 
                     {/* Logo & Company Letterhead header */}
-                    <div className="flex justify-between items-start border-b-2 border-gray-900 pb-5 mb-6 print:pb-3 print:mb-4">
+                    <div className="flex justify-between items-start border-b-2 border-gray-900 pb-5 mb-6 print:pb-3 print:mb-4 text-left">
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center text-white font-extrabold text-3xl shadow">D</div>
+                        {settings?.org_logo ? (
+                          <img src={settings.org_logo} alt="Logo" className="w-12 h-12 object-cover rounded-xl border border-gray-150 shadow" />
+                        ) : (
+                          <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center text-white font-extrabold text-3xl shadow">
+                            {settings?.org_name ? settings.org_name.charAt(0) : 'D'}
+                          </div>
+                        )}
                         <div className="flex flex-col">
-                          <span className="font-extrabold text-xl text-gray-900 tracking-tight">PT DOMUS SOMNIA PROPERTI</span>
-                          <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Property Developer & Management</span>
+                          <span className="font-extrabold text-xl text-gray-900 tracking-tight uppercase leading-none">{settings?.org_name || 'PT DOMUS SOMNIA PROPERTI'}</span>
+                          <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-1">Property Developer & Management</span>
                         </div>
                       </div>
-                      <div className="flex flex-col text-right text-[10px] text-gray-500 font-semibold leading-relaxed">
-                        <span>Grand Surapati Core Blok B-03</span>
-                        <span>Jl. Phh. Mustofa No.39, Bandung</span>
-                        <span>Telp: (022) 1234567 | info@domus.com</span>
+                      <div className="flex flex-col text-right text-[10px] text-gray-500 font-semibold leading-relaxed max-w-[200px]">
+                        <span>{settings?.org_address || 'Grand Surapati Core Blok B-03, Jl. Phh. Mustofa No.39, Bandung'}</span>
+                        <span>Telp: {settings?.org_phone || '(022) 1234567'} | {settings?.org_email || 'info@domus.com'}</span>
                       </div>
                     </div>
 
@@ -769,7 +780,7 @@ export default function DocumentHubPage() {
                       <div className="flex-1 flex flex-col gap-6 print:gap-3 text-xs font-semibold leading-relaxed text-gray-800">
                         <div className="flex flex-col gap-4 print:gap-2">
                           <p className="font-medium text-justify">
-                            Yang bertanda tangan di bawah ini mewakili manajemen <strong>PT Domus Somnia Properti</strong>, menerangkan dengan sebenarnya bahwasanya:
+                            Yang bertanda tangan di bawah ini mewakili manajemen <strong>{settings?.org_name || 'PT Domus Somnia Properti'}</strong>, menerangkan dengan sebenarnya bahwasanya:
                           </p>
 
                           <div className="flex flex-col gap-2 bg-gray-50 border border-gray-100 p-4 print:p-3 rounded-xl">

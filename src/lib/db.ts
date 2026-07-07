@@ -30,6 +30,8 @@ export interface Cluster {
   created_by: string;
   created_at: string;
   svg_content?: string;
+  logo_url?: string;
+  address?: string;
 }
 
 export interface UnitType {
@@ -307,6 +309,10 @@ export interface Holiday {
 export interface SystemSettings {
   org_name: string;
   org_logo: string;
+  org_address?: string;
+  org_email?: string;
+  org_phone?: string;
+  org_bank_account?: string;
   timezone: string;
   office_locations: OfficeLocation[];
   late_threshold_minutes: number;
@@ -1038,6 +1044,10 @@ const generateSeedData = (): DatabaseSchema => {
   const settings: SystemSettings = {
     org_name: 'PT Domus Somnia Properti',
     org_logo: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=200&auto=format&fit=crop',
+    org_address: 'Grand Surapati Core Blok B-03, Jl. Phh. Mustofa No.39, Bandung',
+    org_email: 'info@domus.com',
+    org_phone: '(022) 1234567',
+    org_bank_account: '131-00-1234567-8 a/n PT Domus Somnia Properti',
     timezone: 'Asia/Jakarta',
     office_locations: [
       {
