@@ -19,12 +19,14 @@ import {
   Coins,
   ChevronRight,
   Info,
-  LogOut
+  LogOut,
+  Home
 } from 'lucide-react';
 import Link from 'next/link';
 
 // Load Monitoring Map dynamically to prevent SSR hydration mismatches
 const MonitoringMap = dynamic(() => import('@/components/MonitoringMap'), { ssr: false });
+const KavlingMap = dynamic(() => import('@/components/KavlingMap'), { ssr: false });
 
 interface Cluster {
   id: string;
@@ -41,7 +43,7 @@ interface Unit {
   unit_type_id: string;
   block_number: string;
   sell_price: number;
-  orientation: string;
+  orientation: 'hook' | 'middle' | 'corner';
   status: 'available' | 'reserved' | 'booking' | 'kpr_process' | 'sold' | 'unavailable';
   reserved_for?: string;
 }
@@ -56,6 +58,7 @@ interface Prospect {
   interested_cluster_id?: string;
   interested_type_id?: string;
   booked_unit_id?: string;
+  assigned_to?: string;
   created_at: string;
 }
 
@@ -81,6 +84,12 @@ export default function MonitoringPage() {
   const [prospects, setProspects] = useState<Prospect[]>([]);
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
   const [activeClusterId, setActiveClusterId] = useState<string | null>(null);
+  const [unitTypes, setUnitTypes] = useState<any[]>([]);
+  const [documents, setDocuments] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
+  const [selectedClusterSummaryId, setSelectedClusterSummaryId] = useState<string | null>(null);
+  const [selectedUnitFiling, setSelectedUnitFiling] = useState<any | null>(null);
+  const [selectedProjectDocDetail, setSelectedProjectDocDetail] = useState<any | null>(null);
 
   // Stats
   const [totalProspects, setTotalProspects] = useState(0);
@@ -120,11 +129,14 @@ export default function MonitoringPage() {
       const res = await fetch('/api/db');
       const json = await res.json();
       if (json.success) {
-        const { clusters: rawClusters, units: rawUnits, prospects: rawProspects, prospectHistory, unitHistory } = json.data;
+        const { clusters: rawClusters, units: rawUnits, prospects: rawProspects, unitTypes: rawTypes, documents: rawDocs, users: rawUsers, prospectHistory, unitHistory } = json.data;
         
         setClusters(rawClusters || []);
         setUnits(rawUnits || []);
         setProspects(rawProspects || []);
+        setUnitTypes(rawTypes || []);
+        setDocuments(rawDocs || []);
+        setUsers(rawUsers || []);
 
         // Calculate KPI values
         const prospectsList: Prospect[] = rawProspects || [];
@@ -385,6 +397,72 @@ export default function MonitoringPage() {
   const activeClusterUnits = units.filter(u => u.cluster_id === activeClusterId);
   const activeClusterProspects = prospects.filter(p => p.interested_cluster_id === activeClusterId);
 
+  // Compile project-level documents for activeCluster
+  const getActiveClusterProjectDocs = () => {
+    if (!activeCluster) return [];
+    
+    // 1. Get real documents from database that have cluster_id matching activeCluster.id and NO prospect_id
+    const dbProjectDocs = documents
+      .filter(doc => doc.cluster_id === activeCluster.id && !doc.data?.prospect_id && !doc.data?.client_name)
+      .map(doc => ({
+        id: doc.id,
+        name: doc.data?.title || doc.doc_number || `Dokumen Proyek ${doc.doc_type}`,
+        type: `Dokumen ${doc.doc_type}`,
+        date: new Date(doc.created_at).toLocaleDateString('id-ID'),
+        isReal: true,
+        token: doc.doc_token,
+        raw: doc
+      }));
+
+    // 2. Generate standard legal files for this cluster as default/seed if they don't exist
+    const defaultDocs = [
+      {
+        id: `def-pbb-${activeCluster.id}`,
+        name: `SPPT PBB Tahun 2026 - ${activeCluster.name}`,
+        type: 'Pajak Daerah',
+        date: '12 Mar 2026',
+        isReal: false,
+        content: `Surat Pemberitahuan Pajak Terutang Pajak Bumi dan Bangunan (SPPT PBB) tahun pajak 2026 untuk objek pajak perumahan ${activeCluster.name}. Status: TERBAYAR LUNAS.`
+      },
+      {
+        id: `def-imb-${activeCluster.id}`,
+        name: `PBG Induk ${activeCluster.name} (IMB)`,
+        type: 'Izin Bangunan',
+        date: '24 Sep 2025',
+        isReal: false,
+        content: `Persetujuan Bangunan Gedung (PBG) Induk No. 503/PBG-IND/${activeCluster.name}/2025. Mengizinkan pembangunan unit hunian di wilayah ${activeCluster.location}.`
+      },
+      {
+        id: `def-shgb-${activeCluster.id}`,
+        name: `Sertifikat SHGB Induk No. 182/${activeCluster.name}`,
+        type: 'Sertifikat Tanah',
+        date: '15 Okt 2025',
+        isReal: false,
+        content: `Sertifikat Hak Guna Bangunan (SHGB) Induk atas nama PT Domus Somnia Properti seluas wilayah cluster ${activeCluster.name}. Status: Proses pemecahan sertifikat per kavling.`
+      },
+      {
+        id: `def-pph-${activeCluster.id}`,
+        name: `Bukti Potong PPh Final Pasal 4(2)`,
+        type: 'Pajak PPh',
+        date: '05 Jan 2026',
+        isReal: false,
+        content: `Bukti Pemotongan Pajak Penghasilan (PPh) Final atas Pengalihan Hak atas Tanah dan/atau Bangunan untuk proyek perumahan ${activeCluster.name} masa pajak Januari 2026. Lunas.`
+      }
+    ];
+
+    return [...dbProjectDocs, ...defaultDocs];
+  };
+
+  const allProjectDocs = getActiveClusterProjectDocs();
+
+  const handleViewProjectDoc = (doc: any) => {
+    if (doc.isReal && doc.token) {
+      window.open(`/verify?token=${doc.token}`, '_blank');
+    } else {
+      setSelectedProjectDocDetail(doc);
+    }
+  };
+
   const getUnitStatusCount = (status: string) => activeClusterUnits.filter(u => u.status === status).length;
 
   const formatIDR = (num: number) => {
@@ -408,7 +486,10 @@ export default function MonitoringPage() {
           <MonitoringMap
             clusters={clusters}
             activeClusterId={activeClusterId}
-            onClusterClick={(id) => setActiveClusterId(id)}
+            onClusterClick={(id) => {
+              setActiveClusterId(id);
+              setSelectedClusterSummaryId(id);
+            }}
           />
         )}
       </div>
@@ -681,6 +762,39 @@ export default function MonitoringPage() {
                     )}
                   </div>
                 </div>
+
+                {/* Project Legal & Tax Files Section */}
+                <div className="flex flex-col gap-2 mt-3 border-t border-slate-900 pt-3">
+                  <span className="text-[9px] text-slate-400 font-black uppercase tracking-wider flex items-center gap-1">
+                    <CheckSquare size={11} className="text-emerald-400" />
+                    Dokumen & Pajak Proyek ({allProjectDocs.length})
+                  </span>
+                  
+                  <div className="flex flex-col gap-2 max-h-40 overflow-y-auto pr-1 no-scrollbar">
+                    {allProjectDocs.length === 0 ? (
+                      <span className="text-[10px] text-slate-500 italic py-2 text-center">Belum ada dokumen proyek</span>
+                    ) : (
+                      allProjectDocs.map((doc, idx) => (
+                        <div 
+                          key={doc.id || idx}
+                          className="bg-slate-950/40 border border-slate-900 hover:border-slate-800 p-2 rounded-xl flex items-center justify-between text-[11px]"
+                        >
+                          <div className="flex flex-col min-w-0">
+                            <span className="font-bold text-slate-200 truncate pr-1">{doc.name}</span>
+                            <span className="text-[8px] text-slate-500 mt-0.5">{doc.type} · {doc.date}</span>
+                          </div>
+                          <button 
+                            onClick={() => handleViewProjectDoc(doc)}
+                            className="p-1.5 hover:bg-slate-900 text-emerald-400 border border-slate-900 hover:text-emerald-300 rounded-lg transition-all shrink-0"
+                            title="Buka Dokumen"
+                          >
+                            <ArrowUpRight size={11} />
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
               </div>
 
               <div className="pt-3 border-t border-slate-900 flex gap-2">
@@ -777,6 +891,352 @@ export default function MonitoringPage() {
           </div>
         ))}
       </div>
+
+      {/* 5. Interactive Site Plan Map (Denah Kavling) in the middle screen when a cluster is active */}
+      {activeCluster && (
+        <div className="absolute left-[330px] right-[330px] top-24 bottom-4 z-10 pointer-events-none flex flex-col">
+          <div className="bg-slate-950/80 border border-slate-900/80 backdrop-blur-md rounded-2xl p-5 shadow-2xl flex flex-col gap-4 pointer-events-auto flex-1 overflow-hidden text-left">
+            <div className="flex justify-between items-center border-b border-slate-900 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 rounded-lg">
+                  <Sparkles size={14} />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Interactive Site Plan</span>
+                  <h2 className="text-sm font-extrabold text-slate-100 mt-0.5">Denah Kavling - {activeCluster.name}</h2>
+                </div>
+              </div>
+              <button 
+                onClick={() => setActiveClusterId(null)}
+                className="p-1 text-slate-500 hover:text-slate-200 hover:bg-slate-900 border border-slate-900 rounded-lg transition-colors"
+              >
+                <X size={14} />
+              </button>
+            </div>
+
+            {/* Render KavlingMap inside the container */}
+            <div className="flex-1 bg-slate-950/50 border border-slate-900 rounded-xl overflow-hidden relative flex items-center justify-center p-4">
+              <KavlingMap
+                units={activeClusterUnits}
+                unitTypes={unitTypes}
+                prospects={prospects}
+                activeClusterId={activeCluster.id}
+                clusters={clusters}
+                onUnitSelect={(unit) => setSelectedUnitFiling(unit)}
+                hideLegend={true}
+              />
+            </div>
+
+            {/* Map Legend */}
+            <div className="flex flex-wrap items-center justify-center gap-4 text-[10px] text-slate-400 pt-2 border-t border-slate-900/60 font-semibold">
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+                <span>Tersedia</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                <span>Reserved</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+                <span>Booking</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-orange-500"></span>
+                <span>Proses KPR/Cash</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                <span>Terjual (Akad)</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-gray-500"></span>
+                <span>Tidak Tersedia</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 6. Cluster Summary Modal Overlay */}
+      {selectedClusterSummaryId && (() => {
+        const cluster = clusters.find(c => c.id === selectedClusterSummaryId);
+        if (!cluster) return null;
+
+        const clusterUnits = units.filter(u => u.cluster_id === cluster.id);
+        const availableCount = clusterUnits.filter(u => u.status === 'available').length;
+        const bookingCount = clusterUnits.filter(u => u.status === 'booking' || u.status === 'reserved' || u.status === 'kpr_process').length;
+        const soldCount = clusterUnits.filter(u => u.status === 'sold').length;
+
+        return (
+          <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-md w-full shadow-2xl flex flex-col gap-5 text-left text-slate-100">
+              <div className="flex justify-between items-start border-b border-slate-800 pb-3">
+                <div>
+                  <span className="text-[9px] text-indigo-400 font-black uppercase tracking-wider">Ringkasan Perumahan</span>
+                  <h3 className="text-base font-extrabold text-slate-100 mt-0.5">{cluster.name}</h3>
+                </div>
+                <button 
+                  onClick={() => setSelectedClusterSummaryId(null)}
+                  className="p-1 text-slate-500 hover:text-slate-200 hover:bg-slate-800 rounded-lg transition-colors border border-slate-800"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+
+              <div className="flex flex-col gap-3.5 text-xs">
+                <div className="flex flex-col gap-1 bg-slate-950/40 border border-slate-950 p-3 rounded-xl">
+                  <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Lokasi Proyek</span>
+                  <span className="font-semibold text-slate-200">{cluster.location}</span>
+                </div>
+
+                <div className="flex flex-col gap-1 bg-slate-950/40 border border-slate-950 p-3 rounded-xl">
+                  <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Deskripsi Singkat</span>
+                  <p className="text-slate-400 leading-normal">{cluster.description || 'Tidak ada deskripsi proyek.'}</p>
+                </div>
+
+                {/* KPI Grid */}
+                <div className="grid grid-cols-3 gap-3 text-center">
+                  <div className="bg-green-500/10 border border-green-500/20 p-2.5 rounded-xl flex flex-col gap-0.5">
+                    <span className="text-[8px] text-green-400 font-bold uppercase">Tersedia</span>
+                    <span className="text-sm font-black text-green-400">{availableCount}</span>
+                  </div>
+                  <div className="bg-cyan-500/10 border border-cyan-500/20 p-2.5 rounded-xl flex flex-col gap-0.5">
+                    <span className="text-[8px] text-cyan-400 font-bold uppercase">Booking</span>
+                    <span className="text-sm font-black text-cyan-400">{bookingCount}</span>
+                  </div>
+                  <div className="bg-indigo-500/10 border border-indigo-500/20 p-2.5 rounded-xl flex flex-col gap-0.5">
+                    <span className="text-[8px] text-indigo-400 font-bold uppercase">Terjual</span>
+                    <span className="text-sm font-black text-indigo-400">{soldCount}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-3 border-t border-slate-800 mt-2">
+                <button
+                  onClick={() => {
+                    setActiveClusterId(cluster.id);
+                    setSelectedClusterSummaryId(null);
+                  }}
+                  className="flex-1 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl text-xs font-bold hover:shadow-lg hover:shadow-indigo-500/10 transition-all flex items-center justify-center gap-1.5"
+                >
+                  <ArrowUpRight size={14} /> Lihat Lebih Lengkap
+                </button>
+                <button
+                  onClick={() => setSelectedClusterSummaryId(null)}
+                  className="px-4 py-2.5 bg-slate-800 border border-slate-700 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold transition-all"
+                >
+                  Tutup
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* 7. Unit Filing Details (Pemberkasan) Modal Overlay */}
+      {selectedUnitFiling && (() => {
+        const typeName = unitTypes.find(t => t.id === selectedUnitFiling.unit_type_id)?.name || 'Tipe Standar';
+        const prospect = prospects.find(p => p.id === selectedUnitFiling.reserved_for || p.booked_unit_id === selectedUnitFiling.id);
+        const marketingName = prospect ? (users.find(u => u.id === prospect.assigned_to)?.name || 'Tidak Ditentukan') : 'Tidak Ditentukan';
+        
+        const unitDocs = documents.filter(doc => {
+          if (doc.cluster_id !== activeClusterId) return false;
+          if (prospect && doc.data?.prospect_id === prospect.id) return true;
+          if (prospect && (
+            doc.data?.client_name?.toLowerCase().includes(prospect.full_name.toLowerCase()) ||
+            doc.data?.receiver_name?.toLowerCase().includes(prospect.full_name.toLowerCase())
+          )) return true;
+          if (doc.data?.unit_block?.toLowerCase() === selectedUnitFiling.block_number.toLowerCase()) return true;
+          if (doc.data?.items?.some((item: any) => item.name?.toLowerCase().includes(selectedUnitFiling.block_number.toLowerCase()))) return true;
+          if (doc.data?.keterangan?.toLowerCase().includes(selectedUnitFiling.block_number.toLowerCase())) return true;
+          return false;
+        });
+
+        const statusLabel = 
+          selectedUnitFiling.status === 'available' ? 'Tersedia' :
+          selectedUnitFiling.status === 'reserved' ? 'Reserved' :
+          selectedUnitFiling.status === 'booking' ? 'Booking' :
+          selectedUnitFiling.status === 'kpr_process' ? 'Proses KPR' :
+          selectedUnitFiling.status === 'sold' ? 'Terjual' : 'Tidak Tersedia';
+
+        const statusColor = 
+          selectedUnitFiling.status === 'available' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
+          selectedUnitFiling.status === 'reserved' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' :
+          selectedUnitFiling.status === 'booking' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+          selectedUnitFiling.status === 'kpr_process' ? 'bg-orange-500/10 text-orange-400 border-orange-500/20' :
+          selectedUnitFiling.status === 'sold' ? 'bg-red-500/10 text-red-400 border-red-500/20' : 'bg-gray-500/10 text-gray-400 border-gray-500/20';
+
+        return (
+          <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-xl w-full shadow-2xl flex flex-col gap-5 text-left text-slate-100">
+              <div className="flex justify-between items-start border-b border-slate-800 pb-3">
+                <div>
+                  <span className="text-[9px] text-indigo-400 font-black uppercase tracking-wider">Arsip Pemberkasan Unit</span>
+                  <h3 className="text-base font-extrabold text-slate-100 mt-0.5">Kavling Blok {selectedUnitFiling.block_number}</h3>
+                </div>
+                <button 
+                  onClick={() => setSelectedUnitFiling(null)}
+                  className="p-1 text-slate-500 hover:text-slate-200 hover:bg-slate-800 rounded-lg transition-colors border border-slate-800"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                <div className="bg-slate-950/40 border border-slate-950 p-4 rounded-2xl flex flex-col gap-2">
+                  <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Spesifikasi Unit</span>
+                  <div className="flex justify-between mt-1">
+                    <span className="text-slate-400">Tipe Kavling:</span>
+                    <span className="font-bold text-slate-200">{typeName}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Harga Jual:</span>
+                    <span className="font-bold text-slate-200">{formatIDR(selectedUnitFiling.sell_price)}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-400">Status Unit:</span>
+                    <span className={`px-2 py-0.5 rounded-full border text-[9px] font-bold uppercase ${statusColor}`}>{statusLabel}</span>
+                  </div>
+                </div>
+
+                <div className="bg-slate-950/40 border border-slate-950 p-4 rounded-2xl flex flex-col gap-2">
+                  <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Hubungan Konsumen CRM</span>
+                  {prospect ? (
+                    <>
+                      <div className="flex justify-between mt-1">
+                        <span className="text-slate-400">Nama Pembeli:</span>
+                        <span className="font-bold text-slate-200">{prospect.full_name}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">No. Telepon:</span>
+                        <span className="font-bold text-slate-200">{prospect.phone}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Tahap Pipeline:</span>
+                        <span className="font-bold text-slate-200 capitalize">{prospect.pipeline_stage.replace('_', ' ')}</span>
+                      </div>
+                      <div className="flex justify-between border-t border-slate-900 pt-1 mt-1">
+                        <span className="text-slate-400">Sales Marketing:</span>
+                        <span className="font-bold text-indigo-400">{marketingName}</span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex-1 flex items-center justify-center text-center text-slate-500 italic text-[10px]">
+                      Belum ada konsumen yang mengikat kavling ini.
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-2.5 text-xs">
+                <span className="text-[9px] text-slate-400 font-black tracking-widest uppercase border-b border-slate-800 pb-1.5">
+                  Pemberkasan Terkait ({unitDocs.length})
+                </span>
+                
+                <div className="max-h-48 overflow-y-auto pr-1 flex flex-col gap-2">
+                  {unitDocs.length === 0 ? (
+                    <div className="text-center text-slate-500 italic py-6 bg-slate-950/20 border border-dashed border-slate-800 rounded-2xl flex items-center justify-center">
+                      <span>Belum ada dokumen yang diterbitkan untuk unit/konsumen ini.</span>
+                    </div>
+                  ) : (
+                    unitDocs.map((doc) => {
+                      const docTypeColor = 
+                        doc.doc_type === 'Invoice' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
+                        doc.doc_type === 'Kwitansi' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                        'bg-blue-500/10 text-blue-400 border-blue-500/20';
+
+                      const statusColor = 
+                        doc.status === 'approved' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
+                        doc.status === 'pending_approval' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' :
+                        doc.status === 'revoked' ? 'bg-gray-500/10 text-gray-400 border-gray-500/20' : 'bg-slate-500/10 text-slate-400 border-slate-500/20';
+
+                      return (
+                        <div 
+                          key={doc.id}
+                          className="bg-slate-950/30 border border-slate-900 rounded-xl p-3 flex items-center justify-between gap-3 text-[11px]"
+                        >
+                          <div className="flex items-center gap-3">
+                            <span className={`px-2 py-0.5 border text-[9px] font-black uppercase rounded ${docTypeColor}`}>{doc.doc_type}</span>
+                            <div className="flex flex-col">
+                              <span className="font-extrabold text-slate-200">{doc.doc_number}</span>
+                              <span className="text-[9px] text-slate-500 font-mono mt-0.5">{new Date(doc.created_at).toLocaleDateString('id-ID')}</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className={`px-2 py-0.5 border text-[9px] font-bold uppercase rounded-full ${statusColor}`}>{doc.status.replace('_', ' ')}</span>
+                            <button
+                              onClick={() => window.open(`/verify?token=${doc.doc_token}`, '_blank')}
+                              className="px-2.5 py-1.5 bg-slate-800 border border-slate-700 hover:bg-slate-700 hover:text-white rounded-lg font-bold text-[10px] transition-all"
+                            >
+                              Verifikasi QR
+                            </button>
+                            <Link
+                              href={`/documents`}
+                              className="px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-bold text-[10px] transition-all"
+                            >
+                              Lihat Approval
+                            </Link>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-3 border-t border-slate-800 mt-2">
+                <button
+                  onClick={() => setSelectedUnitFiling(null)}
+                  className="px-6 py-2.5 bg-slate-800 border border-slate-700 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold transition-all"
+                >
+                  Tutup
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* 8. Project Legal Document Viewer Modal Overlay */}
+      {selectedProjectDocDetail && (
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-md w-full shadow-2xl flex flex-col gap-5 text-left text-slate-100">
+            <div className="flex justify-between items-start border-b border-slate-800 pb-3">
+              <div>
+                <span className="text-[9px] text-indigo-400 font-black uppercase tracking-wider">{selectedProjectDocDetail.type}</span>
+                <h3 className="text-base font-extrabold text-slate-100 mt-0.5">{selectedProjectDocDetail.name}</h3>
+              </div>
+              <button 
+                onClick={() => setSelectedProjectDocDetail(null)}
+                className="p-1 text-slate-500 hover:text-slate-200 hover:bg-slate-800 rounded-lg transition-colors border border-slate-800"
+              >
+                <X size={14} />
+              </button>
+            </div>
+
+            <div className="bg-slate-950/40 border border-slate-950 p-4 rounded-2xl flex flex-col gap-3 text-xs leading-relaxed text-slate-300">
+              <div className="flex justify-between text-[10px] text-slate-500 border-b border-slate-900 pb-2">
+                <span>Tanggal Dokumen:</span>
+                <span className="font-bold text-slate-400">{selectedProjectDocDetail.date}</span>
+              </div>
+              <p className="whitespace-pre-line mt-1">{selectedProjectDocDetail.content}</p>
+            </div>
+
+            <div className="flex justify-between items-center gap-3 pt-3 border-t border-slate-800 mt-2">
+              <span className="text-[9px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded font-bold uppercase">
+                TERVERIFIKASI ASLI
+              </span>
+              <button
+                onClick={() => setSelectedProjectDocDetail(null)}
+                className="px-6 py-2.5 bg-slate-800 border border-slate-700 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold transition-all"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Animation/Bounce utilities inject */}
       <style jsx global>{`

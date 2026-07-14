@@ -53,6 +53,7 @@ interface KavlingMapProps {
   activeClusterId: string;
   onUnitSelect: (unit: Unit) => void;
   clusters?: Cluster[];
+  hideLegend?: boolean;
 }
 
 const statusConfig = {
@@ -64,7 +65,7 @@ const statusConfig = {
   unavailable: { label: 'Tidak Tersedia', color: 'bg-gray-100 text-gray-700 border-gray-200', dot: 'bg-gray-500', fill: 'url(#grad-unavailable)', stroke: '#6b7280' }
 };
 
-export default function KavlingMap({ units, unitTypes, prospects, activeClusterId, onUnitSelect, clusters }: KavlingMapProps) {
+export default function KavlingMap({ units, unitTypes, prospects, activeClusterId, onUnitSelect, clusters, hideLegend = false }: KavlingMapProps) {
   const [hoveredUnit, setHoveredUnit] = useState<Unit | null>(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
   const [hoveredPlaceholder, setHoveredPlaceholder] = useState<string | null>(null);
@@ -165,7 +166,8 @@ export default function KavlingMap({ units, unitTypes, prospects, activeClusterI
       const svgElement = doc.documentElement;
       
       if (svgElement.tagName.toLowerCase() === 'svg') {
-        svgElement.setAttribute('class', 'w-full h-auto select-none rounded-2xl border border-gray-200/50 bg-slate-50/50 shadow-inner ' + (svgElement.getAttribute('class') || ''));
+        const svgHeightClass = hideLegend ? 'max-h-[65vh] object-contain' : 'h-auto';
+        svgElement.setAttribute('class', `w-full ${svgHeightClass} select-none rounded-2xl border border-gray-200/50 bg-slate-50/50 shadow-inner ` + (svgElement.getAttribute('class') || ''));
         const parsed = parseSvgToReact(svgElement, 'custom-svg-root');
         setParsedSvgReact(parsed);
       } else {
@@ -276,7 +278,7 @@ export default function KavlingMap({ units, unitTypes, prospects, activeClusterI
 
   const renderClusterMelati = () => {
     return (
-      <svg viewBox="0 0 800 480" className="w-full h-auto select-none rounded-2xl border border-gray-200/50 bg-slate-50/50 shadow-inner">
+      <svg viewBox="0 0 800 480" className={`w-full ${hideLegend ? 'max-h-[65vh] object-contain' : 'h-auto'} select-none rounded-2xl border border-gray-200/50 bg-slate-50/50 shadow-inner`}>
         {/* Definitions for gradients */}
         <defs>
           <linearGradient id="grad-available" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -421,7 +423,7 @@ export default function KavlingMap({ units, unitTypes, prospects, activeClusterI
 
   const renderClusterAnggrek = () => {
     return (
-      <svg viewBox="0 0 800 480" className="w-full h-auto select-none rounded-2xl border border-gray-200/50 bg-slate-50/50 shadow-inner">
+      <svg viewBox="0 0 800 480" className={`w-full ${hideLegend ? 'max-h-[65vh] object-contain' : 'h-auto'} select-none rounded-2xl border border-gray-200/50 bg-slate-50/50 shadow-inner`}>
         <defs>
           <linearGradient id="grad-available" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="#86efac" />
@@ -553,7 +555,7 @@ export default function KavlingMap({ units, unitTypes, prospects, activeClusterI
   };
 
   return (
-    <div className="relative w-full" onMouseMove={handleMouseMove}>
+    <div className={`relative w-full ${hideLegend ? 'h-full flex flex-col justify-center items-center overflow-hidden' : ''}`} onMouseMove={handleMouseMove}>
       {parsedSvgReact ? (
         <div className="relative">
           <svg className="absolute w-0 h-0 pointer-events-none">
@@ -706,24 +708,26 @@ export default function KavlingMap({ units, unitTypes, prospects, activeClusterI
       </AnimatePresence>
 
       {/* Interactive visual legend */}
-      <div className="mt-4 bg-white border border-gray-200 rounded-2xl p-4 flex flex-col gap-3 shadow-sm">
-        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
-          <Info size={14} className="text-slate-400" />
-          Keterangan Status Kavling
-        </h3>
-        <div className="flex flex-wrap gap-x-5 gap-y-2">
-          {Object.entries(statusConfig).map(([key, value]) => {
-            const count = units.filter(u => u.cluster_id === activeClusterId && u.status === key).length;
-            return (
-              <div key={key} className="flex items-center gap-2 text-xs font-bold text-gray-600">
-                <span className={`w-3.5 h-3.5 rounded-md ${value.dot} bg-opacity-80 border border-black/5`}></span>
-                <span>{value.label}</span>
-                <span className="text-gray-400 font-normal">({count})</span>
-              </div>
-            );
-          })}
+      {!hideLegend && (
+        <div className="mt-4 bg-white border border-gray-200 rounded-2xl p-4 flex flex-col gap-3 shadow-sm">
+          <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+            <Info size={14} className="text-slate-400" />
+            Keterangan Status Kavling
+          </h3>
+          <div className="flex flex-wrap gap-x-5 gap-y-2">
+            {Object.entries(statusConfig).map(([key, value]) => {
+              const count = units.filter(u => u.cluster_id === activeClusterId && u.status === key).length;
+              return (
+                <div key={key} className="flex items-center gap-2 text-xs font-bold text-gray-600">
+                  <span className={`w-3.5 h-3.5 rounded-md ${value.dot} bg-opacity-80 border border-black/5`}></span>
+                  <span>{value.label}</span>
+                  <span className="text-gray-400 font-normal">({count})</span>
+                </div>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

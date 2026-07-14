@@ -22,6 +22,24 @@ export async function POST(request: Request) {
     const { action } = body;
     const data = db.get();
 
+    // Protect Property CRUD actions - only Admin or Manager role allowed
+    const propertyCrudActions = [
+      'create_cluster', 'update_cluster', 'delete_cluster',
+      'create_unit_type', 'update_unit_type', 'delete_unit_type',
+      'create_unit', 'update_unit', 'delete_unit'
+    ];
+    if (propertyCrudActions.includes(action)) {
+      const { actor_id } = body;
+      const actor = data.users.find(u => u.id === actor_id);
+      const isAllowed = actor?.role === 'admin' || actor?.role === 'manager';
+      if (!isAllowed) {
+        return NextResponse.json({ 
+          success: false, 
+          error: 'Akses ditolak. Hanya Admin atau Manager yang dapat mengelola properti perumahan.' 
+        }, { status: 403 });
+      }
+    }
+
     if (action === 'create_prospect') {
       const { full_name, phone, email, occupation, company_name, estimated_income, lead_source, referral_name, interested_cluster_id, interested_type_id, notes, actor_id } = body;
       
@@ -269,7 +287,7 @@ export async function POST(request: Request) {
     }
 
     if (action === 'create_cluster') {
-      const { name, location, description, status, svg_content, logo_url, address, actor_id } = body;
+      const { name, location, description, status, svg_content, logo_url, address, email, phone, bank_account, documents, actor_id } = body;
       
       const newCluster = {
         id: 'cls-' + Math.random().toString(36).substr(2, 9),
@@ -281,6 +299,10 @@ export async function POST(request: Request) {
         svg_content,
         logo_url: logo_url || '',
         address: address || '',
+        email: email || '',
+        phone: phone || '',
+        bank_account: bank_account || '',
+        documents: documents || [],
         created_by: actor_id,
         created_at: new Date().toISOString()
       };
@@ -370,7 +392,7 @@ export async function POST(request: Request) {
     }
 
     if (action === 'update_cluster') {
-      const { cluster_id, name, location, description, status, svg_content, logo_url, address, actor_id } = body;
+      const { cluster_id, name, location, description, status, svg_content, logo_url, address, email, phone, bank_account, documents, actor_id } = body;
       const cluster = data.clusters.find(c => c.id === cluster_id);
       if (!cluster) {
         return NextResponse.json({ success: false, error: 'Cluster not found' }, { status: 444 });
@@ -388,6 +410,18 @@ export async function POST(request: Request) {
       }
       if (address !== undefined) {
         cluster.address = address;
+      }
+      if (email !== undefined) {
+        cluster.email = email;
+      }
+      if (phone !== undefined) {
+        cluster.phone = phone;
+      }
+      if (bank_account !== undefined) {
+        cluster.bank_account = bank_account;
+      }
+      if (documents !== undefined) {
+        cluster.documents = documents;
       }
 
       data.auditLogs.unshift({

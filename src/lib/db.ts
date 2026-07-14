@@ -20,6 +20,16 @@ export interface User {
   created_at: string;
 }
 
+export interface ClusterDoc {
+  id: string;
+  category: 'sertifikat_induk' | 'pbg_induk' | 'kkpr' | 'site_plan_legal' | 'izin_lingkungan' | 'pbb_induk' | 'npwp_proyek';
+  doc_number?: string;
+  issued_date?: string;
+  file_name: string;
+  file_url: string; // Base64 DataURL or url path
+  uploaded_at: string;
+}
+
 export interface Cluster {
   id: string;
   name: string;
@@ -32,6 +42,10 @@ export interface Cluster {
   svg_content?: string;
   logo_url?: string;
   address?: string;
+  email?: string;
+  phone?: string;
+  bank_account?: string;
+  documents?: ClusterDoc[];
 }
 
 export interface UnitType {
@@ -282,6 +296,7 @@ export interface Document {
   data: any; // Dynamic document fields
   approval_chain: ApprovalChainStep[];
   template_id?: string; // Reference to DocumentTemplate used
+  cluster_id?: string;
 }
 
 export interface AuditLog {

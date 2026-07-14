@@ -38,11 +38,14 @@ interface Document {
     remarks?: string;
   }[];
   template_id?: string;
+  cluster_id?: string;
 }
 
 interface Prospect {
   id: string;
   full_name: string;
+  booked_unit_id?: string;
+  interested_cluster_id?: string;
 }
 
 interface DocTemplate {
@@ -99,6 +102,9 @@ export default function DocumentHubPage() {
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [settings, setSettings] = useState<any>(null);
+  const [clusters, setClusters] = useState<any[]>([]);
+  const [units, setUnits] = useState<any[]>([]);
+  const [docClusterId, setDocClusterId] = useState('');
 
   // Selected document for preview
   const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
@@ -148,6 +154,8 @@ export default function DocumentHubPage() {
       const crmJson = await crmRes.json();
       if (crmJson.success) {
         setProspects(crmJson.prospects || []);
+        setClusters(crmJson.clusters || []);
+        setUnits(crmJson.units || []);
         if (crmJson.prospects.length > 0) {
           setInvProspectId(crmJson.prospects[0].id);
         }
@@ -198,6 +206,28 @@ export default function DocumentHubPage() {
     fetchDocumentsData();
   }, []);
 
+  // Auto-select cluster based on the selected prospect's booking or interest
+  useEffect(() => {
+    if (docType === 'Invoice' && invProspectId) {
+      const selectedProspect = prospects.find(p => p.id === invProspectId);
+      if (selectedProspect) {
+        let clusterId = '';
+        if (selectedProspect.booked_unit_id) {
+          const unit = units.find(u => u.id === selectedProspect.booked_unit_id);
+          if (unit) {
+            clusterId = unit.cluster_id;
+          }
+        }
+        if (!clusterId && selectedProspect.interested_cluster_id) {
+          clusterId = selectedProspect.interested_cluster_id;
+        }
+        if (clusterId) {
+          setDocClusterId(clusterId);
+        }
+      }
+    }
+  }, [invProspectId, docType, prospects, units]);
+
   const handleCreateDocument = async (e: React.FormEvent) => {
     e.preventDefault();
     let doc_data: Record<string, any> = {};
@@ -216,6 +246,21 @@ export default function DocumentHubPage() {
       const tax_amount = invTax ? Math.round(subtotal * 0.11) : 0;
       const total_amount = subtotal + tax_amount;
 
+      const chosenCluster = docClusterId ? clusters.find(c => c.id === docClusterId) : null;
+      const targetBankAccount = chosenCluster?.bank_account || settings?.org_bank_account || '131-00-1234567-8 a/n PT Domus Somnia';
+
+      let paymentMethod = 'Transfer Bank';
+      const cleanBankText = targetBankAccount.trim();
+      const firstWord = cleanBankText.split(' ')[0];
+      if (firstWord) {
+        if (firstWord.toLowerCase() === 'bank') {
+          const secondWord = cleanBankText.split(' ')[1];
+          paymentMethod = `Transfer Bank ${secondWord || ''}`.trim();
+        } else {
+          paymentMethod = `Transfer Bank ${firstWord}`;
+        }
+      }
+
       doc_data = {
         prospect_id: invProspectId,
         client_name: selectedProspect?.full_name || 'Klien Properti',
@@ -225,8 +270,8 @@ export default function DocumentHubPage() {
         tax_amount,
         total_amount,
         due_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        payment_method: 'Transfer Bank Mandiri',
-        bank_account: settings?.org_bank_account || '131-00-1234567-8 a/n PT Domus Somnia',
+        payment_method: paymentMethod,
+        bank_account: targetBankAccount,
         notes: invNotes
       };
     } else if (docType === 'Kwitansi') {
@@ -255,6 +300,7 @@ export default function DocumentHubPage() {
           doc_type: docType,
           doc_data,
           template_id,
+          cluster_id: docClusterId || undefined,
           actor_id: user?.id
         })
       });
@@ -266,6 +312,7 @@ export default function DocumentHubPage() {
         }));
         
         setActiveTab('list');
+        setDocClusterId('');
         fetchDocumentsData();
         if (json.document) {
           setSelectedDoc(json.document);
@@ -464,6 +511,15 @@ export default function DocumentHubPage() {
 
   const paperSpec = paperSizes[paperSize] || paperSizes.A4;
 
+  // Resolve cluster-specific branding for selectedDoc
+  const docCluster = selectedDoc?.cluster_id ? clusters.find(c => c.id === selectedDoc.cluster_id) : null;
+  const docLogo = docCluster?.logo_url || settings?.org_logo;
+  const docName = docCluster?.name || settings?.org_name || 'PT DOMUS SOMNIA PROPERTI';
+  const docAddress = docCluster?.address || settings?.org_address || 'Grand Surapati Core Blok B-03, Jl. Phh. Mustofa No.39, Bandung';
+  const docPhone = docCluster?.phone || settings?.org_phone || '(022) 1234567';
+  const docEmail = docCluster?.email || settings?.org_email || 'info@domus.com';
+  const docBankAccount = docCluster?.bank_account || selectedDoc?.data?.bank_account || settings?.org_bank_account || '131-00-1234567-8 a/n PT Domus Somnia';
+
   const formatIDR = (num: number) => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(num);
   };
@@ -657,21 +713,21 @@ export default function DocumentHubPage() {
                     {/* Logo & Company Letterhead header */}
                     <div className="flex justify-between items-start border-b-2 border-gray-900 pb-5 mb-6 print:pb-3 print:mb-4 text-left">
                       <div className="flex items-center gap-3">
-                        {settings?.org_logo ? (
-                          <img src={settings.org_logo} alt="Logo" className="w-12 h-12 object-cover rounded-xl border border-gray-150 shadow" />
+                        {docLogo ? (
+                          <img src={docLogo} alt="Logo" className="w-12 h-12 object-cover rounded-xl border border-gray-150 shadow" />
                         ) : (
                           <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center text-white font-extrabold text-3xl shadow">
-                            {settings?.org_name ? settings.org_name.charAt(0) : 'D'}
+                            {docName ? docName.charAt(0) : 'D'}
                           </div>
                         )}
                         <div className="flex flex-col">
-                          <span className="font-extrabold text-xl text-gray-900 tracking-tight uppercase leading-none">{settings?.org_name || 'PT DOMUS SOMNIA PROPERTI'}</span>
+                          <span className="font-extrabold text-xl text-gray-900 tracking-tight uppercase leading-none">{docName}</span>
                           <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-1">Property Developer & Management</span>
                         </div>
                       </div>
                       <div className="flex flex-col text-right text-[10px] text-gray-500 font-semibold leading-relaxed max-w-[200px]">
-                        <span>{settings?.org_address || 'Grand Surapati Core Blok B-03, Jl. Phh. Mustofa No.39, Bandung'}</span>
-                        <span>Telp: {settings?.org_phone || '(022) 1234567'} | {settings?.org_email || 'info@domus.com'}</span>
+                        <span>{docAddress}</span>
+                        <span>Telp: {docPhone} | {docEmail}</span>
                       </div>
                     </div>
 
@@ -744,7 +800,7 @@ export default function DocumentHubPage() {
                           <span className="font-extrabold text-gray-800 uppercase block mb-1">Metode Instruksi Pembayaran:</span>
                           <span>Silakan melakukan transfer penuh ke rekening virtual berikut:</span>
                           <span className="block mt-1 font-bold text-gray-800">{selectedDoc.data.payment_method}</span>
-                          <span className="font-extrabold text-blue-700 text-xs block mt-0.5">{selectedDoc.data.bank_account}</span>
+                          <span className="font-extrabold text-blue-700 text-xs block mt-0.5">{selectedDoc.data.bank_account || docBankAccount}</span>
                           <span className="block mt-2 italic">* Bukti transfer pembayaran wajib dilampirkan dan diverifikasi oleh keuangan developer.</span>
                         </div>
                       </div>
@@ -780,7 +836,7 @@ export default function DocumentHubPage() {
                       <div className="flex-1 flex flex-col gap-6 print:gap-3 text-xs font-semibold leading-relaxed text-gray-800">
                         <div className="flex flex-col gap-4 print:gap-2">
                           <p className="font-medium text-justify">
-                            Yang bertanda tangan di bawah ini mewakili manajemen <strong>{settings?.org_name || 'PT Domus Somnia Properti'}</strong>, menerangkan dengan sebenarnya bahwasanya:
+                            Yang bertanda tangan di bawah ini mewakili manajemen <strong>{docName}</strong>, menerangkan dengan sebenarnya bahwasanya:
                           </p>
 
                           <div className="flex flex-col gap-2 bg-gray-50 border border-gray-100 p-4 print:p-3 rounded-xl">
@@ -916,6 +972,22 @@ export default function DocumentHubPage() {
 
             <form onSubmit={handleCreateDocument} className="flex flex-col gap-4 text-xs font-semibold">
               
+              <div className="flex flex-col gap-1.5 bg-slate-50 border border-slate-200/50 p-4 rounded-2xl mb-2">
+                <label className="text-gray-400 uppercase tracking-wider text-[9px]">Pemberkasan untuk Proyek Perumahan *</label>
+                <select
+                  value={docClusterId}
+                  onChange={e => setDocClusterId(e.target.value)}
+                  className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none bg-white font-bold text-gray-800 focus:border-blue-500"
+                  required
+                >
+                  <option value="">-- PILIH PROYEK PERUMAHAN --</option>
+                  {clusters.map(c => (
+                    <option key={c.id} value={c.id}>{c.name} ({c.location})</option>
+                  ))}
+                </select>
+                <p className="text-[10px] text-gray-400 font-medium">Dokumen dan Kop Surat akan otomatis disesuaikan dengan profil perumahan yang dipilih.</p>
+              </div>
+
               {/* Form: INVOICE (builtin) */}
               {selectedTemplate?.doc_type_key === 'Invoice' && (
                 <>

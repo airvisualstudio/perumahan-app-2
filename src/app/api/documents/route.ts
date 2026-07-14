@@ -24,6 +24,7 @@ export async function GET(request: Request) {
       }
       
       // Mask PII sensitive information for public display
+      const assocCluster = doc.cluster_id ? data.clusters?.find(c => c.id === doc.cluster_id) : null;
       const publicDoc = {
         doc_type: doc.doc_type,
         doc_number: doc.doc_number,
@@ -35,7 +36,8 @@ export async function GET(request: Request) {
         issuer: data.users.find(u => u.id === doc.requester_id)?.name || 'PT Domus Somnia',
         approver_final: doc.approval_chain
           .filter(c => c.status === 'approved')
-          .pop()?.decided_by || 'Sistem'
+          .pop()?.decided_by || 'Sistem',
+        cluster_name: assocCluster ? assocCluster.name : null
       };
       
       return NextResponse.json({ success: true, document: publicDoc });
@@ -134,7 +136,7 @@ export async function POST(request: Request) {
     // ─────────────────────────────────────────────────────────────────────────
 
     if (action === 'create_document') {
-      const { doc_type, doc_data, template_id } = body;
+      const { doc_type, doc_data, template_id, cluster_id } = body;
 
       // Resolve prefix: use template prefix if available, otherwise legacy fallback
       let prefix = 'DOC';
@@ -185,7 +187,8 @@ export async function POST(request: Request) {
         created_at: new Date().toISOString(),
         data: doc_data,
         approval_chain: chain,
-        template_id: resolvedTemplate?.id
+        template_id: resolvedTemplate?.id,
+        cluster_id: cluster_id || undefined
       };
 
       data.documents.unshift(newDoc);

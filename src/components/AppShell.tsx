@@ -142,6 +142,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const navItems = [
     { name: 'Dashboard', href: '/', icon: Home, roles: ['admin', 'manager', 'staff'] },
     { name: 'CRM Properti', href: '/crm', icon: Users, roles: ['admin', 'manager', 'staff'] },
+    { name: 'Manajemen Properti', href: '/properties', icon: Layers, roles: ['admin', 'manager', 'staff'] },
     { name: 'Task Board', href: '/tasks', icon: CheckSquare, roles: ['admin', 'manager', 'staff'] },
     { name: 'Absensi PWA', href: '/absensi', icon: Clock, roles: ['admin', 'manager', 'staff'] },
     { name: 'Dokumen & Approval', href: '/documents', icon: FileText, roles: ['admin', 'manager', 'staff'] },

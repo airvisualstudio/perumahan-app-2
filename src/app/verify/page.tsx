@@ -15,7 +15,8 @@ import {
   Camera,
   Search,
   ArrowLeft,
-  Loader2
+  Loader2,
+  Home
 } from 'lucide-react';
 
 interface VerificationData {
@@ -28,6 +29,7 @@ interface VerificationData {
   revoked_reason?: string;
   issuer: string;
   approver_final: string;
+  cluster_name?: string | null;
 }
 
 export default function PublicVerificationPortal() {
@@ -302,6 +304,16 @@ export default function PublicVerificationPortal() {
                         <span className="font-bold text-slate-300">{doc?.issuer}</span>
                       </div>
                     </div>
+
+                    {doc?.cluster_name && (
+                      <div className="flex items-center gap-3">
+                        <Home size={16} className="text-slate-500" />
+                        <div className="flex flex-col">
+                          <span className="text-[9px] text-slate-500 uppercase font-bold tracking-wider">Proyek Perumahan</span>
+                          <span className="font-bold text-slate-300">{doc?.cluster_name}</span>
+                        </div>
+                      </div>
+                    )}
 
                     <div className="flex items-center gap-3">
                       <CalendarDays size={16} className="text-slate-500" />

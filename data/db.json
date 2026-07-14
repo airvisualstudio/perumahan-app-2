@@ -250,10 +250,11 @@
       "block_number": "A-07",
       "sell_price": 450000000,
       "orientation": "middle",
-      "status": "available",
+      "status": "booking",
       "notes": "",
-      "updated_at": "2026-07-02T07:52:16.490Z",
-      "construction_status": "belum_terbangun"
+      "updated_at": "2026-07-07T04:41:19.491Z",
+      "construction_status": "belum_terbangun",
+      "reserved_for": "pr-z1r9htnxo"
     },
     {
       "id": "unt-56zy8g7kx",
@@ -262,10 +263,11 @@
       "block_number": "A-08",
       "sell_price": 450000000,
       "orientation": "corner",
-      "status": "available",
+      "status": "booking",
       "notes": "",
       "construction_status": "proses_pembangunan",
-      "updated_at": "2026-07-02T08:08:11.522Z"
+      "updated_at": "2026-07-07T04:41:19.015Z",
+      "reserved_for": "pr-pi70l9t1q"
     },
     {
       "id": "unt-z1asdghft",
@@ -274,9 +276,10 @@
       "block_number": "A-09",
       "sell_price": 450000000,
       "orientation": "middle",
-      "status": "available",
+      "status": "booking",
       "construction_status": "belum_terbangun",
-      "updated_at": "2026-07-02T08:10:22.495Z"
+      "updated_at": "2026-07-07T04:41:20.393Z",
+      "reserved_for": "pr-4bgounu04"
     },
     {
       "id": "unt-ipmef925k",
@@ -285,9 +288,10 @@
       "block_number": "A-10",
       "sell_price": 450000000,
       "orientation": "middle",
-      "status": "available",
+      "status": "booking",
       "construction_status": "belum_terbangun",
-      "updated_at": "2026-07-02T08:10:22.495Z"
+      "updated_at": "2026-07-07T04:41:19.590Z",
+      "reserved_for": "pr-2m8b8zs27"
     },
     {
       "id": "unt-gk537d1dr",
@@ -296,9 +300,10 @@
       "block_number": "A-11",
       "sell_price": 450000000,
       "orientation": "middle",
-      "status": "available",
+      "status": "booking",
       "construction_status": "belum_terbangun",
-      "updated_at": "2026-07-02T08:10:22.495Z"
+      "updated_at": "2026-07-07T04:41:19.698Z",
+      "reserved_for": "pr-tmgr31k6y"
     },
     {
       "id": "unt-yyhw6qvr3",
@@ -307,9 +312,10 @@
       "block_number": "A-12",
       "sell_price": 450000000,
       "orientation": "middle",
-      "status": "available",
+      "status": "booking",
       "construction_status": "belum_terbangun",
-      "updated_at": "2026-07-02T08:10:22.495Z"
+      "updated_at": "2026-07-07T04:41:20.554Z",
+      "reserved_for": "pr-bdfsce9so"
     },
     {
       "id": "unt-qr9q2umht",
@@ -318,9 +324,10 @@
       "block_number": "A-13",
       "sell_price": 450000000,
       "orientation": "middle",
-      "status": "available",
+      "status": "booking",
       "construction_status": "belum_terbangun",
-      "updated_at": "2026-07-02T08:10:22.495Z"
+      "updated_at": "2026-07-07T04:41:19.212Z",
+      "reserved_for": "pr-nf3slkurp"
     },
     {
       "id": "unt-pdasl3cqr",
@@ -329,9 +336,10 @@
       "block_number": "A-14",
       "sell_price": 450000000,
       "orientation": "middle",
-      "status": "available",
+      "status": "booking",
       "construction_status": "belum_terbangun",
-      "updated_at": "2026-07-02T08:10:22.495Z"
+      "updated_at": "2026-07-07T04:41:19.895Z",
+      "reserved_for": "pr-0zdzgd4mz"
     },
     {
       "id": "unt-vnbmd41oa",
@@ -340,9 +348,10 @@
       "block_number": "B-03",
       "sell_price": 850000000,
       "orientation": "middle",
-      "status": "available",
+      "status": "booking",
       "construction_status": "belum_terbangun",
-      "updated_at": "2026-07-02T08:10:22.495Z"
+      "updated_at": "2026-07-07T04:41:19.388Z",
+      "reserved_for": "pr-iojf2hcxw"
     },
     {
       "id": "unt-jx92sp6dc",
@@ -351,9 +360,10 @@
       "block_number": "B-04",
       "sell_price": 850000000,
       "orientation": "middle",
-      "status": "available",
+      "status": "booking",
       "construction_status": "belum_terbangun",
-      "updated_at": "2026-07-02T08:10:22.495Z"
+      "updated_at": "2026-07-07T04:41:21.386Z",
+      "reserved_for": "pr-01"
     },
     {
       "id": "unt-7qfenn25p",
@@ -362,9 +372,10 @@
       "block_number": "B-05",
       "sell_price": 850000000,
       "orientation": "middle",
-      "status": "available",
+      "status": "booking",
       "construction_status": "belum_terbangun",
-      "updated_at": "2026-07-02T08:10:22.495Z"
+      "updated_at": "2026-07-07T04:41:20.243Z",
+      "reserved_for": "pr-s623d8eyc"
     },
     {
       "id": "unt-9sizhy0km",
@@ -373,9 +384,10 @@
       "block_number": "B-06",
       "sell_price": 850000000,
       "orientation": "middle",
-      "status": "available",
+      "status": "booking",
       "construction_status": "belum_terbangun",
-      "updated_at": "2026-07-02T08:10:22.495Z"
+      "updated_at": "2026-07-07T04:41:19.972Z",
+      "reserved_for": "pr-5ez0oni67"
     },
     {
       "id": "unt-8psiqnnfv",
@@ -384,9 +396,10 @@
       "block_number": "B-07",
       "sell_price": 850000000,
       "orientation": "middle",
-      "status": "available",
+      "status": "booking",
       "construction_status": "belum_terbangun",
-      "updated_at": "2026-07-02T08:10:22.495Z"
+      "updated_at": "2026-07-07T04:41:19.728Z",
+      "reserved_for": "pr-cvpxu8kvq"
     },
     {
       "id": "unt-5ehpkg4iz",
@@ -395,9 +408,10 @@
       "block_number": "B-08",
       "sell_price": 850000000,
       "orientation": "middle",
-      "status": "available",
+      "status": "booking",
       "construction_status": "belum_terbangun",
-      "updated_at": "2026-07-02T08:10:22.495Z"
+      "updated_at": "2026-07-07T04:41:21.280Z",
+      "reserved_for": "pr-57z0ijs5b"
     },
     {
       "id": "unt-xwxrnvfuh",
@@ -406,12 +420,163 @@
       "block_number": "B-09",
       "sell_price": 850000000,
       "orientation": "middle",
-      "status": "available",
+      "status": "booking",
       "construction_status": "belum_terbangun",
-      "updated_at": "2026-07-02T08:10:22.495Z"
+      "updated_at": "2026-07-07T04:41:20.583Z",
+      "reserved_for": "pr-llafti3y8"
     }
   ],
   "unitHistory": [
+    {
+      "id": "uh-ajq28vsh9",
+      "unit_id": "unt-jx92sp6dc",
+      "old_status": "available",
+      "new_status": "booking",
+      "changed_by": "usr-admin",
+      "prospect_id": "pr-01",
+      "notes": "Booking otomatis terdaftar oleh Simulator Command Center.",
+      "created_at": "2026-07-07T04:41:21.386Z"
+    },
+    {
+      "id": "uh-a3u51x4iu",
+      "unit_id": "unt-5ehpkg4iz",
+      "old_status": "available",
+      "new_status": "booking",
+      "changed_by": "usr-admin",
+      "prospect_id": "pr-57z0ijs5b",
+      "notes": "Booking otomatis terdaftar oleh Simulator Command Center.",
+      "created_at": "2026-07-07T04:41:21.280Z"
+    },
+    {
+      "id": "uh-rs39h1fe3",
+      "unit_id": "unt-xwxrnvfuh",
+      "old_status": "available",
+      "new_status": "booking",
+      "changed_by": "usr-admin",
+      "prospect_id": "pr-llafti3y8",
+      "notes": "Booking otomatis terdaftar oleh Simulator Command Center.",
+      "created_at": "2026-07-07T04:41:20.583Z"
+    },
+    {
+      "id": "uh-z28jzuoma",
+      "unit_id": "unt-yyhw6qvr3",
+      "old_status": "available",
+      "new_status": "booking",
+      "changed_by": "usr-admin",
+      "prospect_id": "pr-bdfsce9so",
+      "notes": "Booking otomatis terdaftar oleh Simulator Command Center.",
+      "created_at": "2026-07-07T04:41:20.554Z"
+    },
+    {
+      "id": "uh-okao47nm1",
+      "unit_id": "unt-z1asdghft",
+      "old_status": "available",
+      "new_status": "booking",
+      "changed_by": "usr-admin",
+      "prospect_id": "pr-4bgounu04",
+      "notes": "Booking otomatis terdaftar oleh Simulator Command Center.",
+      "created_at": "2026-07-07T04:41:20.394Z"
+    },
+    {
+      "id": "uh-7k6jido22",
+      "unit_id": "unt-7qfenn25p",
+      "old_status": "available",
+      "new_status": "booking",
+      "changed_by": "usr-admin",
+      "prospect_id": "pr-s623d8eyc",
+      "notes": "Booking otomatis terdaftar oleh Simulator Command Center.",
+      "created_at": "2026-07-07T04:41:20.243Z"
+    },
+    {
+      "id": "uh-f2f6e40fe",
+      "unit_id": "unt-9sizhy0km",
+      "old_status": "available",
+      "new_status": "booking",
+      "changed_by": "usr-admin",
+      "prospect_id": "pr-5ez0oni67",
+      "notes": "Booking otomatis terdaftar oleh Simulator Command Center.",
+      "created_at": "2026-07-07T04:41:19.972Z"
+    },
+    {
+      "id": "uh-5bqpqiwyt",
+      "unit_id": "unt-pdasl3cqr",
+      "old_status": "available",
+      "new_status": "booking",
+      "changed_by": "usr-admin",
+      "prospect_id": "pr-0zdzgd4mz",
+      "notes": "Booking otomatis terdaftar oleh Simulator Command Center.",
+      "created_at": "2026-07-07T04:41:19.895Z"
+    },
+    {
+      "id": "uh-auaq42z61",
+      "unit_id": "unt-8psiqnnfv",
+      "old_status": "available",
+      "new_status": "booking",
+      "changed_by": "usr-admin",
+      "prospect_id": "pr-cvpxu8kvq",
+      "notes": "Booking otomatis terdaftar oleh Simulator Command Center.",
+      "created_at": "2026-07-07T04:41:19.728Z"
+    },
+    {
+      "id": "uh-zqheaplg3",
+      "unit_id": "unt-gk537d1dr",
+      "old_status": "available",
+      "new_status": "booking",
+      "changed_by": "usr-admin",
+      "prospect_id": "pr-tmgr31k6y",
+      "notes": "Booking otomatis terdaftar oleh Simulator Command Center.",
+      "created_at": "2026-07-07T04:41:19.698Z"
+    },
+    {
+      "id": "uh-a8we5w6m5",
+      "unit_id": "unt-ipmef925k",
+      "old_status": "available",
+      "new_status": "booking",
+      "changed_by": "usr-admin",
+      "prospect_id": "pr-2m8b8zs27",
+      "notes": "Booking otomatis terdaftar oleh Simulator Command Center.",
+      "created_at": "2026-07-07T04:41:19.590Z"
+    },
+    {
+      "id": "uh-kj6dqeid1",
+      "unit_id": "unt-nsgrro054",
+      "old_status": "available",
+      "new_status": "booking",
+      "changed_by": "usr-admin",
+      "prospect_id": "pr-z1r9htnxo",
+      "notes": "Booking otomatis terdaftar oleh Simulator Command Center.",
+      "created_at": "2026-07-07T04:41:19.491Z"
+    },
+    {
+      "id": "uh-6gzqt5m4b",
+      "unit_id": "unt-vnbmd41oa",
+      "old_status": "available",
+      "new_status": "booking",
+      "changed_by": "usr-admin",
+      "prospect_id": "pr-iojf2hcxw",
+      "notes": "Booking otomatis terdaftar oleh Simulator Command Center.",
+      "created_at": "2026-07-07T04:41:19.388Z"
+    },
+    {
+      "id": "uh-9c1jlcpjo",
+      "unit_id": "unt-qr9q2umht",
+      "old_status": "available",
+      "new_status": "booking",
+      "changed_by": "usr-admin",
+      "prospect_id": "pr-nf3slkurp",
+      "notes": "Booking otomatis terdaftar oleh Simulator Command Center.",
+      "created_at": "2026-07-07T04:41:19.212Z"
+    },
+    {
+      "id": "uh-dedbxyfr8",
+      "unit_id": "unt-56zy8g7kx",
+      "old_status": "available",
+      "new_status": "booking",
+      "changed_by": "usr-admin",
+      "prospect_id": "pr-pi70l9t1q",
+      "notes": "Booking otomatis terdaftar oleh Simulator Command Center.",
+      "created_at": "2026-07-07T04:41:19.015Z"
+    },
     {
       "id": "uh-pmf43h9tj",
       "unit_id": "unt-m01",
@@ -454,6 +619,618 @@
     }
   ],
   "prospects": [
+    {
+      "id": "pr-v18fvfbjg",
+      "full_name": "Yusuf Setiawan",
+      "phone": "08135648888",
+      "email": "yusufsetiawan@example.com",
+      "occupation": "Karyawan BUMN",
+      "company_name": "Pemkot Bandung",
+      "estimated_income": 10000000,
+      "lead_source": "facebook_ads",
+      "pipeline_stage": "prospect_baru",
+      "assigned_to": "usr-sales",
+      "interested_cluster_id": "cls-anggrek",
+      "interested_type_id": "typ-anggrek-54",
+      "tags": [],
+      "notes": "Prospek disimulasikan otomatis oleh Command Center.",
+      "created_by": "usr-admin",
+      "created_at": "2026-07-07T04:42:08.293Z"
+    },
+    {
+      "id": "pr-mpwa9augv",
+      "full_name": "Dina Wibowo",
+      "phone": "08120033715",
+      "email": "dinawibowo@example.com",
+      "occupation": "Dosen",
+      "company_name": "Pemkot Bandung",
+      "estimated_income": 13000000,
+      "lead_source": "website",
+      "pipeline_stage": "prospect_baru",
+      "assigned_to": "usr-sales",
+      "interested_cluster_id": "cls-anggrek",
+      "interested_type_id": "typ-anggrek-54",
+      "tags": [],
+      "notes": "Prospek disimulasikan otomatis oleh Command Center.",
+      "created_by": "usr-admin",
+      "created_at": "2026-07-07T04:42:08.190Z"
+    },
+    {
+      "id": "pr-v9sijvltv",
+      "full_name": "Dani Nugraha",
+      "phone": "08155337600",
+      "email": "daninugraha@example.com",
+      "occupation": "Karyawan BUMN",
+      "company_name": "Telkom",
+      "estimated_income": 29000000,
+      "lead_source": "pameran",
+      "pipeline_stage": "prospect_baru",
+      "assigned_to": "usr-sales",
+      "interested_cluster_id": "cls-melati",
+      "interested_type_id": "typ-melati-36",
+      "tags": [],
+      "notes": "Prospek disimulasikan otomatis oleh Command Center.",
+      "created_by": "usr-admin",
+      "created_at": "2026-07-07T04:42:08.047Z"
+    },
+    {
+      "id": "pr-s77u1kk2q",
+      "full_name": "Yusuf Kurnia",
+      "phone": "08114132005",
+      "email": "yusufkurnia@example.com",
+      "occupation": "Karyawan BUMN",
+      "company_name": "Telkom",
+      "estimated_income": 32000000,
+      "lead_source": "website",
+      "pipeline_stage": "prospect_baru",
+      "assigned_to": "usr-sales",
+      "interested_cluster_id": "cls-anggrek",
+      "interested_type_id": "typ-anggrek-54",
+      "tags": [],
+      "notes": "Prospek disimulasikan otomatis oleh Command Center.",
+      "created_by": "usr-admin",
+      "created_at": "2026-07-07T04:41:55.939Z"
+    },
+    {
+      "id": "pr-p7n8difln",
+      "full_name": "Heri Setiawan",
+      "phone": "08112598807",
+      "email": "herisetiawan@example.com",
+      "occupation": "Dokter",
+      "company_name": "Klinik Medika",
+      "estimated_income": 31000000,
+      "lead_source": "instagram",
+      "pipeline_stage": "prospect_baru",
+      "assigned_to": "usr-sales",
+      "interested_cluster_id": "cls-melati",
+      "interested_type_id": "typ-melati-36",
+      "tags": [],
+      "notes": "Prospek disimulasikan otomatis oleh Command Center.",
+      "created_by": "usr-admin",
+      "created_at": "2026-07-07T04:41:55.847Z"
+    },
+    {
+      "id": "pr-x5u2ok8bw",
+      "full_name": "Heri Pratama",
+      "phone": "08117646169",
+      "email": "heripratama@example.com",
+      "occupation": "Karyawan Swasta",
+      "company_name": "Telkom",
+      "estimated_income": 15000000,
+      "lead_source": "pameran",
+      "pipeline_stage": "prospect_baru",
+      "assigned_to": "usr-sales",
+      "interested_cluster_id": "cls-melati",
+      "interested_type_id": "typ-melati-36",
+      "tags": [],
+      "notes": "Prospek disimulasikan otomatis oleh Command Center.",
+      "created_by": "usr-admin",
+      "created_at": "2026-07-07T04:41:55.734Z"
+    },
+    {
+      "id": "pr-f1q9grfup",
+      "full_name": "Putri Sari",
+      "phone": "08162263378",
+      "email": "putrisari@example.com",
+      "occupation": "Dosen",
+      "company_name": "Pertamina",
+      "estimated_income": 18000000,
+      "lead_source": "walk_in",
+      "pipeline_stage": "prospect_baru",
+      "assigned_to": "usr-sales",
+      "interested_cluster_id": "cls-melati",
+      "interested_type_id": "typ-melati-36",
+      "tags": [],
+      "notes": "Prospek disimulasikan otomatis oleh Command Center.",
+      "created_by": "usr-admin",
+      "created_at": "2026-07-07T04:41:43.694Z"
+    },
+    {
+      "id": "pr-5g9ihl1x7",
+      "full_name": "Dani Kurnia",
+      "phone": "08121970493",
+      "email": "danikurnia@example.com",
+      "occupation": "PNS",
+      "company_name": "Pemkot Bandung",
+      "estimated_income": 11000000,
+      "lead_source": "facebook_ads",
+      "pipeline_stage": "prospect_baru",
+      "assigned_to": "usr-sales",
+      "interested_cluster_id": "cls-anggrek",
+      "interested_type_id": "typ-anggrek-54",
+      "tags": [],
+      "notes": "Prospek disimulasikan otomatis oleh Command Center.",
+      "created_by": "usr-admin",
+      "created_at": "2026-07-07T04:41:43.607Z"
+    },
+    {
+      "id": "pr-wkw2ayosn",
+      "full_name": "Eka Pratama",
+      "phone": "08143903852",
+      "email": "ekapratama@example.com",
+      "occupation": "Wiraswasta",
+      "company_name": "Telkom",
+      "estimated_income": 32000000,
+      "lead_source": "pameran",
+      "pipeline_stage": "prospect_baru",
+      "assigned_to": "usr-sales",
+      "interested_cluster_id": "cls-anggrek",
+      "interested_type_id": "typ-anggrek-54",
+      "tags": [],
+      "notes": "Prospek disimulasikan otomatis oleh Command Center.",
+      "created_by": "usr-admin",
+      "created_at": "2026-07-07T04:41:43.511Z"
+    },
+    {
+      "id": "pr-60lzcv9ci",
+      "full_name": "Eka Rahayu",
+      "phone": "08122903148",
+      "email": "ekarahayu@example.com",
+      "occupation": "Dosen",
+      "company_name": "Freelance",
+      "estimated_income": 36000000,
+      "lead_source": "instagram",
+      "pipeline_stage": "prospect_baru",
+      "assigned_to": "usr-sales",
+      "interested_cluster_id": "cls-melati",
+      "interested_type_id": "typ-melati-36",
+      "tags": [],
+      "notes": "Prospek disimulasikan otomatis oleh Command Center.",
+      "created_by": "usr-admin",
+      "created_at": "2026-07-07T04:41:26.244Z"
+    },
+    {
+      "id": "pr-rbewnsihv",
+      "full_name": "Dani Rahayu",
+      "phone": "08134458528",
+      "email": "danirahayu@example.com",
+      "occupation": "Karyawan BUMN",
+      "company_name": "Pemkot Bandung",
+      "estimated_income": 27000000,
+      "lead_source": "walk_in",
+      "pipeline_stage": "prospect_baru",
+      "assigned_to": "usr-sales",
+      "interested_cluster_id": "cls-anggrek",
+      "interested_type_id": "typ-anggrek-54",
+      "tags": [],
+      "notes": "Prospek disimulasikan otomatis oleh Command Center.",
+      "created_by": "usr-admin",
+      "created_at": "2026-07-07T04:41:26.154Z"
+    },
+    {
+      "id": "pr-5lx50v3pr",
+      "full_name": "Dani Nugraha",
+      "phone": "08124625980",
+      "email": "daninugraha@example.com",
+      "occupation": "Karyawan BUMN",
+      "company_name": "Pemkot Bandung",
+      "estimated_income": 39000000,
+      "lead_source": "instagram",
+      "pipeline_stage": "prospect_baru",
+      "assigned_to": "usr-sales",
+      "interested_cluster_id": "cls-anggrek",
+      "interested_type_id": "typ-anggrek-54",
+      "tags": [],
+      "notes": "Prospek disimulasikan otomatis oleh Command Center.",
+      "created_by": "usr-admin",
+      "created_at": "2026-07-07T04:41:25.991Z"
+    },
+    {
+      "id": "pr-phkpruq1b",
+      "full_name": "Arif Saputra",
+      "phone": "08192684566",
+      "email": "arifsaputra@example.com",
+      "occupation": "Karyawan Swasta",
+      "company_name": "Freelance",
+      "estimated_income": 14000000,
+      "lead_source": "website",
+      "pipeline_stage": "prospect_baru",
+      "assigned_to": "usr-sales",
+      "interested_cluster_id": "cls-anggrek",
+      "interested_type_id": "typ-anggrek-54",
+      "tags": [],
+      "notes": "Prospek disimulasikan otomatis oleh Command Center.",
+      "created_by": "usr-admin",
+      "created_at": "2026-07-07T04:41:25.882Z"
+    },
+    {
+      "id": "pr-85vdnjdqf",
+      "full_name": "Fitri Kurnia",
+      "phone": "08178239824",
+      "email": "fitrikurnia@example.com",
+      "occupation": "Dosen",
+      "company_name": "Bank Mandiri",
+      "estimated_income": 15000000,
+      "lead_source": "website",
+      "pipeline_stage": "prospect_baru",
+      "assigned_to": "usr-sales",
+      "interested_cluster_id": "cls-melati",
+      "interested_type_id": "typ-melati-36",
+      "tags": [],
+      "notes": "Prospek disimulasikan otomatis oleh Command Center.",
+      "created_by": "usr-admin",
+      "created_at": "2026-07-07T04:41:21.678Z"
+    },
+    {
+      "id": "pr-uttqy2e4u",
+      "full_name": "Galih Pratama",
+      "phone": "08182257382",
+      "email": "galihpratama@example.com",
+      "occupation": "Wiraswasta",
+      "company_name": "Pemkot Bandung",
+      "estimated_income": 24000000,
+      "lead_source": "pameran",
+      "pipeline_stage": "prospect_baru",
+      "assigned_to": "usr-sales",
+      "interested_cluster_id": "cls-anggrek",
+      "interested_type_id": "typ-anggrek-54",
+      "tags": [],
+      "notes": "Prospek disimulasikan otomatis oleh Command Center.",
+      "created_by": "usr-admin",
+      "created_at": "2026-07-07T04:41:21.589Z"
+    },
+    {
+      "id": "pr-iogerjtxf",
+      "full_name": "Fitri Saputra",
+      "phone": "08169957502",
+      "email": "fitrisaputra@example.com",
+      "occupation": "Wiraswasta",
+      "company_name": "Klinik Medika",
+      "estimated_income": 35000000,
+      "lead_source": "pameran",
+      "pipeline_stage": "prospect_baru",
+      "assigned_to": "usr-sales",
+      "interested_cluster_id": "cls-anggrek",
+      "interested_type_id": "typ-anggrek-54",
+      "tags": [],
+      "notes": "Prospek disimulasikan otomatis oleh Command Center.",
+      "created_by": "usr-admin",
+      "created_at": "2026-07-07T04:41:21.502Z"
+    },
+    {
+      "id": "pr-1u3auxdk5",
+      "full_name": "Dani Setiawan",
+      "phone": "08116557266",
+      "email": "danisetiawan@example.com",
+      "occupation": "Karyawan Swasta",
+      "company_name": "Pertamina",
+      "estimated_income": 28000000,
+      "lead_source": "pameran",
+      "pipeline_stage": "prospect_baru",
+      "assigned_to": "usr-sales",
+      "interested_cluster_id": "cls-melati",
+      "interested_type_id": "typ-melati-36",
+      "tags": [],
+      "notes": "Prospek disimulasikan otomatis oleh Command Center.",
+      "created_by": "usr-admin",
+      "created_at": "2026-07-07T04:41:21.207Z"
+    },
+    {
+      "id": "pr-m14zm5i0e",
+      "full_name": "Eka Setiawan",
+      "phone": "08153388782",
+      "email": "ekasetiawan@example.com",
+      "occupation": "Karyawan BUMN",
+      "company_name": "Pertamina",
+      "estimated_income": 14000000,
+      "lead_source": "instagram",
+      "pipeline_stage": "prospect_baru",
+      "assigned_to": "usr-sales",
+      "interested_cluster_id": "cls-anggrek",
+      "interested_type_id": "typ-anggrek-54",
+      "tags": [],
+      "notes": "Prospek disimulasikan otomatis oleh Command Center.",
+      "created_by": "usr-admin",
+      "created_at": "2026-07-07T04:41:21.126Z"
+    },
+    {
+      "id": "pr-8bott6cdc",
+      "full_name": "Arif Sari",
+      "phone": "08120505339",
+      "email": "arifsari@example.com",
+      "occupation": "Karyawan BUMN",
+      "company_name": "Bank Mandiri",
+      "estimated_income": 13000000,
+      "lead_source": "website",
+      "pipeline_stage": "prospect_baru",
+      "assigned_to": "usr-sales",
+      "interested_cluster_id": "cls-anggrek",
+      "interested_type_id": "typ-anggrek-54",
+      "tags": [],
+      "notes": "Prospek disimulasikan otomatis oleh Command Center.",
+      "created_by": "usr-admin",
+      "created_at": "2026-07-07T04:41:21.043Z"
+    },
+    {
+      "id": "pr-12xf9mwoj",
+      "full_name": "Heri Kurnia",
+      "phone": "08141675986",
+      "email": "herikurnia@example.com",
+      "occupation": "Karyawan BUMN",
+      "company_name": "Freelance",
+      "estimated_income": 25000000,
+      "lead_source": "website",
+      "pipeline_stage": "prospect_baru",
+      "assigned_to": "usr-sales",
+      "interested_cluster_id": "cls-anggrek",
+      "interested_type_id": "typ-anggrek-54",
+      "tags": [],
+      "notes": "Prospek disimulasikan otomatis oleh Command Center.",
+      "created_by": "usr-admin",
+      "created_at": "2026-07-07T04:41:20.959Z"
+    },
+    {
+      "id": "pr-tp5hxkkw4",
+      "full_name": "Hendra Nugraha",
+      "phone": "08198260549",
+      "email": "hendranugraha@example.com",
+      "occupation": "Dosen",
+      "company_name": "Pemkot Bandung",
+      "estimated_income": 29000000,
+      "lead_source": "pameran",
+      "pipeline_stage": "prospect_baru",
+      "assigned_to": "usr-sales",
+      "interested_cluster_id": "cls-anggrek",
+      "interested_type_id": "typ-anggrek-54",
+      "tags": [],
+      "notes": "Prospek disimulasikan otomatis oleh Command Center.",
+      "created_by": "usr-admin",
+      "created_at": "2026-07-07T04:41:20.884Z"
+    },
+    {
+      "id": "pr-3oombmzq5",
+      "full_name": "Fitri Sari",
+      "phone": "08173469761",
+      "email": "fitrisari@example.com",
+      "occupation": "PNS",
+      "company_name": "Bank Mandiri",
+      "estimated_income": 27000000,
+      "lead_source": "walk_in",
+      "pipeline_stage": "prospect_baru",
+      "assigned_to": "usr-sales",
+      "interested_cluster_id": "cls-melati",
+      "interested_type_id": "typ-melati-36",
+      "tags": [],
+      "notes": "Prospek disimulasikan otomatis oleh Command Center.",
+      "created_by": "usr-admin",
+      "created_at": "2026-07-07T04:41:20.783Z"
+    },
+    {
+      "id": "pr-qsu5i56st",
+      "full_name": "Santi Wibowo",
+      "phone": "08136893265",
+      "email": "santiwibowo@example.com",
+      "occupation": "Dokter",
+      "company_name": "Pemkot Bandung",
+      "estimated_income": 30000000,
+      "lead_source": "walk_in",
+      "pipeline_stage": "prospect_baru",
+      "assigned_to": "usr-sales",
+      "interested_cluster_id": "cls-anggrek",
+      "interested_type_id": "typ-anggrek-54",
+      "tags": [],
+      "notes": "Prospek disimulasikan otomatis oleh Command Center.",
+      "created_by": "usr-admin",
+      "created_at": "2026-07-07T04:41:20.741Z"
+    },
+    {
+      "id": "pr-uu85qoaly",
+      "full_name": "Santi Nugraha",
+      "phone": "08176394455",
+      "email": "santinugraha@example.com",
+      "occupation": "Wiraswasta",
+      "company_name": "Bank Mandiri",
+      "estimated_income": 33000000,
+      "lead_source": "pameran",
+      "pipeline_stage": "prospect_baru",
+      "assigned_to": "usr-sales",
+      "interested_cluster_id": "cls-anggrek",
+      "interested_type_id": "typ-anggrek-54",
+      "tags": [],
+      "notes": "Prospek disimulasikan otomatis oleh Command Center.",
+      "created_by": "usr-admin",
+      "created_at": "2026-07-07T04:41:20.468Z"
+    },
+    {
+      "id": "pr-htoeejhql",
+      "full_name": "Galih Sari",
+      "phone": "08167457206",
+      "email": "galihsari@example.com",
+      "occupation": "Wiraswasta",
+      "company_name": "Telkom",
+      "estimated_income": 38000000,
+      "lead_source": "walk_in",
+      "pipeline_stage": "prospect_baru",
+      "assigned_to": "usr-sales",
+      "interested_cluster_id": "cls-anggrek",
+      "interested_type_id": "typ-anggrek-54",
+      "tags": [],
+      "notes": "Prospek disimulasikan otomatis oleh Command Center.",
+      "created_by": "usr-admin",
+      "created_at": "2026-07-07T04:41:20.368Z"
+    },
+    {
+      "id": "pr-0bbz8o777",
+      "full_name": "Fajar Setiawan",
+      "phone": "08198683280",
+      "email": "fajarsetiawan@example.com",
+      "occupation": "Dokter",
+      "company_name": "Freelance",
+      "estimated_income": 35000000,
+      "lead_source": "instagram",
+      "pipeline_stage": "prospect_baru",
+      "assigned_to": "usr-sales",
+      "interested_cluster_id": "cls-melati",
+      "interested_type_id": "typ-melati-36",
+      "tags": [],
+      "notes": "Prospek disimulasikan otomatis oleh Command Center.",
+      "created_by": "usr-admin",
+      "created_at": "2026-07-07T04:41:20.266Z"
+    },
+    {
+      "id": "pr-vm7lfn43j",
+      "full_name": "Hendra Setiawan",
+      "phone": "08120640539",
+      "email": "hendrasetiawan@example.com",
+      "occupation": "PNS",
+      "company_name": "Pertamina",
+      "estimated_income": 17000000,
+      "lead_source": "walk_in",
+      "pipeline_stage": "prospect_baru",
+      "assigned_to": "usr-sales",
+      "interested_cluster_id": "cls-anggrek",
+      "interested_type_id": "typ-anggrek-54",
+      "tags": [],
+      "notes": "Prospek disimulasikan otomatis oleh Command Center.",
+      "created_by": "usr-admin",
+      "created_at": "2026-07-07T04:41:20.165Z"
+    },
+    {
+      "id": "pr-tl118ssz5",
+      "full_name": "Fajar Pratama",
+      "phone": "08132212005",
+      "email": "fajarpratama@example.com",
+      "occupation": "Dosen",
+      "company_name": "Klinik Medika",
+      "estimated_income": 11000000,
+      "lead_source": "walk_in",
+      "pipeline_stage": "prospect_baru",
+      "assigned_to": "usr-sales",
+      "interested_cluster_id": "cls-melati",
+      "interested_type_id": "typ-melati-36",
+      "tags": [],
+      "notes": "Prospek disimulasikan otomatis oleh Command Center.",
+      "created_by": "usr-admin",
+      "created_at": "2026-07-07T04:41:20.138Z"
+    },
+    {
+      "id": "pr-evg137rg6",
+      "full_name": "Heri Nugraha",
+      "phone": "08194510322",
+      "email": "herinugraha@example.com",
+      "occupation": "Karyawan Swasta",
+      "company_name": "Pemkot Bandung",
+      "estimated_income": 15000000,
+      "lead_source": "facebook_ads",
+      "pipeline_stage": "prospect_baru",
+      "assigned_to": "usr-sales",
+      "interested_cluster_id": "cls-melati",
+      "interested_type_id": "typ-melati-36",
+      "tags": [],
+      "notes": "Prospek disimulasikan otomatis oleh Command Center.",
+      "created_by": "usr-admin",
+      "created_at": "2026-07-07T04:41:20.051Z"
+    },
+    {
+      "id": "pr-9mi5ib8gp",
+      "full_name": "Eka Setiawan",
+      "phone": "08187706866",
+      "email": "ekasetiawan@example.com",
+      "occupation": "Wiraswasta",
+      "company_name": "Bank Mandiri",
+      "estimated_income": 27000000,
+      "lead_source": "pameran",
+      "pipeline_stage": "prospect_baru",
+      "assigned_to": "usr-sales",
+      "interested_cluster_id": "cls-anggrek",
+      "interested_type_id": "typ-anggrek-54",
+      "tags": [],
+      "notes": "Prospek disimulasikan otomatis oleh Command Center.",
+      "created_by": "usr-admin",
+      "created_at": "2026-07-07T04:41:19.867Z"
+    },
+    {
+      "id": "pr-8rrou6g0s",
+      "full_name": "Santi Hidayat",
+      "phone": "08167297237",
+      "email": "santihidayat@example.com",
+      "occupation": "Karyawan BUMN",
+      "company_name": "Bank Mandiri",
+      "estimated_income": 14000000,
+      "lead_source": "pameran",
+      "pipeline_stage": "prospect_baru",
+      "assigned_to": "usr-sales",
+      "interested_cluster_id": "cls-anggrek",
+      "interested_type_id": "typ-anggrek-54",
+      "tags": [],
+      "notes": "Prospek disimulasikan otomatis oleh Command Center.",
+      "created_by": "usr-admin",
+      "created_at": "2026-07-07T04:41:19.305Z"
+    },
+    {
+      "id": "pr-4j89nt4zy",
+      "full_name": "Hendra Nugraha",
+      "phone": "08166799414",
+      "email": "hendranugraha@example.com",
+      "occupation": "Karyawan BUMN",
+      "company_name": "Freelance",
+      "estimated_income": 26000000,
+      "lead_source": "website",
+      "pipeline_stage": "prospect_baru",
+      "assigned_to": "usr-sales",
+      "interested_cluster_id": "cls-melati",
+      "interested_type_id": "typ-melati-36",
+      "tags": [],
+      "notes": "Prospek disimulasikan otomatis oleh Command Center.",
+      "created_by": "usr-admin",
+      "created_at": "2026-07-07T04:41:19.132Z"
+    },
+    {
+      "id": "pr-v1ec0rl88",
+      "full_name": "Fitri Pratama",
+      "phone": "08118892510",
+      "email": "fitripratama@example.com",
+      "occupation": "Wiraswasta",
+      "company_name": "Klinik Medika",
+      "estimated_income": 35000000,
+      "lead_source": "website",
+      "pipeline_stage": "prospect_baru",
+      "assigned_to": "usr-sales",
+      "interested_cluster_id": "cls-anggrek",
+      "interested_type_id": "typ-anggrek-54",
+      "tags": [],
+      "notes": "Prospek disimulasikan otomatis oleh Command Center.",
+      "created_by": "usr-admin",
+      "created_at": "2026-07-07T04:41:18.940Z"
+    },
+    {
+      "id": "pr-cwyrq20nz",
+      "full_name": "Santi Wibowo",
+      "phone": "08161327516",
+      "email": "santiwibowo@example.com",
+      "occupation": "Karyawan BUMN",
+      "company_name": "Pemkot Bandung",
+      "estimated_income": 29000000,
+      "lead_source": "website",
+      "pipeline_stage": "prospect_baru",
+      "assigned_to": "usr-sales",
+      "interested_cluster_id": "cls-anggrek",
+      "interested_type_id": "typ-anggrek-54",
+      "tags": [],
+      "notes": "Prospek disimulasikan otomatis oleh Command Center.",
+      "created_by": "usr-admin",
+      "created_at": "2026-07-07T04:41:18.818Z"
+    },
     {
       "id": "pr-o9685j84e",
       "full_name": "Arif Kurnia",
@@ -690,14 +1467,15 @@
       "company_name": "Klinik Medika",
       "estimated_income": 32000000,
       "lead_source": "pameran",
-      "pipeline_stage": "prospect_baru",
+      "pipeline_stage": "booking",
       "assigned_to": "usr-sales",
       "interested_cluster_id": "cls-anggrek",
       "interested_type_id": "typ-anggrek-54",
       "tags": [],
       "notes": "Prospek disimulasikan otomatis oleh Command Center.",
       "created_by": "usr-admin",
-      "created_at": "2026-06-06T18:00:21.938Z"
+      "created_at": "2026-06-06T18:00:21.938Z",
+      "updated_at": "2026-07-07T04:41:21.306Z"
     },
     {
       "id": "pr-752oi3ncq",
@@ -726,14 +1504,15 @@
       "company_name": "Pemkot Bandung",
       "estimated_income": 28000000,
       "lead_source": "website",
-      "pipeline_stage": "prospect_baru",
+      "pipeline_stage": "booking",
       "assigned_to": "usr-sales",
       "interested_cluster_id": "cls-melati",
       "interested_type_id": "typ-melati-36",
       "tags": [],
       "notes": "Prospek disimulasikan otomatis oleh Command Center.",
       "created_by": "usr-admin",
-      "created_at": "2026-06-06T18:00:11.192Z"
+      "created_at": "2026-06-06T18:00:11.192Z",
+      "updated_at": "2026-07-07T04:41:19.414Z"
     },
     {
       "id": "pr-v2demfgcr",
@@ -924,14 +1703,15 @@
       "company_name": "Freelance",
       "estimated_income": 34000000,
       "lead_source": "website",
-      "pipeline_stage": "prospect_baru",
+      "pipeline_stage": "booking",
       "assigned_to": "usr-sales",
       "interested_cluster_id": "cls-melati",
       "interested_type_id": "typ-melati-36",
       "tags": [],
       "notes": "Prospek disimulasikan otomatis oleh Command Center.",
       "created_by": "usr-admin",
-      "created_at": "2026-06-06T17:59:40.656Z"
+      "created_at": "2026-06-06T17:59:40.656Z",
+      "updated_at": "2026-07-07T04:41:19.614Z"
     },
     {
       "id": "pr-9eruy41ec",
@@ -1248,14 +2028,15 @@
       "company_name": "Pemkot Bandung",
       "estimated_income": 26000000,
       "lead_source": "walk_in",
-      "pipeline_stage": "prospect_baru",
+      "pipeline_stage": "booking",
       "assigned_to": "usr-sales",
       "interested_cluster_id": "cls-melati",
       "interested_type_id": "typ-melati-36",
       "tags": [],
       "notes": "Prospek disimulasikan otomatis oleh Command Center.",
       "created_by": "usr-admin",
-      "created_at": "2026-06-06T17:58:45.187Z"
+      "created_at": "2026-06-06T17:58:45.187Z",
+      "updated_at": "2026-07-07T04:41:19.045Z"
     },
     {
       "id": "pr-z1fys5wpx",
@@ -1896,14 +2677,15 @@
       "company_name": "Klinik Medika",
       "estimated_income": 18000000,
       "lead_source": "instagram",
-      "pipeline_stage": "prospect_baru",
+      "pipeline_stage": "booking",
       "assigned_to": "usr-sales",
       "interested_cluster_id": "cls-melati",
       "interested_type_id": "typ-melati-36",
       "tags": [],
       "notes": "Prospek disimulasikan otomatis oleh Command Center.",
       "created_by": "usr-admin",
-      "created_at": "2026-06-06T17:55:45.244Z"
+      "created_at": "2026-06-06T17:55:45.244Z",
+      "updated_at": "2026-07-07T04:41:20.438Z"
     },
     {
       "id": "pr-yvsa3xx0x",
@@ -1932,14 +2714,15 @@
       "company_name": "Pertamina",
       "estimated_income": 17000000,
       "lead_source": "facebook_ads",
-      "pipeline_stage": "prospect_baru",
+      "pipeline_stage": "booking",
       "assigned_to": "usr-sales",
       "interested_cluster_id": "cls-anggrek",
       "interested_type_id": "typ-anggrek-54",
       "tags": [],
       "notes": "Prospek disimulasikan otomatis oleh Command Center.",
       "created_by": "usr-admin",
-      "created_at": "2026-06-06T17:55:34.361Z"
+      "created_at": "2026-06-06T17:55:34.361Z",
+      "updated_at": "2026-07-07T04:41:20.026Z"
     },
     {
       "id": "pr-tiz7oshum",
@@ -2004,14 +2787,15 @@
       "company_name": "Pemkot Bandung",
       "estimated_income": 21000000,
       "lead_source": "website",
-      "pipeline_stage": "prospect_baru",
+      "pipeline_stage": "booking",
       "assigned_to": "usr-sales",
       "interested_cluster_id": "cls-melati",
       "interested_type_id": "typ-melati-36",
       "tags": [],
       "notes": "Prospek disimulasikan otomatis oleh Command Center.",
       "created_by": "usr-admin",
-      "created_at": "2026-06-06T17:55:34.080Z"
+      "created_at": "2026-06-06T17:55:34.080Z",
+      "updated_at": "2026-07-07T04:41:19.233Z"
     },
     {
       "id": "pr-2no1wjrts",
@@ -2220,14 +3004,15 @@
       "company_name": "Klinik Medika",
       "estimated_income": 36000000,
       "lead_source": "website",
-      "pipeline_stage": "prospect_baru",
+      "pipeline_stage": "booking",
       "assigned_to": "usr-sales",
       "interested_cluster_id": "cls-melati",
       "interested_type_id": "typ-melati-36",
       "tags": [],
       "notes": "Prospek disimulasikan otomatis oleh Command Center.",
       "created_by": "usr-admin",
-      "created_at": "2026-06-06T17:55:04.520Z"
+      "created_at": "2026-06-06T17:55:04.520Z",
+      "updated_at": "2026-07-07T04:41:19.517Z"
     },
     {
       "id": "pr-yuhpjmfh0",
@@ -2274,14 +3059,15 @@
       "company_name": "Freelance",
       "estimated_income": 37000000,
       "lead_source": "facebook_ads",
-      "pipeline_stage": "prospect_baru",
+      "pipeline_stage": "booking",
       "assigned_to": "usr-sales",
       "interested_cluster_id": "cls-melati",
       "interested_type_id": "typ-melati-36",
       "tags": [],
       "notes": "Prospek disimulasikan otomatis oleh Command Center.",
       "created_by": "usr-admin",
-      "created_at": "2026-06-06T17:54:34.016Z"
+      "created_at": "2026-06-06T17:54:34.016Z",
+      "updated_at": "2026-07-07T04:41:20.634Z"
     },
     {
       "id": "pr-wreprzzgj",
@@ -2310,14 +3096,15 @@
       "company_name": "Pertamina",
       "estimated_income": 27000000,
       "lead_source": "facebook_ads",
-      "pipeline_stage": "prospect_baru",
+      "pipeline_stage": "booking",
       "assigned_to": "usr-sales",
       "interested_cluster_id": "cls-melati",
       "interested_type_id": "typ-melati-36",
       "tags": [],
       "notes": "Prospek disimulasikan otomatis oleh Command Center.",
       "created_by": "usr-admin",
-      "created_at": "2026-06-06T17:54:33.839Z"
+      "created_at": "2026-06-06T17:54:33.839Z",
+      "updated_at": "2026-07-07T04:41:19.945Z"
     },
     {
       "id": "pr-ntg82wzwo",
@@ -2670,14 +3457,15 @@
       "company_name": "Bank Mandiri",
       "estimated_income": 15000000,
       "lead_source": "walk_in",
-      "pipeline_stage": "prospect_baru",
+      "pipeline_stage": "booking",
       "assigned_to": "usr-sales",
       "interested_cluster_id": "cls-melati",
       "interested_type_id": "typ-melati-36",
       "tags": [],
       "notes": "Prospek disimulasikan otomatis oleh Command Center.",
       "created_by": "usr-admin",
-      "created_at": "2026-06-06T17:53:27.528Z"
+      "created_at": "2026-06-06T17:53:27.528Z",
+      "updated_at": "2026-07-07T04:41:20.289Z"
     },
     {
       "id": "pr-pi59a0xyc",
@@ -2958,14 +3746,15 @@
       "company_name": "Pemkot Bandung",
       "estimated_income": 37000000,
       "lead_source": "pameran",
-      "pipeline_stage": "prospect_baru",
+      "pipeline_stage": "booking",
       "assigned_to": "usr-sales",
       "interested_cluster_id": "cls-melati",
       "interested_type_id": "typ-melati-36",
       "tags": [],
       "notes": "Prospek disimulasikan otomatis oleh Command Center.",
       "created_by": "usr-admin",
-      "created_at": "2026-06-06T17:52:40.609Z"
+      "created_at": "2026-06-06T17:52:40.609Z",
+      "updated_at": "2026-07-07T04:41:19.778Z"
     },
     {
       "id": "pr-61kh9eq4g",
@@ -2994,14 +3783,15 @@
       "company_name": "Klinik Medika",
       "estimated_income": 34000000,
       "lead_source": "walk_in",
-      "pipeline_stage": "prospect_baru",
+      "pipeline_stage": "booking",
       "assigned_to": "usr-sales",
       "interested_cluster_id": "cls-melati",
       "interested_type_id": "typ-melati-36",
       "tags": [],
       "notes": "Prospek disimulasikan otomatis oleh Command Center.",
       "created_by": "usr-admin",
-      "created_at": "2026-06-06T17:52:40.441Z"
+      "created_at": "2026-06-06T17:52:40.441Z",
+      "updated_at": "2026-07-07T04:41:19.798Z"
     },
     {
       "id": "pr-klbzhazqw",
@@ -3228,14 +4018,15 @@
       "company_name": "Pertamina",
       "estimated_income": 37000000,
       "lead_source": "pameran",
-      "pipeline_stage": "prospect_baru",
+      "pipeline_stage": "booking",
       "assigned_to": "usr-sales",
       "interested_cluster_id": "cls-melati",
       "interested_type_id": "typ-melati-36",
       "tags": [],
       "notes": "Prospek disimulasikan otomatis oleh Command Center.",
       "created_by": "usr-admin",
-      "created_at": "2026-06-06T17:51:28.416Z"
+      "created_at": "2026-06-06T17:51:28.416Z",
+      "updated_at": "2026-07-07T04:41:20.608Z"
     },
     {
       "id": "pr-y7fnvqfc3",
@@ -3392,7 +4183,7 @@
       "company_name": "Tech Inc",
       "estimated_income": 15000000,
       "lead_source": "instagram",
-      "pipeline_stage": "prospect_baru",
+      "pipeline_stage": "booking",
       "assigned_to": "usr-sales",
       "interested_cluster_id": "cls-melati",
       "interested_type_id": "typ-melati-36",
@@ -3402,7 +4193,8 @@
       ],
       "notes": "Tanya brosur tipe 36 via DM Instagram.",
       "created_by": "usr-sales",
-      "created_at": "2026-05-26T03:01:38.139Z"
+      "created_at": "2026-05-26T03:01:38.139Z",
+      "updated_at": "2026-07-07T04:41:21.416Z"
     },
     {
       "id": "pr-02",
@@ -3650,6 +4442,655 @@
     }
   ],
   "prospectHistory": [
+    {
+      "id": "ph-rdssd9wyw",
+      "prospect_id": "pr-v18fvfbjg",
+      "event_type": "prospect_created",
+      "actor_id": "usr-admin",
+      "description": "Prospek baru dibuat oleh sales agent · Sumber: facebook_ads",
+      "created_at": "2026-07-07T04:42:08.293Z"
+    },
+    {
+      "id": "ph-uwqu078co",
+      "prospect_id": "pr-mpwa9augv",
+      "event_type": "prospect_created",
+      "actor_id": "usr-admin",
+      "description": "Prospek baru dibuat oleh sales agent · Sumber: website",
+      "created_at": "2026-07-07T04:42:08.190Z"
+    },
+    {
+      "id": "ph-36xmrkma9",
+      "prospect_id": "pr-v9sijvltv",
+      "event_type": "prospect_created",
+      "actor_id": "usr-admin",
+      "description": "Prospek baru dibuat oleh sales agent · Sumber: pameran",
+      "created_at": "2026-07-07T04:42:08.047Z"
+    },
+    {
+      "id": "ph-h3h55auaj",
+      "prospect_id": "pr-s77u1kk2q",
+      "event_type": "prospect_created",
+      "actor_id": "usr-admin",
+      "description": "Prospek baru dibuat oleh sales agent · Sumber: website",
+      "created_at": "2026-07-07T04:41:55.939Z"
+    },
+    {
+      "id": "ph-bkxf133xy",
+      "prospect_id": "pr-p7n8difln",
+      "event_type": "prospect_created",
+      "actor_id": "usr-admin",
+      "description": "Prospek baru dibuat oleh sales agent · Sumber: instagram",
+      "created_at": "2026-07-07T04:41:55.847Z"
+    },
+    {
+      "id": "ph-kk09557bm",
+      "prospect_id": "pr-x5u2ok8bw",
+      "event_type": "prospect_created",
+      "actor_id": "usr-admin",
+      "description": "Prospek baru dibuat oleh sales agent · Sumber: pameran",
+      "created_at": "2026-07-07T04:41:55.734Z"
+    },
+    {
+      "id": "ph-szv1d8qh6",
+      "prospect_id": "pr-f1q9grfup",
+      "event_type": "prospect_created",
+      "actor_id": "usr-admin",
+      "description": "Prospek baru dibuat oleh sales agent · Sumber: walk_in",
+      "created_at": "2026-07-07T04:41:43.694Z"
+    },
+    {
+      "id": "ph-bwtmii8eb",
+      "prospect_id": "pr-5g9ihl1x7",
+      "event_type": "prospect_created",
+      "actor_id": "usr-admin",
+      "description": "Prospek baru dibuat oleh sales agent · Sumber: facebook_ads",
+      "created_at": "2026-07-07T04:41:43.607Z"
+    },
+    {
+      "id": "ph-5c1lr0p8z",
+      "prospect_id": "pr-wkw2ayosn",
+      "event_type": "prospect_created",
+      "actor_id": "usr-admin",
+      "description": "Prospek baru dibuat oleh sales agent · Sumber: pameran",
+      "created_at": "2026-07-07T04:41:43.511Z"
+    },
+    {
+      "id": "ph-a4cfle3zs",
+      "prospect_id": "pr-60lzcv9ci",
+      "event_type": "prospect_created",
+      "actor_id": "usr-admin",
+      "description": "Prospek baru dibuat oleh sales agent · Sumber: instagram",
+      "created_at": "2026-07-07T04:41:26.244Z"
+    },
+    {
+      "id": "ph-ynnfb5x4i",
+      "prospect_id": "pr-rbewnsihv",
+      "event_type": "prospect_created",
+      "actor_id": "usr-admin",
+      "description": "Prospek baru dibuat oleh sales agent · Sumber: walk_in",
+      "created_at": "2026-07-07T04:41:26.154Z"
+    },
+    {
+      "id": "ph-zx3o6fr50",
+      "prospect_id": "pr-5lx50v3pr",
+      "event_type": "prospect_created",
+      "actor_id": "usr-admin",
+      "description": "Prospek baru dibuat oleh sales agent · Sumber: instagram",
+      "created_at": "2026-07-07T04:41:25.991Z"
+    },
+    {
+      "id": "ph-poc7r6y7c",
+      "prospect_id": "pr-phkpruq1b",
+      "event_type": "prospect_created",
+      "actor_id": "usr-admin",
+      "description": "Prospek baru dibuat oleh sales agent · Sumber: website",
+      "created_at": "2026-07-07T04:41:25.882Z"
+    },
+    {
+      "id": "ph-1bfgy99gd",
+      "prospect_id": "pr-85vdnjdqf",
+      "event_type": "prospect_created",
+      "actor_id": "usr-admin",
+      "description": "Prospek baru dibuat oleh sales agent · Sumber: website",
+      "created_at": "2026-07-07T04:41:21.678Z"
+    },
+    {
+      "id": "ph-dtmkdtc86",
+      "prospect_id": "pr-uttqy2e4u",
+      "event_type": "prospect_created",
+      "actor_id": "usr-admin",
+      "description": "Prospek baru dibuat oleh sales agent · Sumber: pameran",
+      "created_at": "2026-07-07T04:41:21.589Z"
+    },
+    {
+      "id": "ph-zaqr8ry7i",
+      "prospect_id": "pr-iogerjtxf",
+      "event_type": "prospect_created",
+      "actor_id": "usr-admin",
+      "description": "Prospek baru dibuat oleh sales agent · Sumber: pameran",
+      "created_at": "2026-07-07T04:41:21.502Z"
+    },
+    {
+      "id": "ph-org7fevef",
+      "prospect_id": "pr-01",
+      "event_type": "stage_changed",
+      "actor_id": "usr-admin",
+      "metadata": {
+        "from": "prospect_baru",
+        "to": "booking"
+      },
+      "description": "Stage pipeline berubah: prospect_baru ➔ booking",
+      "created_at": "2026-07-07T04:41:21.416Z"
+    },
+    {
+      "id": "ph-4vimvrras",
+      "prospect_id": "pr-01",
+      "event_type": "unit_booked",
+      "actor_id": "usr-admin",
+      "metadata": {
+        "unit_id": "unt-jx92sp6dc"
+      },
+      "description": "Kavling Blok B-04 status berubah menjadi: booking",
+      "created_at": "2026-07-07T04:41:21.386Z"
+    },
+    {
+      "id": "ph-ycml0cmua",
+      "prospect_id": "pr-57z0ijs5b",
+      "event_type": "stage_changed",
+      "actor_id": "usr-admin",
+      "metadata": {
+        "from": "prospect_baru",
+        "to": "booking"
+      },
+      "description": "Stage pipeline berubah: prospect_baru ➔ booking",
+      "created_at": "2026-07-07T04:41:21.306Z"
+    },
+    {
+      "id": "ph-a91sjr2yh",
+      "prospect_id": "pr-57z0ijs5b",
+      "event_type": "unit_booked",
+      "actor_id": "usr-admin",
+      "metadata": {
+        "unit_id": "unt-5ehpkg4iz"
+      },
+      "description": "Kavling Blok B-08 status berubah menjadi: booking",
+      "created_at": "2026-07-07T04:41:21.280Z"
+    },
+    {
+      "id": "ph-5sot1v7wp",
+      "prospect_id": "pr-1u3auxdk5",
+      "event_type": "prospect_created",
+      "actor_id": "usr-admin",
+      "description": "Prospek baru dibuat oleh sales agent · Sumber: pameran",
+      "created_at": "2026-07-07T04:41:21.207Z"
+    },
+    {
+      "id": "ph-fjlp4it5m",
+      "prospect_id": "pr-m14zm5i0e",
+      "event_type": "prospect_created",
+      "actor_id": "usr-admin",
+      "description": "Prospek baru dibuat oleh sales agent · Sumber: instagram",
+      "created_at": "2026-07-07T04:41:21.126Z"
+    },
+    {
+      "id": "ph-ka1oylydc",
+      "prospect_id": "pr-8bott6cdc",
+      "event_type": "prospect_created",
+      "actor_id": "usr-admin",
+      "description": "Prospek baru dibuat oleh sales agent · Sumber: website",
+      "created_at": "2026-07-07T04:41:21.043Z"
+    },
+    {
+      "id": "ph-1ypb2afgd",
+      "prospect_id": "pr-12xf9mwoj",
+      "event_type": "prospect_created",
+      "actor_id": "usr-admin",
+      "description": "Prospek baru dibuat oleh sales agent · Sumber: website",
+      "created_at": "2026-07-07T04:41:20.959Z"
+    },
+    {
+      "id": "ph-d1ixxtwon",
+      "prospect_id": "pr-tp5hxkkw4",
+      "event_type": "prospect_created",
+      "actor_id": "usr-admin",
+      "description": "Prospek baru dibuat oleh sales agent · Sumber: pameran",
+      "created_at": "2026-07-07T04:41:20.884Z"
+    },
+    {
+      "id": "ph-vawezupr6",
+      "prospect_id": "pr-3oombmzq5",
+      "event_type": "prospect_created",
+      "actor_id": "usr-admin",
+      "description": "Prospek baru dibuat oleh sales agent · Sumber: walk_in",
+      "created_at": "2026-07-07T04:41:20.783Z"
+    },
+    {
+      "id": "ph-vil6q8hkm",
+      "prospect_id": "pr-qsu5i56st",
+      "event_type": "prospect_created",
+      "actor_id": "usr-admin",
+      "description": "Prospek baru dibuat oleh sales agent · Sumber: walk_in",
+      "created_at": "2026-07-07T04:41:20.741Z"
+    },
+    {
+      "id": "ph-1aoo8cx90",
+      "prospect_id": "pr-llafti3y8",
+      "event_type": "stage_changed",
+      "actor_id": "usr-admin",
+      "metadata": {
+        "from": "prospect_baru",
+        "to": "booking"
+      },
+      "description": "Stage pipeline berubah: prospect_baru ➔ booking",
+      "created_at": "2026-07-07T04:41:20.634Z"
+    },
+    {
+      "id": "ph-ev539xi2j",
+      "prospect_id": "pr-bdfsce9so",
+      "event_type": "stage_changed",
+      "actor_id": "usr-admin",
+      "metadata": {
+        "from": "prospect_baru",
+        "to": "booking"
+      },
+      "description": "Stage pipeline berubah: prospect_baru ➔ booking",
+      "created_at": "2026-07-07T04:41:20.608Z"
+    },
+    {
+      "id": "ph-kxlzg8hzr",
+      "prospect_id": "pr-llafti3y8",
+      "event_type": "unit_booked",
+      "actor_id": "usr-admin",
+      "metadata": {
+        "unit_id": "unt-xwxrnvfuh"
+      },
+      "description": "Kavling Blok B-09 status berubah menjadi: booking",
+      "created_at": "2026-07-07T04:41:20.583Z"
+    },
+    {
+      "id": "ph-776u9fu2v",
+      "prospect_id": "pr-bdfsce9so",
+      "event_type": "unit_booked",
+      "actor_id": "usr-admin",
+      "metadata": {
+        "unit_id": "unt-yyhw6qvr3"
+      },
+      "description": "Kavling Blok A-12 status berubah menjadi: booking",
+      "created_at": "2026-07-07T04:41:20.554Z"
+    },
+    {
+      "id": "ph-gd2wc38sd",
+      "prospect_id": "pr-uu85qoaly",
+      "event_type": "prospect_created",
+      "actor_id": "usr-admin",
+      "description": "Prospek baru dibuat oleh sales agent · Sumber: pameran",
+      "created_at": "2026-07-07T04:41:20.468Z"
+    },
+    {
+      "id": "ph-w1tak9zor",
+      "prospect_id": "pr-4bgounu04",
+      "event_type": "stage_changed",
+      "actor_id": "usr-admin",
+      "metadata": {
+        "from": "prospect_baru",
+        "to": "booking"
+      },
+      "description": "Stage pipeline berubah: prospect_baru ➔ booking",
+      "created_at": "2026-07-07T04:41:20.439Z"
+    },
+    {
+      "id": "ph-ap1ihwcze",
+      "prospect_id": "pr-4bgounu04",
+      "event_type": "unit_booked",
+      "actor_id": "usr-admin",
+      "metadata": {
+        "unit_id": "unt-z1asdghft"
+      },
+      "description": "Kavling Blok A-09 status berubah menjadi: booking",
+      "created_at": "2026-07-07T04:41:20.394Z"
+    },
+    {
+      "id": "ph-i8bivf4il",
+      "prospect_id": "pr-htoeejhql",
+      "event_type": "prospect_created",
+      "actor_id": "usr-admin",
+      "description": "Prospek baru dibuat oleh sales agent · Sumber: walk_in",
+      "created_at": "2026-07-07T04:41:20.368Z"
+    },
+    {
+      "id": "ph-fyhrqjoaw",
+      "prospect_id": "pr-s623d8eyc",
+      "event_type": "stage_changed",
+      "actor_id": "usr-admin",
+      "metadata": {
+        "from": "prospect_baru",
+        "to": "booking"
+      },
+      "description": "Stage pipeline berubah: prospect_baru ➔ booking",
+      "created_at": "2026-07-07T04:41:20.289Z"
+    },
+    {
+      "id": "ph-o700yly8n",
+      "prospect_id": "pr-0bbz8o777",
+      "event_type": "prospect_created",
+      "actor_id": "usr-admin",
+      "description": "Prospek baru dibuat oleh sales agent · Sumber: instagram",
+      "created_at": "2026-07-07T04:41:20.266Z"
+    },
+    {
+      "id": "ph-ca99be6ik",
+      "prospect_id": "pr-s623d8eyc",
+      "event_type": "unit_booked",
+      "actor_id": "usr-admin",
+      "metadata": {
+        "unit_id": "unt-7qfenn25p"
+      },
+      "description": "Kavling Blok B-05 status berubah menjadi: booking",
+      "created_at": "2026-07-07T04:41:20.243Z"
+    },
+    {
+      "id": "ph-cirujd8dh",
+      "prospect_id": "pr-vm7lfn43j",
+      "event_type": "prospect_created",
+      "actor_id": "usr-admin",
+      "description": "Prospek baru dibuat oleh sales agent · Sumber: walk_in",
+      "created_at": "2026-07-07T04:41:20.165Z"
+    },
+    {
+      "id": "ph-3nb3k6lqb",
+      "prospect_id": "pr-tl118ssz5",
+      "event_type": "prospect_created",
+      "actor_id": "usr-admin",
+      "description": "Prospek baru dibuat oleh sales agent · Sumber: walk_in",
+      "created_at": "2026-07-07T04:41:20.138Z"
+    },
+    {
+      "id": "ph-aaqcw6ehj",
+      "prospect_id": "pr-evg137rg6",
+      "event_type": "prospect_created",
+      "actor_id": "usr-admin",
+      "description": "Prospek baru dibuat oleh sales agent · Sumber: facebook_ads",
+      "created_at": "2026-07-07T04:41:20.051Z"
+    },
+    {
+      "id": "ph-slkayhs1l",
+      "prospect_id": "pr-5ez0oni67",
+      "event_type": "stage_changed",
+      "actor_id": "usr-admin",
+      "metadata": {
+        "from": "prospect_baru",
+        "to": "booking"
+      },
+      "description": "Stage pipeline berubah: prospect_baru ➔ booking",
+      "created_at": "2026-07-07T04:41:20.026Z"
+    },
+    {
+      "id": "ph-p68pau287",
+      "prospect_id": "pr-5ez0oni67",
+      "event_type": "unit_booked",
+      "actor_id": "usr-admin",
+      "metadata": {
+        "unit_id": "unt-9sizhy0km"
+      },
+      "description": "Kavling Blok B-06 status berubah menjadi: booking",
+      "created_at": "2026-07-07T04:41:19.972Z"
+    },
+    {
+      "id": "ph-rjr71m50y",
+      "prospect_id": "pr-0zdzgd4mz",
+      "event_type": "stage_changed",
+      "actor_id": "usr-admin",
+      "metadata": {
+        "from": "prospect_baru",
+        "to": "booking"
+      },
+      "description": "Stage pipeline berubah: prospect_baru ➔ booking",
+      "created_at": "2026-07-07T04:41:19.945Z"
+    },
+    {
+      "id": "ph-6vx6pfr42",
+      "prospect_id": "pr-0zdzgd4mz",
+      "event_type": "unit_booked",
+      "actor_id": "usr-admin",
+      "metadata": {
+        "unit_id": "unt-pdasl3cqr"
+      },
+      "description": "Kavling Blok A-14 status berubah menjadi: booking",
+      "created_at": "2026-07-07T04:41:19.895Z"
+    },
+    {
+      "id": "ph-xs1plckmy",
+      "prospect_id": "pr-9mi5ib8gp",
+      "event_type": "prospect_created",
+      "actor_id": "usr-admin",
+      "description": "Prospek baru dibuat oleh sales agent · Sumber: pameran",
+      "created_at": "2026-07-07T04:41:19.867Z"
+    },
+    {
+      "id": "ph-zcnng9seu",
+      "prospect_id": "pr-cvpxu8kvq",
+      "event_type": "stage_changed",
+      "actor_id": "usr-admin",
+      "metadata": {
+        "from": "prospect_baru",
+        "to": "booking"
+      },
+      "description": "Stage pipeline berubah: prospect_baru ➔ booking",
+      "created_at": "2026-07-07T04:41:19.798Z"
+    },
+    {
+      "id": "ph-oige6zwt1",
+      "prospect_id": "pr-tmgr31k6y",
+      "event_type": "stage_changed",
+      "actor_id": "usr-admin",
+      "metadata": {
+        "from": "prospect_baru",
+        "to": "booking"
+      },
+      "description": "Stage pipeline berubah: prospect_baru ➔ booking",
+      "created_at": "2026-07-07T04:41:19.778Z"
+    },
+    {
+      "id": "ph-j7acriek7",
+      "prospect_id": "pr-cvpxu8kvq",
+      "event_type": "unit_booked",
+      "actor_id": "usr-admin",
+      "metadata": {
+        "unit_id": "unt-8psiqnnfv"
+      },
+      "description": "Kavling Blok B-07 status berubah menjadi: booking",
+      "created_at": "2026-07-07T04:41:19.728Z"
+    },
+    {
+      "id": "ph-pv2k177tz",
+      "prospect_id": "pr-tmgr31k6y",
+      "event_type": "unit_booked",
+      "actor_id": "usr-admin",
+      "metadata": {
+        "unit_id": "unt-gk537d1dr"
+      },
+      "description": "Kavling Blok A-11 status berubah menjadi: booking",
+      "created_at": "2026-07-07T04:41:19.698Z"
+    },
+    {
+      "id": "ph-0njbjuaej",
+      "prospect_id": "pr-2m8b8zs27",
+      "event_type": "stage_changed",
+      "actor_id": "usr-admin",
+      "metadata": {
+        "from": "prospect_baru",
+        "to": "booking"
+      },
+      "description": "Stage pipeline berubah: prospect_baru ➔ booking",
+      "created_at": "2026-07-07T04:41:19.614Z"
+    },
+    {
+      "id": "ph-xt7vgqocq",
+      "prospect_id": "pr-2m8b8zs27",
+      "event_type": "unit_booked",
+      "actor_id": "usr-admin",
+      "metadata": {
+        "unit_id": "unt-ipmef925k"
+      },
+      "description": "Kavling Blok A-10 status berubah menjadi: booking",
+      "created_at": "2026-07-07T04:41:19.590Z"
+    },
+    {
+      "id": "ph-myuuqb4af",
+      "prospect_id": "pr-z1r9htnxo",
+      "event_type": "stage_changed",
+      "actor_id": "usr-admin",
+      "metadata": {
+        "from": "prospect_baru",
+        "to": "booking"
+      },
+      "description": "Stage pipeline berubah: prospect_baru ➔ booking",
+      "created_at": "2026-07-07T04:41:19.517Z"
+    },
+    {
+      "id": "ph-9f1tgv24m",
+      "prospect_id": "pr-z1r9htnxo",
+      "event_type": "unit_booked",
+      "actor_id": "usr-admin",
+      "metadata": {
+        "unit_id": "unt-nsgrro054"
+      },
+      "description": "Kavling Blok A-07 status berubah menjadi: booking",
+      "created_at": "2026-07-07T04:41:19.491Z"
+    },
+    {
+      "id": "ph-j078ph4gt",
+      "prospect_id": "pr-iojf2hcxw",
+      "event_type": "stage_changed",
+      "actor_id": "usr-admin",
+      "metadata": {
+        "from": "prospect_baru",
+        "to": "booking"
+      },
+      "description": "Stage pipeline berubah: prospect_baru ➔ booking",
+      "created_at": "2026-07-07T04:41:19.414Z"
+    },
+    {
+      "id": "ph-d73vf07b2",
+      "prospect_id": "pr-iojf2hcxw",
+      "event_type": "unit_booked",
+      "actor_id": "usr-admin",
+      "metadata": {
+        "unit_id": "unt-vnbmd41oa"
+      },
+      "description": "Kavling Blok B-03 status berubah menjadi: booking",
+      "created_at": "2026-07-07T04:41:19.388Z"
+    },
+    {
+      "id": "ph-dh757aqok",
+      "prospect_id": "pr-8rrou6g0s",
+      "event_type": "prospect_created",
+      "actor_id": "usr-admin",
+      "description": "Prospek baru dibuat oleh sales agent · Sumber: pameran",
+      "created_at": "2026-07-07T04:41:19.305Z"
+    },
+    {
+      "id": "ph-qtilyakse",
+      "prospect_id": "pr-nf3slkurp",
+      "event_type": "stage_changed",
+      "actor_id": "usr-admin",
+      "metadata": {
+        "from": "prospect_baru",
+        "to": "booking"
+      },
+      "description": "Stage pipeline berubah: prospect_baru ➔ booking",
+      "created_at": "2026-07-07T04:41:19.233Z"
+    },
+    {
+      "id": "ph-un0wxg6ay",
+      "prospect_id": "pr-nf3slkurp",
+      "event_type": "unit_booked",
+      "actor_id": "usr-admin",
+      "metadata": {
+        "unit_id": "unt-qr9q2umht"
+      },
+      "description": "Kavling Blok A-13 status berubah menjadi: booking",
+      "created_at": "2026-07-07T04:41:19.212Z"
+    },
+    {
+      "id": "ph-66x4fijdm",
+      "prospect_id": "pr-4j89nt4zy",
+      "event_type": "prospect_created",
+      "actor_id": "usr-admin",
+      "description": "Prospek baru dibuat oleh sales agent · Sumber: website",
+      "created_at": "2026-07-07T04:41:19.132Z"
+    },
+    {
+      "id": "ph-w97fls018",
+      "prospect_id": "pr-pi70l9t1q",
+      "event_type": "stage_changed",
+      "actor_id": "usr-admin",
+      "metadata": {
+        "from": "prospect_baru",
+        "to": "booking"
+      },
+      "description": "Stage pipeline berubah: prospect_baru ➔ booking",
+      "created_at": "2026-07-07T04:41:19.045Z"
+    },
+    {
+      "id": "ph-kwr66ifnn",
+      "prospect_id": "pr-pi70l9t1q",
+      "event_type": "unit_booked",
+      "actor_id": "usr-admin",
+      "metadata": {
+        "unit_id": "unt-56zy8g7kx"
+      },
+      "description": "Kavling Blok A-08 status berubah menjadi: booking",
+      "created_at": "2026-07-07T04:41:19.015Z"
+    },
+    {
+      "id": "ph-vio4hglsg",
+      "prospect_id": "pr-v1ec0rl88",
+      "event_type": "prospect_created",
+      "actor_id": "usr-admin",
+      "description": "Prospek baru dibuat oleh sales agent · Sumber: website",
+      "created_at": "2026-07-07T04:41:18.941Z"
+    },
+    {
+      "id": "ph-355ri1h7b",
+      "prospect_id": "pr-cwyrq20nz",
+      "event_type": "prospect_created",
+      "actor_id": "usr-admin",
+      "description": "Prospek baru dibuat oleh sales agent · Sumber: website",
+      "created_at": "2026-07-07T04:41:18.818Z"
+    },
+    {
+      "id": "ph-33ono2d5m",
+      "prospect_id": "pr-o9685j84e",
+      "event_type": "document_approved_bypass",
+      "actor_id": "usr-admin",
+      "description": "Dokumen Invoice (INV/2026/07/0002) disetujui sepenuhnya! (Bypass oleh Admin IT Ahmad Admin)",
+      "created_at": "2026-07-07T04:23:10.719Z"
+    },
+    {
+      "id": "ph-ghbve1tr8",
+      "prospect_id": "pr-o9685j84e",
+      "event_type": "document_approved",
+      "actor_id": "usr-admin",
+      "description": "Dokumen Invoice (INV/2026/07/0002) disetujui Level 1 oleh Ahmad Admin",
+      "created_at": "2026-07-07T04:23:07.886Z"
+    },
+    {
+      "id": "ph-ehsvjsdh6",
+      "prospect_id": "pr-o9685j84e",
+      "event_type": "approval_requested",
+      "actor_id": "usr-admin",
+      "description": "Mengajukan approval untuk dokumen Invoice (INV/2026/07/0002)",
+      "created_at": "2026-07-07T04:22:59.420Z"
+    },
+    {
+      "id": "ph-l4058e8bm",
+      "prospect_id": "pr-o9685j84e",
+      "event_type": "document_created",
+      "actor_id": "usr-admin",
+      "description": "Dokumen Invoice (INV/2026/07/0002) dibuat status: Draft",
+      "created_at": "2026-07-07T04:21:00.184Z"
+    },
     {
       "id": "ph-vtq5mivii",
       "prospect_id": "pr-o9685j84e",
@@ -5260,6 +6701,55 @@
   ],
   "documents": [
     {
+      "id": "doc-w3wl6if67",
+      "doc_type": "Invoice",
+      "doc_number": "INV/2026/07/0002",
+      "doc_token": "d584802674b0dd8552cd279aba7c30c8",
+      "requester_id": "usr-admin",
+      "status": "approved",
+      "created_at": "2026-07-07T04:21:00.184Z",
+      "data": {
+        "prospect_id": "pr-o9685j84e",
+        "client_name": "Arif Kurnia",
+        "items": [
+          {
+            "name": "dddd",
+            "qty": 1,
+            "price": 2344444444
+          }
+        ],
+        "tax_applied": true,
+        "subtotal": 2344444444,
+        "tax_amount": 257888889,
+        "total_amount": 2602333333,
+        "due_date": "2026-07-21",
+        "payment_method": "Transfer Bank Mandiri",
+        "bank_account": "131-00-1234567-8 a/n PT Domus Somnia Properti",
+        "notes": ""
+      },
+      "approval_chain": [
+        {
+          "level": 1,
+          "role": "Staff Pemasaran",
+          "status": "approved",
+          "decided_by": "Ahmad Admin",
+          "decided_at": "2026-07-07T04:23:07.886Z",
+          "remarks": "Approved"
+        },
+        {
+          "level": 2,
+          "role": "Manager Pemasaran",
+          "status": "approved",
+          "decided_by": "Budi Purnomo",
+          "decided_at": "2026-07-07T04:23:10.719Z",
+          "remarks": "Approved"
+        }
+      ],
+      "template_id": "tpl-invoice",
+      "cluster_id": "cls-anggrek",
+      "approved_at": "2026-07-07T04:23:10.719Z"
+    },
+    {
       "id": "doc-gs6a4pd9l",
       "doc_type": "Kwitansi",
       "doc_number": "KWT/2026/07/0001",
@@ -5552,6 +7042,294 @@
     }
   ],
   "auditLogs": [
+    {
+      "id": "aud-4u3pr3u1v",
+      "user_id": "usr-admin",
+      "action": "prospect.create",
+      "entity_type": "prospect",
+      "entity_id": "pr-v18fvfbjg",
+      "created_at": "2026-07-07T04:42:08.293Z"
+    },
+    {
+      "id": "aud-vvckmrm7i",
+      "user_id": "usr-admin",
+      "action": "prospect.create",
+      "entity_type": "prospect",
+      "entity_id": "pr-mpwa9augv",
+      "created_at": "2026-07-07T04:42:08.190Z"
+    },
+    {
+      "id": "aud-551e26wcx",
+      "user_id": "usr-admin",
+      "action": "prospect.create",
+      "entity_type": "prospect",
+      "entity_id": "pr-v9sijvltv",
+      "created_at": "2026-07-07T04:42:08.047Z"
+    },
+    {
+      "id": "aud-3eefg5trs",
+      "user_id": "usr-admin",
+      "action": "prospect.create",
+      "entity_type": "prospect",
+      "entity_id": "pr-s77u1kk2q",
+      "created_at": "2026-07-07T04:41:55.939Z"
+    },
+    {
+      "id": "aud-r9yjdt71z",
+      "user_id": "usr-admin",
+      "action": "prospect.create",
+      "entity_type": "prospect",
+      "entity_id": "pr-p7n8difln",
+      "created_at": "2026-07-07T04:41:55.847Z"
+    },
+    {
+      "id": "aud-3lqdibw5a",
+      "user_id": "usr-admin",
+      "action": "prospect.create",
+      "entity_type": "prospect",
+      "entity_id": "pr-x5u2ok8bw",
+      "created_at": "2026-07-07T04:41:55.734Z"
+    },
+    {
+      "id": "aud-8mwlz8p15",
+      "user_id": "usr-admin",
+      "action": "prospect.create",
+      "entity_type": "prospect",
+      "entity_id": "pr-f1q9grfup",
+      "created_at": "2026-07-07T04:41:43.694Z"
+    },
+    {
+      "id": "aud-8a9ln3jmn",
+      "user_id": "usr-admin",
+      "action": "prospect.create",
+      "entity_type": "prospect",
+      "entity_id": "pr-5g9ihl1x7",
+      "created_at": "2026-07-07T04:41:43.607Z"
+    },
+    {
+      "id": "aud-11qkbecmp",
+      "user_id": "usr-admin",
+      "action": "prospect.create",
+      "entity_type": "prospect",
+      "entity_id": "pr-wkw2ayosn",
+      "created_at": "2026-07-07T04:41:43.511Z"
+    },
+    {
+      "id": "aud-wq1lvvsiz",
+      "user_id": "usr-admin",
+      "action": "prospect.create",
+      "entity_type": "prospect",
+      "entity_id": "pr-60lzcv9ci",
+      "created_at": "2026-07-07T04:41:26.244Z"
+    },
+    {
+      "id": "aud-gfmn92818",
+      "user_id": "usr-admin",
+      "action": "prospect.create",
+      "entity_type": "prospect",
+      "entity_id": "pr-rbewnsihv",
+      "created_at": "2026-07-07T04:41:26.154Z"
+    },
+    {
+      "id": "aud-vdodabpuo",
+      "user_id": "usr-admin",
+      "action": "prospect.create",
+      "entity_type": "prospect",
+      "entity_id": "pr-5lx50v3pr",
+      "created_at": "2026-07-07T04:41:25.991Z"
+    },
+    {
+      "id": "aud-smmm1z2of",
+      "user_id": "usr-admin",
+      "action": "prospect.create",
+      "entity_type": "prospect",
+      "entity_id": "pr-phkpruq1b",
+      "created_at": "2026-07-07T04:41:25.882Z"
+    },
+    {
+      "id": "aud-4e5hery8i",
+      "user_id": "usr-admin",
+      "action": "prospect.create",
+      "entity_type": "prospect",
+      "entity_id": "pr-85vdnjdqf",
+      "created_at": "2026-07-07T04:41:21.678Z"
+    },
+    {
+      "id": "aud-6n14psgrs",
+      "user_id": "usr-admin",
+      "action": "prospect.create",
+      "entity_type": "prospect",
+      "entity_id": "pr-uttqy2e4u",
+      "created_at": "2026-07-07T04:41:21.589Z"
+    },
+    {
+      "id": "aud-a62gjaiap",
+      "user_id": "usr-admin",
+      "action": "prospect.create",
+      "entity_type": "prospect",
+      "entity_id": "pr-iogerjtxf",
+      "created_at": "2026-07-07T04:41:21.502Z"
+    },
+    {
+      "id": "aud-g4qwd1gyp",
+      "user_id": "usr-admin",
+      "action": "prospect.create",
+      "entity_type": "prospect",
+      "entity_id": "pr-1u3auxdk5",
+      "created_at": "2026-07-07T04:41:21.207Z"
+    },
+    {
+      "id": "aud-4vwjhitif",
+      "user_id": "usr-admin",
+      "action": "prospect.create",
+      "entity_type": "prospect",
+      "entity_id": "pr-m14zm5i0e",
+      "created_at": "2026-07-07T04:41:21.126Z"
+    },
+    {
+      "id": "aud-9fj3hdi6v",
+      "user_id": "usr-admin",
+      "action": "prospect.create",
+      "entity_type": "prospect",
+      "entity_id": "pr-8bott6cdc",
+      "created_at": "2026-07-07T04:41:21.043Z"
+    },
+    {
+      "id": "aud-jri1vqfe1",
+      "user_id": "usr-admin",
+      "action": "prospect.create",
+      "entity_type": "prospect",
+      "entity_id": "pr-12xf9mwoj",
+      "created_at": "2026-07-07T04:41:20.959Z"
+    },
+    {
+      "id": "aud-j4pwbr81d",
+      "user_id": "usr-admin",
+      "action": "prospect.create",
+      "entity_type": "prospect",
+      "entity_id": "pr-tp5hxkkw4",
+      "created_at": "2026-07-07T04:41:20.884Z"
+    },
+    {
+      "id": "aud-l3ypxcdkq",
+      "user_id": "usr-admin",
+      "action": "prospect.create",
+      "entity_type": "prospect",
+      "entity_id": "pr-3oombmzq5",
+      "created_at": "2026-07-07T04:41:20.783Z"
+    },
+    {
+      "id": "aud-3r8njda6n",
+      "user_id": "usr-admin",
+      "action": "prospect.create",
+      "entity_type": "prospect",
+      "entity_id": "pr-qsu5i56st",
+      "created_at": "2026-07-07T04:41:20.741Z"
+    },
+    {
+      "id": "aud-6yux0eppg",
+      "user_id": "usr-admin",
+      "action": "prospect.create",
+      "entity_type": "prospect",
+      "entity_id": "pr-uu85qoaly",
+      "created_at": "2026-07-07T04:41:20.468Z"
+    },
+    {
+      "id": "aud-qcgwghp4l",
+      "user_id": "usr-admin",
+      "action": "prospect.create",
+      "entity_type": "prospect",
+      "entity_id": "pr-htoeejhql",
+      "created_at": "2026-07-07T04:41:20.368Z"
+    },
+    {
+      "id": "aud-7mnc6hnx5",
+      "user_id": "usr-admin",
+      "action": "prospect.create",
+      "entity_type": "prospect",
+      "entity_id": "pr-0bbz8o777",
+      "created_at": "2026-07-07T04:41:20.266Z"
+    },
+    {
+      "id": "aud-619jwbqbj",
+      "user_id": "usr-admin",
+      "action": "prospect.create",
+      "entity_type": "prospect",
+      "entity_id": "pr-vm7lfn43j",
+      "created_at": "2026-07-07T04:41:20.165Z"
+    },
+    {
+      "id": "aud-lzsmuwn5d",
+      "user_id": "usr-admin",
+      "action": "prospect.create",
+      "entity_type": "prospect",
+      "entity_id": "pr-tl118ssz5",
+      "created_at": "2026-07-07T04:41:20.138Z"
+    },
+    {
+      "id": "aud-u1j6p61pp",
+      "user_id": "usr-admin",
+      "action": "prospect.create",
+      "entity_type": "prospect",
+      "entity_id": "pr-evg137rg6",
+      "created_at": "2026-07-07T04:41:20.051Z"
+    },
+    {
+      "id": "aud-lr9pd3una",
+      "user_id": "usr-admin",
+      "action": "prospect.create",
+      "entity_type": "prospect",
+      "entity_id": "pr-9mi5ib8gp",
+      "created_at": "2026-07-07T04:41:19.867Z"
+    },
+    {
+      "id": "aud-5w1hlq2rd",
+      "user_id": "usr-admin",
+      "action": "prospect.create",
+      "entity_type": "prospect",
+      "entity_id": "pr-8rrou6g0s",
+      "created_at": "2026-07-07T04:41:19.306Z"
+    },
+    {
+      "id": "aud-m12fk8rms",
+      "user_id": "usr-admin",
+      "action": "prospect.create",
+      "entity_type": "prospect",
+      "entity_id": "pr-4j89nt4zy",
+      "created_at": "2026-07-07T04:41:19.132Z"
+    },
+    {
+      "id": "aud-i9q65zelz",
+      "user_id": "usr-admin",
+      "action": "prospect.create",
+      "entity_type": "prospect",
+      "entity_id": "pr-v1ec0rl88",
+      "created_at": "2026-07-07T04:41:18.941Z"
+    },
+    {
+      "id": "aud-qdto6druc",
+      "user_id": "usr-admin",
+      "action": "prospect.create",
+      "entity_type": "prospect",
+      "entity_id": "pr-cwyrq20nz",
+      "created_at": "2026-07-07T04:41:18.818Z"
+    },
+    {
+      "id": "log-szd38v11c",
+      "user_id": "usr-admin",
+      "action": "document.approve_bypass_admin",
+      "entity_type": "document",
+      "entity_id": "doc-w3wl6if67",
+      "created_at": "2026-07-07T04:23:10.719Z"
+    },
+    {
+      "id": "log-fvuq66l5o",
+      "user_id": "usr-admin",
+      "action": "document.approve",
+      "entity_type": "document",
+      "entity_id": "doc-w3wl6if67",
+      "created_at": "2026-07-07T04:23:07.886Z"
+    },
     {
       "id": "aud-nh049c6yz",
       "user_id": "usr-admin",

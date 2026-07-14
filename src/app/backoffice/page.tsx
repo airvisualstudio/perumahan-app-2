@@ -632,6 +632,9 @@ export default function BackofficePage() {
   const [selectedSvgFileName, setSelectedSvgFileName] = useState('');
   const [clLogo, setClLogo] = useState('');
   const [clAddress, setClAddress] = useState('');
+  const [clEmail, setClEmail] = useState('');
+  const [clPhone, setClPhone] = useState('');
+  const [clBankAccount, setClBankAccount] = useState('');
 
   // UnitType Form State
   const [utName, setUtName] = useState('');
@@ -921,6 +924,9 @@ export default function BackofficePage() {
           svg_content: clSvgContent || undefined,
           logo_url: clLogo || undefined,
           address: clAddress || undefined,
+          email: clEmail || undefined,
+          phone: clPhone || undefined,
+          bank_account: clBankAccount || undefined,
           actor_id: user?.id
         })
       });
@@ -936,6 +942,9 @@ export default function BackofficePage() {
         setSelectedSvgFileName('');
         setClLogo('');
         setClAddress('');
+        setClEmail('');
+        setClPhone('');
+        setClBankAccount('');
         fetchBackofficeData();
       }
     } catch (err) {
@@ -1052,6 +1061,9 @@ export default function BackofficePage() {
     setSelectedSvgFileName(cluster.svg_content ? 'Peta Tersimpan.svg' : '');
     setClLogo(cluster.logo_url || '');
     setClAddress(cluster.address || '');
+    setClEmail(cluster.email || '');
+    setClPhone(cluster.phone || '');
+    setClBankAccount(cluster.bank_account || '');
     setIsAddingCluster(true);
   };
 
@@ -1233,7 +1245,6 @@ export default function BackofficePage() {
             ['gps', 'GPS & Lokasi', <MapPin size={14} />],
             ['audit', 'Audit Logs', <Settings size={14} />],
             ['templates', 'Template Dokumen', <LayoutTemplate size={14} />],
-            ['properties', 'Perumahan & Kavling', <Home size={14} />],
           ] as const).map(([tab, label, icon]) => (
             <button
               key={tab}
@@ -1796,7 +1807,7 @@ export default function BackofficePage() {
             
             {/* VIEW 1: Adding a new Cluster/Housing Project */}
             {isAddingCluster ? (
-              <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm flex flex-col gap-5 max-w-xl">
+              <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm flex flex-col gap-5">
                 <div>
                   <h2 className="text-base font-extrabold text-gray-900">{isEditingClusterId ? 'Edit Cluster Perumahan' : 'Tambah Cluster Perumahan Baru'}</h2>
                   <p className="text-xs text-gray-500 mt-0.5">
@@ -1804,133 +1815,210 @@ export default function BackofficePage() {
                   </p>
                 </div>
 
-                <form onSubmit={handleCreateCluster} className="flex flex-col gap-4 text-xs font-semibold">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-gray-400 uppercase tracking-wider text-[9px]">Nama Perumahan / Cluster *</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="cth: Cluster Rosewood"
-                      value={clName}
-                      onChange={e => setClName(e.target.value)}
-                      className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 font-medium"
-                    />
-                  </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-gray-400 uppercase tracking-wider text-[9px]">Lokasi *</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="cth: Arcamanik, Bandung"
-                      value={clLocation}
-                      onChange={e => setClLocation(e.target.value)}
-                      className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 font-medium"
-                    />
-                  </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-gray-400 uppercase tracking-wider text-[9px]">Logo Perumahan / Cluster (URL / Unggah Gambar)</label>
-                    <div className="flex gap-2">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <form onSubmit={handleCreateCluster} className="lg:col-span-2 flex flex-col gap-4 text-xs font-semibold">
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-gray-400 uppercase tracking-wider text-[9px]">Nama Perumahan / Cluster *</label>
                       <input
                         type="text"
-                        value={clLogo}
-                        onChange={e => setClLogo(e.target.value)}
-                        placeholder="https://link-logo-perumahan.png"
-                        className="flex-1 px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 font-medium"
+                        required
+                        placeholder="cth: Cluster Rosewood"
+                        value={clName}
+                        onChange={e => setClName(e.target.value)}
+                        className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 font-medium"
                       />
-                      <label className="px-3.5 py-2.5 border border-dashed border-gray-300 rounded-xl bg-slate-50 hover:bg-slate-100 cursor-pointer flex items-center justify-center font-bold transition-all whitespace-nowrap gap-1">
-                        <span>Pilih Gambar</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleClusterLogoUpload}
-                          className="hidden"
-                        />
-                      </label>
                     </div>
-                  </div>
 
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-gray-400 uppercase tracking-wider text-[9px]">Alamat Lengkap Perumahan</label>
-                    <textarea
-                      value={clAddress}
-                      onChange={e => setClAddress(e.target.value)}
-                      placeholder="Masukkan alamat proyek lengkap..."
-                      rows={2}
-                      className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 resize-none font-medium"
-                    />
-                  </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-gray-400 uppercase tracking-wider text-[9px]">Deskripsi Perumahan</label>
-                    <textarea
-                      placeholder="Tuliskan spesifikasi umum perumahan, kelebihan lokasi, dll..."
-                      value={clDesc}
-                      onChange={e => setClDesc(e.target.value)}
-                      rows={3}
-                      className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 resize-none font-medium"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
                     <div className="flex flex-col gap-1.5">
-                      <label className="text-gray-400 uppercase tracking-wider text-[9px]">Status Penjualan</label>
-                      <select
-                        value={clStatus}
-                        onChange={e => setClStatus(e.target.value as any)}
-                        className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none bg-white font-medium"
+                      <label className="text-gray-400 uppercase tracking-wider text-[9px]">Lokasi *</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="cth: Arcamanik, Bandung"
+                        value={clLocation}
+                        onChange={e => setClLocation(e.target.value)}
+                        className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 font-medium"
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-gray-400 uppercase tracking-wider text-[9px]">Logo Perumahan / Cluster (URL / Unggah Gambar)</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={clLogo}
+                          onChange={e => setClLogo(e.target.value)}
+                          placeholder="https://link-logo-perumahan.png"
+                          className="flex-1 px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 font-medium"
+                        />
+                        <label className="px-3.5 py-2.5 border border-dashed border-gray-300 rounded-xl bg-slate-50 hover:bg-slate-100 cursor-pointer flex items-center justify-center font-bold transition-all whitespace-nowrap gap-1">
+                          <span>Pilih Gambar</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleClusterLogoUpload}
+                            className="hidden"
+                          />
+                        </label>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-gray-400 uppercase tracking-wider text-[9px]">Alamat Lengkap Perumahan</label>
+                      <textarea
+                        value={clAddress}
+                        onChange={e => setClAddress(e.target.value)}
+                        placeholder="Masukkan alamat proyek lengkap..."
+                        rows={2}
+                        className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 resize-none font-medium"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-gray-400 uppercase tracking-wider text-[9px]">Email Perumahan</label>
+                        <input
+                          type="email"
+                          placeholder="cth: clusterrosewood@domus.com"
+                          value={clEmail}
+                          onChange={e => setClEmail(e.target.value)}
+                          className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 font-medium"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-gray-400 uppercase tracking-wider text-[9px]">Telepon Perumahan</label>
+                        <input
+                          type="text"
+                          placeholder="cth: 0812-3456-7890"
+                          value={clPhone}
+                          onChange={e => setClPhone(e.target.value)}
+                          className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 font-medium"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-gray-400 uppercase tracking-wider text-[9px]">Rekening Bank Perumahan (Kop/Kwitansi/Invoice)</label>
+                      <input
+                        type="text"
+                        placeholder="cth: Bank Mandiri 123-45-67890 a/n PT Rosewood Land"
+                        value={clBankAccount}
+                        onChange={e => setClBankAccount(e.target.value)}
+                        className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 font-medium"
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-gray-400 uppercase tracking-wider text-[9px]">Deskripsi Perumahan</label>
+                      <textarea
+                        placeholder="Tuliskan spesifikasi umum perumahan, kelebihan lokasi, dll..."
+                        value={clDesc}
+                        onChange={e => setClDesc(e.target.value)}
+                        rows={3}
+                        className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 resize-none font-medium"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-gray-400 uppercase tracking-wider text-[9px]">Status Penjualan</label>
+                        <select
+                          value={clStatus}
+                          onChange={e => setClStatus(e.target.value as any)}
+                          className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none bg-white font-medium"
+                        >
+                          <option value="active">Aktif (Active)</option>
+                          <option value="pre_launch">Pre-Launch</option>
+                          <option value="sold_out">Habis Terjual (Sold Out)</option>
+                        </select>
+                      </div>
+
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-gray-400 uppercase tracking-wider text-[9px]">Peta Site Plan (File .svg) *</label>
+                        <label className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none bg-slate-50 hover:bg-slate-100 cursor-pointer flex items-center justify-center gap-1.5 font-bold transition-all border-dashed">
+                          <span>{selectedSvgFileName ? `Terpilih: ${selectedSvgFileName.substring(0, 15)}...` : "Pilih File SVG"}</span>
+                          <input
+                            type="file"
+                            accept=".svg,image/svg+xml"
+                            onChange={handleSvgFileUpload}
+                            className="hidden"
+                          />
+                        </label>
+                      </div>
+                    </div>
+
+                    {clSvgContent && (
+                      <div className="p-3 bg-indigo-50 border border-indigo-100 text-indigo-800 rounded-xl text-[10px]">
+                        Peta SVG berhasil diproses ({Math.round(clSvgContent.length / 1024)} KB).
+                      </div>
+                    )}
+
+                    <div className="flex gap-2 pt-2 border-t border-gray-100 mt-2">
+                      <button
+                        type="submit"
+                        className="flex-1 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-bold shadow-md hover:shadow-lg transition-all text-xs"
                       >
-                        <option value="active">Aktif (Active)</option>
-                        <option value="pre_launch">Pre-Launch</option>
-                        <option value="sold_out">Habis Terjual (Sold Out)</option>
-                      </select>
+                        {isEditingClusterId ? 'Simpan Perubahan' : 'Simpan Perumahan'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsAddingCluster(false);
+                          setIsEditingClusterId('');
+                          setClName('');
+                          setClLocation('');
+                          setClDesc('');
+                          setClSvgContent('');
+                          setSelectedSvgFileName('');
+                          setClLogo('');
+                          setClAddress('');
+                          setClEmail('');
+                          setClPhone('');
+                          setClBankAccount('');
+                        }}
+                        className="flex-1 py-3 bg-gray-100 border text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition-colors text-xs"
+                      >
+                        Batal
+                      </button>
                     </div>
+                  </form>
 
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-gray-400 uppercase tracking-wider text-[9px]">Peta Site Plan (File .svg) *</label>
-                      <label className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none bg-slate-50 hover:bg-slate-100 cursor-pointer flex items-center justify-center gap-1.5 font-bold transition-all border-dashed">
-                        <span>{selectedSvgFileName ? `Terpilih: ${selectedSvgFileName.substring(0, 15)}...` : "Pilih File SVG"}</span>
-                        <input
-                          type="file"
-                          accept=".svg,image/svg+xml"
-                          onChange={handleSvgFileUpload}
-                          className="hidden"
-                        />
-                      </label>
+                  {/* Visual Preview Card for Cluster */}
+                  <div className="bg-slate-50 border border-slate-200/60 rounded-2xl p-6 flex flex-col gap-6 h-fit text-left">
+                    <span className="text-[10px] text-gray-400 uppercase font-black tracking-widest block border-b border-slate-200/50 pb-2">Pratinjau Kop Surat Perumahan</span>
+                    
+                    <div className="bg-white border border-gray-300 shadow-lg rounded-xl p-5 flex flex-col gap-4 font-sans text-[11px] text-gray-800">
+                      <div className="flex justify-between items-start border-b border-gray-800 pb-3 mb-1">
+                        <div className="flex items-center gap-2 text-left">
+                          {clLogo ? (
+                            <img src={clLogo} alt="Logo" className="w-10 h-10 object-cover rounded-lg border border-gray-150 shadow" />
+                          ) : orgLogo ? (
+                            <img src={orgLogo} alt="Logo" className="w-10 h-10 object-cover rounded-lg border border-gray-150 shadow opacity-50" />
+                          ) : (
+                            <div className="w-10 h-10 rounded-lg bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-white font-extrabold text-lg">
+                              {clName ? clName.charAt(0) : 'P'}
+                            </div>
+                          )}
+                          <div className="flex flex-col">
+                            <span className="font-extrabold text-xs text-gray-900 tracking-tight leading-none uppercase">{clName || 'NAMA CLUSTER PERUMAHAN'}</span>
+                            <span className="text-[8px] text-gray-400 font-bold uppercase tracking-wider mt-0.5">Housing Project Branding</span>
+                          </div>
+                        </div>
+                        <div className="flex flex-col text-right text-[8px] text-gray-500 font-semibold leading-relaxed max-w-[130px]">
+                          <span className="truncate block" title={clAddress || orgAddress}>{clAddress || orgAddress || 'Alamat Proyek'}</span>
+                          <span>Telp: {clPhone || orgPhone || 'Telepon Proyek'}</span>
+                          <span>Email: {clEmail || orgEmail || 'Email Proyek'}</span>
+                        </div>
+                      </div>
+
+                      <div className="py-2 border border-dashed border-slate-200 rounded-lg bg-slate-50/50 flex flex-col gap-1 items-center justify-center">
+                        <span className="text-[8px] text-gray-400 font-bold uppercase">Pembayaran Booking/DP via Transfer:</span>
+                        <span className="font-extrabold text-xs text-purple-700 text-center px-1">{clBankAccount || orgBankAccount || 'Rekening Bank Perumahan'}</span>
+                      </div>
                     </div>
+                    <p className="text-[10px] text-gray-400 leading-normal italic">* Nilai abu-abu menandakan fallback otomatis menggunakan profil perusahaan global karena nilai perumahan ini belum diisi.</p>
                   </div>
-
-                  {clSvgContent && (
-                    <div className="p-3 bg-indigo-50 border border-indigo-100 text-indigo-800 rounded-xl text-[10px]">
-                      Peta SVG berhasil diproses ({Math.round(clSvgContent.length / 1024)} KB).
-                    </div>
-                  )}
-
-                  <div className="flex gap-2 pt-2 border-t border-gray-100 mt-2">
-                    <button
-                      type="submit"
-                      className="flex-1 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-bold shadow-md hover:shadow-lg transition-all text-xs"
-                    >
-                      {isEditingClusterId ? 'Simpan Perubahan' : 'Simpan Perumahan'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsAddingCluster(false);
-                        setIsEditingClusterId('');
-                        setClName('');
-                        setClLocation('');
-                        setClDesc('');
-                        setClSvgContent('');
-                        setSelectedSvgFileName('');
-                      }}
-                      className="flex-1 py-3 bg-gray-100 border text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition-colors text-xs"
-                    >
-                      Batal
-                    </button>
-                  </div>
-                </form>
+                </div>
               </div>
             ) : selectedClusterId ? (
               // VIEW 2: Inspected Cluster Detail Page (Unit Types & Kavlings list)
