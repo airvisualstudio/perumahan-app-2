@@ -50,6 +50,7 @@ interface User {
   employee_id: string;
   annual_leave_balance: number;
   is_active: boolean;
+  accessible_clusters?: string[];
 }
 
 interface AuditLog {
@@ -583,6 +584,10 @@ export default function BackofficePage() {
   const [companySaveSuccess, setCompanySaveSuccess] = useState('');
   
   const [usersList, setUsersList] = useState<User[]>([]);
+  const [selectedUserForAccess, setSelectedUserForAccess] = useState<User | null>(null);
+  const [tempSelectedClusters, setTempSelectedClusters] = useState<string[]>([]);
+  const [tempRole, setTempRole] = useState<string>('staff');
+  const [tempDepartment, setTempDepartment] = useState<string>('');
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [officeSettings, setOfficeSettings] = useState<any>(null);
   
@@ -828,6 +833,45 @@ export default function BackofficePage() {
       alert('Terjadi kesalahan koneksi');
     } finally {
       setIsSavingCompany(false);
+    }
+  };
+
+  const handleSaveUserAccess = async () => {
+    if (!selectedUserForAccess) return;
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'update_user_access',
+          actor_id: user?.id,
+          target_user_id: selectedUserForAccess.id,
+          accessible_clusters: tempRole === 'admin' ? [] : tempSelectedClusters,
+          role: tempRole,
+          department: tempDepartment
+        })
+      });
+      const json = await res.json();
+      if (json.success) {
+        setSelectedUserForAccess(null);
+        fetchBackofficeData();
+        
+        // Dispatch mock slack notification
+        const clusterNames = tempRole === 'admin' 
+          ? 'Semua Perumahan (Admin)' 
+          : tempSelectedClusters.length > 0 
+            ? tempSelectedClusters.map(id => clusters.find(c => c.id === id)?.name || id).join(', ')
+            : 'Semua Perumahan';
+        const message = `Admin *${user?.name}* memperbarui hak akses & role staf *${selectedUserForAccess.name}*:\n- Role: *${tempRole}* (${tempDepartment})\n- Akses Perumahan: *${clusterNames}*`;
+        window.dispatchEvent(new CustomEvent('simulated-slack-webhook', {
+          detail: { timestamp: new Date().toLocaleTimeString('id-ID'), channel: 'hr-notif', message }
+        }));
+      } else {
+        alert(json.error || 'Gagal menyimpan akses perumahan');
+      }
+    } catch (error) {
+      console.error(error);
+      alert('Terjadi kesalahan koneksi');
     }
   };
 
@@ -1417,8 +1461,9 @@ export default function BackofficePage() {
                     <th className="p-4">Email</th>
                     <th className="p-4">Departemen</th>
                     <th className="p-4">Role</th>
-                    <th className="p-4">Saldo Cuti</th>
+                    <th className="p-4">Akses Perumahan</th>
                     <th className="p-4 text-center">Status</th>
+                    <th className="p-4 text-center">Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1437,9 +1482,39 @@ export default function BackofficePage() {
                           {u.role}
                         </span>
                       </td>
-                      <td className="p-4 font-bold text-gray-700">{u.annual_leave_balance} Hari</td>
+                      <td className="p-4">
+                        {u.role === 'admin' ? (
+                          <span className="text-[10px] font-bold text-red-750 bg-red-50 border border-red-100 px-2 py-0.5 rounded-full">Semua (Admin)</span>
+                        ) : u.accessible_clusters && u.accessible_clusters.length > 0 ? (
+                          <div className="flex flex-wrap gap-1 max-w-[200px]">
+                            {u.accessible_clusters.map((cid: string) => {
+                              const clusterName = clusters.find(c => c.id === cid)?.name || cid;
+                              return (
+                                <span key={cid} className="text-[9.5px] font-semibold bg-gray-100 text-gray-700 px-2 py-0.5 rounded border border-gray-200">
+                                  {clusterName}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <span className="text-[10px] font-semibold text-gray-400 italic">Semua Perumahan</span>
+                        )}
+                      </td>
                       <td className="p-4 text-center">
                         <span className="px-2 py-0.5 bg-green-50 text-green-700 border border-green-200 rounded text-[10px] font-bold">AKTIF</span>
+                      </td>
+                      <td className="p-4 text-center">
+                        <button
+                          onClick={() => {
+                            setSelectedUserForAccess(u);
+                            setTempSelectedClusters(u.accessible_clusters || []);
+                            setTempRole(u.role);
+                            setTempDepartment(u.department || '');
+                          }}
+                          className="px-3 py-1.5 bg-indigo-50 border border-indigo-150 text-indigo-750 rounded-xl hover:bg-indigo-100 text-[10.5px] font-bold transition-colors cursor-pointer"
+                        >
+                          Atur Akses & Role
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -2750,6 +2825,119 @@ export default function BackofficePage() {
           </div>
         )}
       </div>
+
+      {/* User Access Modal */}
+      {selectedUserForAccess && (
+        <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4" onClick={() => setSelectedUserForAccess(null)}>
+          <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl overflow-hidden border border-gray-150 flex flex-col max-h-[85vh] animate-in fade-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+            {/* Modal Header */}
+            <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+              <div className="flex flex-col text-left">
+                <h3 className="font-bold text-base text-gray-950">Edit Akses & Role Karyawan</h3>
+                <p className="text-xs text-gray-500 mt-0.5">Kelola konfigurasi akun: <strong>{selectedUserForAccess.name}</strong></p>
+              </div>
+              <button 
+                onClick={() => setSelectedUserForAccess(null)}
+                className="p-1.5 hover:bg-gray-200 rounded-full text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            
+            {/* Modal Body */}
+            <div className="p-6 overflow-y-auto flex-1 text-left space-y-5">
+              {/* Role Selection */}
+              <div className="space-y-1.5 flex flex-col text-left">
+                <label className="text-gray-400 uppercase tracking-wider text-[9px] font-bold">Role Hak Akses *</label>
+                <select
+                  value={tempRole}
+                  onChange={(e) => setTempRole(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 font-medium text-xs text-gray-800"
+                >
+                  <option value="admin">Admin (Akses Penuh Seluruh Sistem)</option>
+                  <option value="manager">Manager (Akses Manajemen Properti & CRM)</option>
+                  <option value="staff">Staff (Akses Operasional Lapangan & Sales)</option>
+                </select>
+              </div>
+
+              {/* Department */}
+              <div className="space-y-1.5 flex flex-col text-left">
+                <label className="text-gray-400 uppercase tracking-wider text-[9px] font-bold">Departemen Karyawan</label>
+                <input
+                  type="text"
+                  value={tempDepartment}
+                  onChange={(e) => setTempDepartment(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 font-medium text-xs text-gray-800"
+                  placeholder="Contoh: Pemasaran, Keuangan, Direksi"
+                />
+              </div>
+              
+              {/* Cluster Access Restriction */}
+              <div className="space-y-2.5">
+                <label className="text-gray-400 uppercase tracking-wider text-[9px] font-bold">Pembatasan Proyek Perumahan</label>
+                
+                {tempRole === 'admin' ? (
+                  <div className="bg-red-50 border border-red-100 rounded-xl p-3.5 text-xs text-red-800 font-medium leading-relaxed">
+                    Pengguna dengan role <strong>Admin</strong> secara otomatis memiliki hak akses penuh ke <strong>semua</strong> proyek perumahan secara permanen.
+                  </div>
+                ) : (
+                  <>
+                    <div className="bg-blue-50 border border-blue-100 rounded-xl p-3.5 text-xs text-blue-800 font-medium leading-relaxed">
+                      Pilih proyek perumahan yang dapat diakses, dikelola, dan dilihat oleh staf ini. Jika tidak ada yang dipilih, staf akan memiliki akses ke <strong>semua</strong> perumahan.
+                    </div>
+                    
+                    <div className="border border-gray-200 rounded-2xl divide-y divide-gray-100 overflow-hidden bg-gray-50/20 max-h-48 overflow-y-auto">
+                      {clusters.length === 0 ? (
+                        <div className="p-4 text-center text-gray-400 italic text-xs">Belum ada proyek perumahan.</div>
+                      ) : (
+                        clusters.map((c) => {
+                          const isChecked = tempSelectedClusters.includes(c.id);
+                          return (
+                            <label key={c.id} className="flex items-center gap-3.5 px-4 py-3 hover:bg-gray-50/50 cursor-pointer select-none">
+                              <input 
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setTempSelectedClusters([...tempSelectedClusters, c.id]);
+                                  } else {
+                                    setTempSelectedClusters(tempSelectedClusters.filter(id => id !== c.id));
+                                  }
+                                }}
+                                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
+                              />
+                              <div className="flex flex-col min-w-0">
+                                <span className="text-xs font-bold text-gray-800 truncate">{c.name}</span>
+                                <span className="text-[10px] text-gray-400 font-medium truncate mt-0.5">{c.location}</span>
+                              </div>
+                            </label>
+                          );
+                        })
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+            
+            {/* Modal Footer */}
+            <div className="p-5 border-t border-gray-100 bg-gray-50/50 flex justify-end gap-3">
+              <button 
+                onClick={() => setSelectedUserForAccess(null)}
+                className="px-4 py-2.5 rounded-xl border border-gray-200 hover:bg-gray-100 text-xs font-semibold text-gray-700 transition-colors cursor-pointer"
+              >
+                Batal
+              </button>
+              <button 
+                onClick={handleSaveUserAccess}
+                className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-md shadow-blue-100 transition-colors cursor-pointer"
+              >
+                Simpan Konfigurasi
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AppShell>
   );
 }

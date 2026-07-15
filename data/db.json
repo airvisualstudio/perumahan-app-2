@@ -1240,7 +1240,7 @@
       "company_name": "Klinik Medika",
       "estimated_income": 31000000,
       "lead_source": "instagram",
-      "pipeline_stage": "dihubungi",
+      "pipeline_stage": "survei",
       "assigned_to": "usr-sales",
       "interested_cluster_id": "cls-anggrek",
       "interested_type_id": "typ-anggrek-54",
@@ -1248,7 +1248,7 @@
       "notes": "Prospek disimulasikan otomatis oleh Command Center.",
       "created_by": "usr-admin",
       "created_at": "2026-06-06T18:01:03.342Z",
-      "updated_at": "2026-07-02T06:52:01.025Z",
+      "updated_at": "2026-07-15T08:28:42.696Z",
       "attachments": [
         {
           "id": "att-i24q2njfv",
@@ -4442,6 +4442,18 @@
     }
   ],
   "prospectHistory": [
+    {
+      "id": "ph-cu23h4epk",
+      "prospect_id": "pr-o9685j84e",
+      "event_type": "stage_changed",
+      "actor_id": "usr-finance",
+      "metadata": {
+        "from": "dihubungi",
+        "to": "survei"
+      },
+      "description": "Stage pipeline berubah: dihubungi ➔ survei",
+      "created_at": "2026-07-15T08:28:42.696Z"
+    },
     {
       "id": "ph-rdssd9wyw",
       "prospect_id": "pr-v18fvfbjg",

@@ -23,6 +23,7 @@ import {
   Home
 } from 'lucide-react';
 import Link from 'next/link';
+import { useAuth } from '@/context/AuthContext';
 
 // Load Monitoring Map dynamically to prevent SSR hydration mismatches
 const MonitoringMap = dynamic(() => import('@/components/MonitoringMap'), { ssr: false });
@@ -79,6 +80,7 @@ interface AlertNotification {
 }
 
 export default function MonitoringPage() {
+  const { user } = useAuth();
   const [clusters, setClusters] = useState<Cluster[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
   const [prospects, setProspects] = useState<Prospect[]>([]);
@@ -129,8 +131,18 @@ export default function MonitoringPage() {
       const res = await fetch('/api/db');
       const json = await res.json();
       if (json.success) {
-        const { clusters: rawClusters, units: rawUnits, prospects: rawProspects, unitTypes: rawTypes, documents: rawDocs, users: rawUsers, prospectHistory, unitHistory } = json.data;
+        let { clusters: rawClusters, units: rawUnits, prospects: rawProspects, unitTypes: rawTypes, documents: rawDocs, users: rawUsers, prospectHistory, unitHistory } = json.data;
         
+        // Filter based on user housing access
+        const accessClusters = user?.accessible_clusters;
+        if (user && user.role !== 'admin' && accessClusters && accessClusters.length > 0) {
+          rawClusters = (rawClusters || []).filter((c: any) => accessClusters.includes(c.id));
+          rawUnits = (rawUnits || []).filter((u: any) => accessClusters.includes(u.cluster_id));
+          rawTypes = (rawTypes || []).filter((ut: any) => accessClusters.includes(ut.cluster_id));
+          rawProspects = (rawProspects || []).filter((p: any) => !p.interested_cluster_id || accessClusters.includes(p.interested_cluster_id));
+          rawDocs = (rawDocs || []).filter((d: any) => !d.cluster_id || accessClusters.includes(d.cluster_id));
+        }
+
         setClusters(rawClusters || []);
         setUnits(rawUnits || []);
         setProspects(rawProspects || []);

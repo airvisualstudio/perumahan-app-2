@@ -56,8 +56,16 @@ export default function DashboardPage() {
       const dbData = fullDb.data;
 
       // Calculations
-      const prospects = dbData.prospects || [];
-      const units = dbData.units || [];
+      let prospects = dbData.prospects || [];
+      let units = dbData.units || [];
+      
+      // Filter based on user housing access
+      const accessClusters = user?.accessible_clusters;
+      if (user && user.role !== 'admin' && accessClusters && accessClusters.length > 0) {
+        prospects = prospects.filter((p: any) => !p.interested_cluster_id || accessClusters.includes(p.interested_cluster_id));
+        units = units.filter((u: any) => accessClusters.includes(u.cluster_id));
+      }
+
       const attendance = dbData.attendance || [];
       const leaves = dbData.leaves || [];
       const tasks = dbData.tasks || [];

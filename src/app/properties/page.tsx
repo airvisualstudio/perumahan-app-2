@@ -159,9 +159,21 @@ export default function PropertiesManagementPage() {
       const res = await fetch('/api/db');
       const json = await res.json();
       if (json.success) {
-        setClusters(json.data.clusters || []);
-        setUnits(json.data.units || []);
-        setUnitTypes(json.data.unitTypes || []);
+        let loadedClusters = json.data.clusters || [];
+        let loadedUnits = json.data.units || [];
+        let loadedUnitTypes = json.data.unitTypes || [];
+
+        // Apply housing project access filtering
+        const accessClusters = user?.accessible_clusters;
+        if (user && user.role !== 'admin' && accessClusters && accessClusters.length > 0) {
+          loadedClusters = loadedClusters.filter((c: any) => accessClusters.includes(c.id));
+          loadedUnits = loadedUnits.filter((u: any) => accessClusters.includes(u.cluster_id));
+          loadedUnitTypes = loadedUnitTypes.filter((ut: any) => accessClusters.includes(ut.cluster_id));
+        }
+
+        setClusters(loadedClusters);
+        setUnits(loadedUnits);
+        setUnitTypes(loadedUnitTypes);
         
         const settings = json.data.settings;
         if (settings) {

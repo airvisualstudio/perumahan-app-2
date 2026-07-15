@@ -61,6 +61,37 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, settings: data.settings });
     }
 
+    if (action === 'update_user_access') {
+      const { target_user_id, accessible_clusters, role, department } = body;
+      const userIndex = data.users.findIndex((u: any) => u.id === target_user_id);
+      if (userIndex === -1) {
+        return NextResponse.json({ success: false, error: 'User tidak ditemukan' }, { status: 404 });
+      }
+
+      if (accessible_clusters !== undefined) {
+        data.users[userIndex].accessible_clusters = accessible_clusters;
+      }
+      if (role !== undefined) {
+        data.users[userIndex].role = role;
+      }
+      if (department !== undefined) {
+        data.users[userIndex].department = department;
+      }
+
+      // Add audit log
+      data.auditLogs.unshift({
+        id: 'aud-' + Math.random().toString(36).substr(2, 9),
+        user_id: actor_id || 'usr-admin',
+        action: 'user.update_access',
+        entity_type: 'user',
+        entity_id: target_user_id,
+        created_at: new Date().toISOString()
+      });
+
+      db.save(data);
+      return NextResponse.json({ success: true });
+    }
+
     return NextResponse.json({ success: false, error: 'Unknown action' }, { status: 400 });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

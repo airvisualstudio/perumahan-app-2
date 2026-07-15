@@ -10,6 +10,7 @@ export interface UserSession {
   department: string;
   employee_id: string;
   annual_leave_balance: number;
+  accessible_clusters?: string[];
 }
 
 interface AuthContextType {
@@ -35,11 +36,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Read from localStorage to persist mock session
-    const savedUserId = localStorage.getItem('domus_mock_user_id');
-    const defaultUser = mockUsers.find(u => u.id === savedUserId) || mockUsers[3]; // Default to Rina Sales
-    setUser(defaultUser);
-    setIsLoading(false);
+    const savedUserId = localStorage.getItem('domus_mock_user_id') || 'usr-sales';
+    
+    // Fetch dynamic database data to get the latest access permissions
+    fetch('/api/db')
+      .then(res => res.json())
+      .then(json => {
+        if (json.success && json.data.users) {
+          const dbUsers = json.data.users;
+          const foundDbUser = dbUsers.find((u: any) => u.id === savedUserId);
+          if (foundDbUser) {
+            setUser(foundDbUser);
+            setIsLoading(false);
+            return;
+          }
+        }
+        const defaultUser = mockUsers.find(u => u.id === savedUserId) || mockUsers[3];
+        setUser(defaultUser);
+        setIsLoading(false);
+      })
+      .catch(() => {
+        const defaultUser = mockUsers.find(u => u.id === savedUserId) || mockUsers[3];
+        setUser(defaultUser);
+        setIsLoading(false);
+      });
   }, []);
 
   const switchUser = (userId: string) => {

@@ -145,20 +145,32 @@ export default function DocumentHubPage() {
         fetch('/api/settings'),
       ]);
       const json = await docsRes.json();
-      if (json.success) {
-        setDocuments(json.documents || []);
-        if (json.documents.length > 0 && !selectedDoc) {
-          setSelectedDoc(json.documents[0]);
-        }
-      }
       const crmJson = await crmRes.json();
-      if (crmJson.success) {
-        setProspects(crmJson.prospects || []);
-        setClusters(crmJson.clusters || []);
-        setUnits(crmJson.units || []);
-        if (crmJson.prospects.length > 0) {
-          setInvProspectId(crmJson.prospects[0].id);
-        }
+      
+      let loadedDocs = json.success ? (json.documents || []) : [];
+      let loadedClusters = crmJson.success ? (crmJson.clusters || []) : [];
+      let loadedUnits = crmJson.success ? (crmJson.units || []) : [];
+      let loadedProspects = crmJson.success ? (crmJson.prospects || []) : [];
+
+      // Apply housing project access filtering
+      const accessClusters = user?.accessible_clusters;
+      if (user && user.role !== 'admin' && accessClusters && accessClusters.length > 0) {
+        loadedClusters = loadedClusters.filter((c: any) => accessClusters.includes(c.id));
+        loadedUnits = loadedUnits.filter((u: any) => accessClusters.includes(u.cluster_id));
+        loadedProspects = loadedProspects.filter((p: any) => !p.interested_cluster_id || accessClusters.includes(p.interested_cluster_id));
+        loadedDocs = loadedDocs.filter((d: any) => !d.cluster_id || accessClusters.includes(d.cluster_id));
+      }
+
+      setDocuments(loadedDocs);
+      if (loadedDocs.length > 0 && !selectedDoc) {
+        setSelectedDoc(loadedDocs[0]);
+      }
+
+      setClusters(loadedClusters);
+      setUnits(loadedUnits);
+      setProspects(loadedProspects);
+      if (loadedProspects.length > 0) {
+        setInvProspectId(loadedProspects[0].id);
       }
       const tplJson = await tplRes.json();
       if (tplJson.success && tplJson.templates?.length > 0) {

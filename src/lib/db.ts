@@ -18,6 +18,7 @@ export interface User {
   is_active: boolean;
   google_id?: string;
   created_at: string;
+  accessible_clusters?: string[];
 }
 
 export interface ClusterDoc {

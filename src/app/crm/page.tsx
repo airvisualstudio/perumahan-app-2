@@ -295,13 +295,28 @@ export default function CRMModulePage() {
       const res = await fetch('/api/crm');
       const json = await res.json();
       if (json.success) {
-        setClusters(json.clusters || []);
-        setUnits(json.units || []);
-        setUnitTypes(json.unitTypes || []);
-        setProspects(json.prospects || []);
-        if (json.clusters && json.clusters.length > 0 && !activeClusterId) {
-          setActiveClusterId(json.clusters[0].id);
-          setFormCluster(json.clusters[0].id);
+        let loadedClusters = json.clusters || [];
+        let loadedUnits = json.units || [];
+        let loadedUnitTypes = json.unitTypes || [];
+        let loadedProspects = json.prospects || [];
+
+        // Apply housing project access filtering
+        const accessClusters = user?.accessible_clusters;
+        if (user && user.role !== 'admin' && accessClusters && accessClusters.length > 0) {
+          loadedClusters = loadedClusters.filter((c: any) => accessClusters.includes(c.id));
+          loadedUnits = loadedUnits.filter((u: any) => accessClusters.includes(u.cluster_id));
+          loadedUnitTypes = loadedUnitTypes.filter((ut: any) => accessClusters.includes(ut.cluster_id));
+          loadedProspects = loadedProspects.filter((p: any) => !p.interested_cluster_id || accessClusters.includes(p.interested_cluster_id));
+        }
+
+        setClusters(loadedClusters);
+        setUnits(loadedUnits);
+        setUnitTypes(loadedUnitTypes);
+        setProspects(loadedProspects);
+
+        if (loadedClusters.length > 0 && !activeClusterId) {
+          setActiveClusterId(loadedClusters[0].id);
+          setFormCluster(loadedClusters[0].id);
         }
       }
       setIsLoading(false);
