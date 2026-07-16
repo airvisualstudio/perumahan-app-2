@@ -33,7 +33,7 @@ export async function GET(request: Request) {
         approved_at: doc.approved_at,
         revoked_at: doc.revoked_at,
         revoked_reason: doc.revoked_reason,
-        issuer: data.users.find(u => u.id === doc.requester_id)?.name || 'PT Domus Somnia',
+        issuer: (data.employees || []).find(e => e.user_id === doc.requester_id)?.name || 'PT Domus Somnia',
         approver_final: doc.approval_chain
           .filter(c => c.status === 'approved')
           .pop()?.decided_by || 'Sistem',
@@ -237,8 +237,9 @@ export async function POST(request: Request) {
       const doc = data.documents.find(d => d.id === doc_id);
       if (!doc) return NextResponse.json({ success: false, error: 'Document not found' }, { status: 444 });
 
-      const actor = data.users.find(u => u.id === actor_id);
-      if (!actor) return NextResponse.json({ success: false, error: 'Actor not found' }, { status: 400 });
+      const actorUser = data.users.find(u => u.id === actor_id);
+      const actorEmployee = actorUser ? (data.employees || []).find(e => e.user_id === actorUser.id) : null;
+      if (!actorUser || !actorEmployee) return NextResponse.json({ success: false, error: 'Actor not found' }, { status: 400 });
 
       const activeStep = doc.approval_chain.find(c => c.status === 'pending');
       if (!activeStep) {
@@ -246,13 +247,16 @@ export async function POST(request: Request) {
       }
 
       // Check if Admin is bypassing the Manager Pemasaran step
-      const isBypass = activeStep.role === 'Manager Pemasaran' && actor.role === 'admin';
+      const isBypass = activeStep.role === 'Manager Pemasaran' && actorUser.role === 'admin';
       
-      let displayedApproverName = actor.name;
+      let displayedApproverName = actorEmployee.name;
       if (isBypass) {
         // Find the Manager Pemasaran name (Budi Purnomo)
-        const managerUser = data.users.find(u => u.role === 'manager' && u.department === 'Pemasaran');
-        displayedApproverName = managerUser ? managerUser.name : 'Budi Purnomo';
+        const managerEmp = (data.employees || []).find(e => {
+          const u = data.users.find(usr => usr.id === e.user_id);
+          return u?.role === 'manager' && e.department === 'Pemasaran';
+        });
+        displayedApproverName = managerEmp ? managerEmp.name : 'Budi Purnomo';
       }
 
       activeStep.status = 'approved';
@@ -290,8 +294,8 @@ export async function POST(request: Request) {
 
       // System history log mentioning the real actor (Ahmad Admin)
       const auditLogDescription = isBypass
-        ? `Dokumen ${doc.doc_type} (${doc.doc_number}) disetujui Level 2 oleh Admin IT (${actor.name}) sebagai bypass Manager Pemasaran`
-        : `Dokumen ${doc.doc_type} (${doc.doc_number}) disetujui Level ${activeStep.level} oleh ${actor.name}`;
+        ? `Dokumen ${doc.doc_type} (${doc.doc_number}) disetujui Level 2 oleh Admin IT (${actorEmployee.name}) sebagai bypass Manager Pemasaran`
+        : `Dokumen ${doc.doc_type} (${doc.doc_number}) disetujui Level ${activeStep.level} oleh ${actorEmployee.name}`;
 
       if (doc.data.prospect_id) {
         data.prospectHistory.unshift({
@@ -301,7 +305,7 @@ export async function POST(request: Request) {
           actor_id,
           description: !hasPending 
             ? (isBypass 
-                ? `Dokumen ${doc.doc_type} (${doc.doc_number}) disetujui sepenuhnya! (Bypass oleh Admin IT ${actor.name})`
+                ? `Dokumen ${doc.doc_type} (${doc.doc_number}) disetujui sepenuhnya! (Bypass oleh Admin IT ${actorEmployee.name})`
                 : `Dokumen ${doc.doc_type} (${doc.doc_number}) disetujui sepenuhnya!`)
             : auditLogDescription,
           created_at: new Date().toISOString()
@@ -327,13 +331,14 @@ export async function POST(request: Request) {
       const doc = data.documents.find(d => d.id === doc_id);
       if (!doc) return NextResponse.json({ success: false, error: 'Document not found' }, { status: 444 });
 
-      const actor = data.users.find(u => u.id === actor_id);
-      if (!actor) return NextResponse.json({ success: false, error: 'Actor not found' }, { status: 400 });
+      const actorUser = data.users.find(u => u.id === actor_id);
+      const actorEmployee = actorUser ? (data.employees || []).find(e => e.user_id === actorUser.id) : null;
+      if (!actorUser || !actorEmployee) return NextResponse.json({ success: false, error: 'Actor not found' }, { status: 400 });
 
       const activeStep = doc.approval_chain.find(c => c.status === 'pending');
       if (activeStep) {
         activeStep.status = 'rejected';
-        activeStep.decided_by = actor.name;
+        activeStep.decided_by = actorEmployee.name;
         activeStep.decided_at = new Date().toISOString();
         activeStep.remarks = remarks;
       }
@@ -346,7 +351,7 @@ export async function POST(request: Request) {
           prospect_id: doc.data.prospect_id,
           event_type: 'approval_decided',
           actor_id,
-          description: `Dokumen ${doc.doc_type} (${doc.doc_number}) ditolak oleh ${actor.name}. Catatan: ${remarks}`,
+          description: `Dokumen ${doc.doc_type} (${doc.doc_number}) ditolak oleh ${actorEmployee.name}. Catatan: ${remarks}`,
           created_at: new Date().toISOString()
         });
       }
@@ -360,13 +365,14 @@ export async function POST(request: Request) {
       const doc = data.documents.find(d => d.id === doc_id);
       if (!doc) return NextResponse.json({ success: false, error: 'Document not found' }, { status: 444 });
 
-      const actor = data.users.find(u => u.id === actor_id);
-      if (!actor) return NextResponse.json({ success: false, error: 'Actor not found' }, { status: 400 });
+      const actorUser = data.users.find(u => u.id === actor_id);
+      const actorEmployee = actorUser ? (data.employees || []).find(e => e.user_id === actorUser.id) : null;
+      if (!actorUser || !actorEmployee) return NextResponse.json({ success: false, error: 'Actor not found' }, { status: 400 });
 
       doc.status = 'revoked';
       doc.revoked_reason = reason;
       doc.revoked_at = new Date().toISOString();
-      doc.revoked_by = actor.name;
+      doc.revoked_by = actorEmployee.name;
 
       db.save(data);
       return NextResponse.json({ success: true, document: doc });

@@ -16,7 +16,8 @@ export async function GET(request: Request) {
 
     // Helper: Map user ID to user Name
     const getUserName = (id: string) => {
-      return data.users.find(u => u.id === id)?.name || id;
+      const emp = (data.employees || []).find(e => e.user_id === id);
+      return emp ? emp.name : id;
     };
 
     // 1. DOCUMENTS IN NEED OF APPROVAL
@@ -28,11 +29,11 @@ export async function GET(request: Request) {
         
         if (role === 'admin') {
           canApprove = true; // Admin can approve anything
-        } else if (activeStep.role === 'Staff Pemasaran' && role === 'staff' && data.users.find(u => u.id === userId)?.department === 'Pemasaran') {
+        } else if (activeStep.role === 'Staff Pemasaran' && role === 'staff' && (data.employees || []).find(e => e.user_id === userId)?.department === 'Pemasaran') {
           canApprove = true;
-        } else if (activeStep.role === 'Manager Pemasaran' && role === 'manager' && data.users.find(u => u.id === userId)?.department === 'Pemasaran') {
+        } else if (activeStep.role === 'Manager Pemasaran' && role === 'manager' && (data.employees || []).find(e => e.user_id === userId)?.department === 'Pemasaran') {
           canApprove = true;
-        } else if (activeStep.role === 'Keuangan' && data.users.find(u => u.id === userId)?.department === 'Keuangan') {
+        } else if (activeStep.role === 'Keuangan' && (data.employees || []).find(e => e.user_id === userId)?.department === 'Keuangan') {
           canApprove = true;
         } else if (activeStep.role === role || activeStep.user_id === userId) {
           canApprove = true;

@@ -248,6 +248,9 @@ export async function POST(request: Request) {
         return NextResponse.json({ success: false, error: 'User not found' }, { status: 444 });
       }
 
+      const actorEmployee = (data.employees || []).find(e => e.user_id === actor.id);
+      const actorName = actorEmployee ? actorEmployee.name : 'Staf Domus';
+
       const prospect = data.prospects.find(p => p.id === followup.prospect_id);
       if (!prospect) {
         return NextResponse.json({ success: false, error: 'Prospect not found' }, { status: 444 });
@@ -265,7 +268,7 @@ export async function POST(request: Request) {
       const newComment = {
         id: 'cm-' + Math.random().toString(36).substr(2, 9),
         user_id: actor.id,
-        user_name: actor.name,
+        user_name: actorName,
         user_role: actor.role,
         content,
         created_at: new Date().toISOString()
@@ -278,7 +281,7 @@ export async function POST(request: Request) {
         prospect_id: followup.prospect_id,
         event_type: 'followup_comment_added',
         actor_id,
-        description: `${actor.name} (${actor.role}) mengomentari follow-up: "${content.substring(0, 30)}${content.length > 30 ? '...' : ''}"`,
+        description: `${actorName} (${actor.role}) mengomentari follow-up: "${content.substring(0, 30)}${content.length > 30 ? '...' : ''}"`,
         created_at: new Date().toISOString()
       });
 

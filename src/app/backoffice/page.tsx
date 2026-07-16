@@ -34,7 +34,7 @@ import {
   Building2,
 } from 'lucide-react';
 
-import { DocumentTemplate, DocumentTemplateBlock, TemplateBlockType } from '@/lib/db';
+import { DocumentTemplate, DocumentTemplateBlock, TemplateBlockType, Employee } from '@/lib/db';
 import dynamic from 'next/dynamic';
 
 const MapPicker = dynamic(() => import('@/components/MapPicker'), { ssr: false });
@@ -584,10 +584,21 @@ export default function BackofficePage() {
   const [companySaveSuccess, setCompanySaveSuccess] = useState('');
   
   const [usersList, setUsersList] = useState<User[]>([]);
+  const [employeesList, setEmployeesList] = useState<Employee[]>([]);
   const [selectedUserForAccess, setSelectedUserForAccess] = useState<User | null>(null);
   const [tempSelectedClusters, setTempSelectedClusters] = useState<string[]>([]);
   const [tempRole, setTempRole] = useState<string>('staff');
   const [tempDepartment, setTempDepartment] = useState<string>('');
+  const [tempName, setTempName] = useState<string>('');
+  const [tempEmployeeId, setTempEmployeeId] = useState<string>('');
+  const [tempLeaveBalance, setTempLeaveBalance] = useState<number>(12);
+
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [empName, setEmpName] = useState('');
+  const [empDepartment, setEmpDepartment] = useState('');
+  const [empIdString, setEmpIdString] = useState('');
+  const [empLeaveBalance, setEmpLeaveBalance] = useState(12);
+  const [isAddingEmployee, setIsAddingEmployee] = useState(false);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [officeSettings, setOfficeSettings] = useState<any>(null);
   
@@ -672,6 +683,7 @@ export default function BackofficePage() {
       const json = await res.json();
       if (json.success) {
         setUsersList(json.data.users || []);
+        setEmployeesList(json.data.employees || []);
         setAuditLogs(json.data.auditLogs || []);
         setClusters(json.data.clusters || []);
         setUnits(json.data.units || []);
@@ -848,7 +860,10 @@ export default function BackofficePage() {
           target_user_id: selectedUserForAccess.id,
           accessible_clusters: tempRole === 'admin' ? [] : tempSelectedClusters,
           role: tempRole,
-          department: tempDepartment
+          department: tempDepartment,
+          name: tempName,
+          employee_id: tempEmployeeId,
+          annual_leave_balance: tempLeaveBalance
         })
       });
       const json = await res.json();
@@ -862,12 +877,83 @@ export default function BackofficePage() {
           : tempSelectedClusters.length > 0 
             ? tempSelectedClusters.map(id => clusters.find(c => c.id === id)?.name || id).join(', ')
             : 'Semua Perumahan';
-        const message = `Admin *${user?.name}* memperbarui hak akses & role staf *${selectedUserForAccess.name}*:\n- Role: *${tempRole}* (${tempDepartment})\n- Akses Perumahan: *${clusterNames}*`;
+        const message = `Admin *${user?.name}* memperbarui hak akses & role staf *${tempName}*:\n- Role: *${tempRole}* (${tempDepartment})\n- Akses Perumahan: *${clusterNames}*`;
         window.dispatchEvent(new CustomEvent('simulated-slack-webhook', {
           detail: { timestamp: new Date().toLocaleTimeString('id-ID'), channel: 'hr-notif', message }
         }));
       } else {
         alert(json.error || 'Gagal menyimpan akses perumahan');
+      }
+    } catch (error) {
+      console.error(error);
+      alert('Terjadi kesalahan koneksi');
+    }
+  };
+
+  const handleSaveEmployee = async () => {
+    if (!selectedEmployee) return;
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'update_employee',
+          actor_id: user?.id,
+          id: selectedEmployee.id,
+          name: empName,
+          department: empDepartment,
+          employee_id: empIdString,
+          annual_leave_balance: empLeaveBalance,
+          is_active: selectedEmployee.is_active
+        })
+      });
+      const json = await res.json();
+      if (json.success) {
+        setSelectedEmployee(null);
+        fetchBackofficeData();
+        
+        const message = `Admin *${user?.name}* memperbarui data karyawan *${empName}* (${empIdString}):\n- Departemen: *${empDepartment}*\n- Saldo Cuti: *${empLeaveBalance} Hari*`;
+        window.dispatchEvent(new CustomEvent('simulated-slack-webhook', {
+          detail: { timestamp: new Date().toLocaleTimeString('id-ID'), channel: 'hr-notif', message }
+        }));
+      } else {
+        alert(json.error || 'Gagal menyimpan data karyawan');
+      }
+    } catch (error) {
+      console.error(error);
+      alert('Terjadi kesalahan koneksi');
+    }
+  };
+
+  const handleCreateEmployee = async () => {
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'create_employee',
+          actor_id: user?.id,
+          name: empName,
+          department: empDepartment,
+          employee_id: empIdString,
+          annual_leave_balance: empLeaveBalance
+        })
+      });
+      const json = await res.json();
+      if (json.success) {
+        setIsAddingEmployee(false);
+        setEmpName('');
+        setEmpDepartment('');
+        setEmpIdString('');
+        setEmpLeaveBalance(12);
+        fetchBackofficeData();
+        
+        const message = `Admin *${user?.name}* mendaftarkan karyawan baru *${empName}* (${empIdString}) di departemen *${empDepartment}*`;
+        window.dispatchEvent(new CustomEvent('simulated-slack-webhook', {
+          detail: { timestamp: new Date().toLocaleTimeString('id-ID'), channel: 'hr-notif', message }
+        }));
+      } else {
+        alert(json.error || 'Gagal membuat data karyawan');
       }
     } catch (error) {
       console.error(error);
@@ -1447,79 +1533,164 @@ export default function BackofficePage() {
         )}
 
         {/* ── USER MANAGEMENT ── */}
+        {/* ── USER MANAGEMENT ── */}
         {activeTab === 'users' && (
-          <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
-            <div className="p-4 bg-gray-50 border-b border-gray-100 font-extrabold text-xs text-gray-500 uppercase tracking-wider">
-              Daftar Akun Karyawan
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
-                <thead>
-                  <tr className="bg-gray-50/50 border-b border-gray-200 font-bold text-gray-400 uppercase tracking-wider text-[10px]">
-                    <th className="p-4">ID Karyawan</th>
-                    <th className="p-4">Nama</th>
-                    <th className="p-4">Email</th>
-                    <th className="p-4">Departemen</th>
-                    <th className="p-4">Role</th>
-                    <th className="p-4">Akses Perumahan</th>
-                    <th className="p-4 text-center">Status</th>
-                    <th className="p-4 text-center">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {usersList.map(u => (
-                    <tr key={u.id} className="border-b border-gray-100 hover:bg-gray-50/40">
-                      <td className="p-4 font-bold text-gray-700">{u.employee_id}</td>
-                      <td className="p-4 font-black text-gray-900">{u.name}</td>
-                      <td className="p-4 text-gray-500">{u.email}</td>
-                      <td className="p-4 font-semibold text-gray-600">{u.department}</td>
-                      <td className="p-4 capitalize">
-                        <span className={`px-2.5 py-0.5 rounded-full font-bold text-[10px] border ${
-                          u.role === 'admin' ? 'bg-red-50 text-red-700 border-red-100' :
-                          u.role === 'manager' ? 'bg-amber-50 text-amber-700 border-amber-100' :
-                          'bg-blue-50 text-blue-700 border-blue-100'
-                        }`}>
-                          {u.role}
-                        </span>
-                      </td>
-                      <td className="p-4">
-                        {u.role === 'admin' ? (
-                          <span className="text-[10px] font-bold text-red-750 bg-red-50 border border-red-100 px-2 py-0.5 rounded-full">Semua (Admin)</span>
-                        ) : u.accessible_clusters && u.accessible_clusters.length > 0 ? (
-                          <div className="flex flex-wrap gap-1 max-w-[200px]">
-                            {u.accessible_clusters.map((cid: string) => {
-                              const clusterName = clusters.find(c => c.id === cid)?.name || cid;
-                              return (
-                                <span key={cid} className="text-[9.5px] font-semibold bg-gray-100 text-gray-700 px-2 py-0.5 rounded border border-gray-200">
-                                  {clusterName}
-                                </span>
-                              );
-                            })}
-                          </div>
-                        ) : (
-                          <span className="text-[10px] font-semibold text-gray-400 italic">Semua Perumahan</span>
-                        )}
-                      </td>
-                      <td className="p-4 text-center">
-                        <span className="px-2 py-0.5 bg-green-50 text-green-700 border border-green-200 rounded text-[10px] font-bold">AKTIF</span>
-                      </td>
-                      <td className="p-4 text-center">
-                        <button
-                          onClick={() => {
-                            setSelectedUserForAccess(u);
-                            setTempSelectedClusters(u.accessible_clusters || []);
-                            setTempRole(u.role);
-                            setTempDepartment(u.department || '');
-                          }}
-                          className="px-3 py-1.5 bg-indigo-50 border border-indigo-150 text-indigo-750 rounded-xl hover:bg-indigo-100 text-[10.5px] font-bold transition-colors cursor-pointer"
-                        >
-                          Atur Akses & Role
-                        </button>
-                      </td>
+          <div className="flex flex-col gap-6 text-left w-full animate-in fade-in duration-200">
+            {/* 1. AKUN PENGGUNA SISTEM (USER ACCOUNTS) */}
+            <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
+              <div className="p-4 bg-gray-50 border-b border-gray-100 font-extrabold text-xs text-gray-500 uppercase tracking-wider flex justify-between items-center">
+                <span>Manajemen Akses & Akun Sistem</span>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-gray-50/50 border-b border-gray-200 font-bold text-gray-400 uppercase tracking-wider text-[10px]">
+                      <th className="p-4">Email Login</th>
+                      <th className="p-4">Nama Staf</th>
+                      <th className="p-4">Role Akses</th>
+                      <th className="p-4">Akses Perumahan / Cluster</th>
+                      <th className="p-4 text-center">Status</th>
+                      <th className="p-4 text-center">Aksi</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {usersList.map(u => {
+                      const linkedEmp = employeesList.find(e => e.user_id === u.id);
+                      return (
+                        <tr key={u.id} className="border-b border-gray-100 hover:bg-gray-50/40">
+                          <td className="p-4 font-black text-gray-900">{u.email}</td>
+                          <td className="p-4 font-semibold text-gray-700">{linkedEmp ? linkedEmp.name : <span className="text-gray-400 italic">Belum terhubung</span>}</td>
+                          <td className="p-4 capitalize">
+                            <span className={`px-2.5 py-0.5 rounded-full font-bold text-[10px] border ${
+                              u.role === 'admin' ? 'bg-red-50 text-red-700 border-red-100' :
+                              u.role === 'manager' ? 'bg-amber-50 text-amber-700 border-amber-100' :
+                              'bg-blue-50 text-blue-700 border-blue-100'
+                            }`}>
+                              {u.role}
+                            </span>
+                          </td>
+                          <td className="p-4">
+                            {u.role === 'admin' ? (
+                              <span className="text-[10px] font-bold text-red-750 bg-red-50 border border-red-100 px-2 py-0.5 rounded-full">Semua (Admin)</span>
+                            ) : u.accessible_clusters && u.accessible_clusters.length > 0 ? (
+                              <div className="flex flex-wrap gap-1 max-w-[220px]">
+                                {u.accessible_clusters.map((cid: string) => {
+                                  const clusterName = clusters.find(c => c.id === cid)?.name || cid;
+                                  return (
+                                    <span key={cid} className="text-[9.5px] font-semibold bg-gray-100 text-gray-700 px-2 py-0.5 rounded border border-gray-200">
+                                      {clusterName}
+                                    </span>
+                                  );
+                                })}
+                              </div>
+                            ) : (
+                              <span className="text-[10px] font-semibold text-gray-400 italic">Semua Perumahan</span>
+                            )}
+                          </td>
+                          <td className="p-4 text-center">
+                            <span className={`px-2 py-0.5 border rounded text-[10px] font-bold ${u.is_active ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
+                              {u.is_active ? 'AKTIF' : 'NON-AKTIF'}
+                            </span>
+                          </td>
+                          <td className="p-4 text-center">
+                            <button
+                              onClick={() => {
+                                setSelectedUserForAccess(u);
+                                setTempSelectedClusters(u.accessible_clusters || []);
+                                setTempRole(u.role);
+                                setTempName(linkedEmp ? linkedEmp.name : 'Staf Domus');
+                                setTempDepartment(linkedEmp ? linkedEmp.department : 'Umum');
+                                setTempEmployeeId(linkedEmp ? linkedEmp.employee_id : 'EMP-MOCK');
+                                setTempLeaveBalance(linkedEmp ? linkedEmp.annual_leave_balance : 12);
+                              }}
+                              className="px-3 py-1.5 bg-indigo-50 border border-indigo-150 text-indigo-750 rounded-xl hover:bg-indigo-100 text-[10.5px] font-bold transition-colors cursor-pointer"
+                            >
+                              Atur Akses & Role
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* 2. DATA KARYAWAN (EMPLOYEES DATA) */}
+            <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
+              <div className="p-4 bg-gray-50 border-b border-gray-100 font-extrabold text-xs text-gray-500 uppercase tracking-wider flex justify-between items-center">
+                <span>Daftar Kepegawaian (HR)</span>
+                <button
+                  onClick={() => {
+                    setIsAddingEmployee(true);
+                    setEmpName('');
+                    setEmpDepartment('');
+                    setEmpIdString('EMP-' + Math.random().toString().substr(2, 6));
+                    setEmpLeaveBalance(12);
+                  }}
+                  className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[10px] font-bold transition-colors flex items-center gap-1 cursor-pointer"
+                >
+                  <Plus size={11} /> Tambah Karyawan
+                </button>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-gray-50/50 border-b border-gray-200 font-bold text-gray-400 uppercase tracking-wider text-[10px]">
+                      <th className="p-4">ID Karyawan</th>
+                      <th className="p-4">Nama</th>
+                      <th className="p-4">Departemen</th>
+                      <th className="p-4 text-center">Saldo Cuti</th>
+                      <th className="p-4">Status Akun Login</th>
+                      <th className="p-4 text-center">Keaktifan</th>
+                      <th className="p-4 text-center">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {employeesList.map(e => {
+                      const linkedUser = usersList.find(u => u.id === e.user_id);
+                      return (
+                        <tr key={e.id} className="border-b border-gray-100 hover:bg-gray-50/40">
+                          <td className="p-4 font-bold text-gray-700">{e.employee_id}</td>
+                          <td className="p-4 font-black text-gray-900">{e.name}</td>
+                          <td className="p-4 font-semibold text-gray-650">{e.department}</td>
+                          <td className="p-4 text-center font-bold text-slate-700">{e.annual_leave_balance} Hari</td>
+                          <td className="p-4">
+                            {linkedUser ? (
+                              <span className="text-[10px] font-semibold text-emerald-750 bg-emerald-50 border border-emerald-100 px-2.5 py-0.5 rounded-full">
+                                Terhubung: {linkedUser.email}
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-100 px-2.5 py-0.5 rounded-full">
+                                Belum Terhubung
+                              </span>
+                            )}
+                          </td>
+                          <td className="p-4 text-center">
+                            <span className={`px-2 py-0.5 border rounded text-[10px] font-bold ${e.is_active ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
+                              {e.is_active ? 'AKTIF' : 'NON-AKTIF'}
+                            </span>
+                          </td>
+                          <td className="p-4 text-center">
+                            <button
+                              onClick={() => {
+                                setSelectedEmployee(e);
+                                setEmpName(e.name);
+                                setEmpDepartment(e.department);
+                                setEmpIdString(e.employee_id);
+                                setEmpLeaveBalance(e.annual_leave_balance);
+                              }}
+                              className="px-3 py-1.5 bg-gray-100 border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-200 text-[10.5px] font-bold transition-colors cursor-pointer"
+                            >
+                              Edit Karyawan
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}
@@ -2834,7 +3005,7 @@ export default function BackofficePage() {
             <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
               <div className="flex flex-col text-left">
                 <h3 className="font-bold text-base text-gray-950">Edit Akses & Role Karyawan</h3>
-                <p className="text-xs text-gray-500 mt-0.5">Kelola konfigurasi akun: <strong>{selectedUserForAccess.name}</strong></p>
+                <p className="text-xs text-gray-500 mt-0.5">Kelola konfigurasi akun: <strong>{selectedUserForAccess.email}</strong></p>
               </div>
               <button 
                 onClick={() => setSelectedUserForAccess(null)}
@@ -2846,9 +3017,52 @@ export default function BackofficePage() {
             
             {/* Modal Body */}
             <div className="p-6 overflow-y-auto flex-1 text-left space-y-5">
+              {/* Personal Data Sync */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5 flex flex-col text-left">
+                  <label className="text-gray-400 uppercase tracking-wider text-[9px] font-bold">Nama Karyawan</label>
+                  <input
+                    type="text"
+                    value={tempName}
+                    onChange={(e) => setTempName(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 font-medium text-xs text-gray-800"
+                  />
+                </div>
+                <div className="space-y-1.5 flex flex-col text-left">
+                  <label className="text-gray-400 uppercase tracking-wider text-[9px] font-bold">ID Karyawan</label>
+                  <input
+                    type="text"
+                    value={tempEmployeeId}
+                    onChange={(e) => setTempEmployeeId(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 font-medium text-xs text-gray-800"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5 flex flex-col text-left">
+                  <label className="text-gray-400 uppercase tracking-wider text-[9px] font-bold">Departemen</label>
+                  <input
+                    type="text"
+                    value={tempDepartment}
+                    onChange={(e) => setTempDepartment(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 font-medium text-xs text-gray-800"
+                  />
+                </div>
+                <div className="space-y-1.5 flex flex-col text-left">
+                  <label className="text-gray-400 uppercase tracking-wider text-[9px] font-bold">Saldo Cuti (Hari)</label>
+                  <input
+                    type="number"
+                    value={tempLeaveBalance}
+                    onChange={(e) => setTempLeaveBalance(Number(e.target.value))}
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 font-medium text-xs text-gray-800"
+                  />
+                </div>
+              </div>
+
               {/* Role Selection */}
               <div className="space-y-1.5 flex flex-col text-left">
-                <label className="text-gray-400 uppercase tracking-wider text-[9px] font-bold">Role Hak Akses *</label>
+                <label className="text-gray-400 uppercase tracking-wider text-[9px] font-bold">Role Hak Akses Sistem *</label>
                 <select
                   value={tempRole}
                   onChange={(e) => setTempRole(e.target.value)}
@@ -2858,18 +3072,6 @@ export default function BackofficePage() {
                   <option value="manager">Manager (Akses Manajemen Properti & CRM)</option>
                   <option value="staff">Staff (Akses Operasional Lapangan & Sales)</option>
                 </select>
-              </div>
-
-              {/* Department */}
-              <div className="space-y-1.5 flex flex-col text-left">
-                <label className="text-gray-400 uppercase tracking-wider text-[9px] font-bold">Departemen Karyawan</label>
-                <input
-                  type="text"
-                  value={tempDepartment}
-                  onChange={(e) => setTempDepartment(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 font-medium text-xs text-gray-800"
-                  placeholder="Contoh: Pemasaran, Keuangan, Direksi"
-                />
               </div>
               
               {/* Cluster Access Restriction */}
@@ -2933,6 +3135,102 @@ export default function BackofficePage() {
                 className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-md shadow-blue-100 transition-colors cursor-pointer"
               >
                 Simpan Konfigurasi
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Employee Edit Modal */}
+      {selectedEmployee && (
+        <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4" onClick={() => setSelectedEmployee(null)}>
+          <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl overflow-hidden border border-gray-150 flex flex-col max-h-[85vh] animate-in fade-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+            <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+              <div className="flex flex-col text-left">
+                <h3 className="font-bold text-base text-gray-950">Edit Data Kepegawaian (HR)</h3>
+                <p className="text-xs text-gray-500 mt-0.5">Karyawan: <strong>{selectedEmployee.name}</strong></p>
+              </div>
+              <button onClick={() => setSelectedEmployee(null)} className="p-1.5 hover:bg-gray-200 rounded-full text-gray-400 hover:text-gray-600 transition-colors cursor-pointer">
+                <X size={18} />
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto flex-1 text-left space-y-4">
+              <div className="space-y-1.5 flex flex-col text-left">
+                <label className="text-gray-400 uppercase tracking-wider text-[9px] font-bold">Nama Lengkap</label>
+                <input type="text" value={empName} onChange={e => setEmpName(e.target.value)} className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 font-medium text-xs text-gray-800" />
+              </div>
+              
+              <div className="space-y-1.5 flex flex-col text-left">
+                <label className="text-gray-400 uppercase tracking-wider text-[9px] font-bold">Departemen</label>
+                <input type="text" value={empDepartment} onChange={e => setEmpDepartment(e.target.value)} className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 font-medium text-xs text-gray-800" />
+              </div>
+              
+              <div className="space-y-1.5 flex flex-col text-left">
+                <label className="text-gray-400 uppercase tracking-wider text-[9px] font-bold">ID Karyawan</label>
+                <input type="text" value={empIdString} onChange={e => setEmpIdString(e.target.value)} className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 font-medium text-xs text-gray-800" />
+              </div>
+              
+              <div className="space-y-1.5 flex flex-col text-left">
+                <label className="text-gray-400 uppercase tracking-wider text-[9px] font-bold">Saldo Cuti Tahunan (Hari)</label>
+                <input type="number" value={empLeaveBalance} onChange={e => setEmpLeaveBalance(Number(e.target.value))} className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 font-medium text-xs text-gray-800" />
+              </div>
+            </div>
+            
+            <div className="p-5 border-t border-gray-100 bg-gray-50/50 flex justify-end gap-3">
+              <button onClick={() => setSelectedEmployee(null)} className="px-4 py-2.5 rounded-xl border border-gray-200 hover:bg-gray-100 text-xs font-semibold text-gray-700 transition-colors cursor-pointer">
+                Batal
+              </button>
+              <button onClick={handleSaveEmployee} className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-md shadow-blue-100 transition-colors cursor-pointer">
+                Simpan Karyawan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Employee Add Modal */}
+      {isAddingEmployee && (
+        <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4" onClick={() => setIsAddingEmployee(false)}>
+          <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl overflow-hidden border border-gray-150 flex flex-col max-h-[85vh] animate-in fade-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+            <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+              <div className="flex flex-col text-left">
+                <h3 className="font-bold text-base text-gray-950">Daftarkan Karyawan Baru</h3>
+                <p className="text-xs text-gray-500 mt-0.5">Tambah catatan kepegawaian baru</p>
+              </div>
+              <button onClick={() => setIsAddingEmployee(false)} className="p-1.5 hover:bg-gray-200 rounded-full text-gray-400 hover:text-gray-600 transition-colors cursor-pointer">
+                <X size={18} />
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto flex-1 text-left space-y-4">
+              <div className="space-y-1.5 flex flex-col text-left">
+                <label className="text-gray-400 uppercase tracking-wider text-[9px] font-bold">Nama Lengkap *</label>
+                <input type="text" value={empName} onChange={e => setEmpName(e.target.value)} placeholder="Nama karyawan baru" className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 font-medium text-xs text-gray-800" />
+              </div>
+              
+              <div className="space-y-1.5 flex flex-col text-left">
+                <label className="text-gray-400 uppercase tracking-wider text-[9px] font-bold">Departemen *</label>
+                <input type="text" value={empDepartment} onChange={e => setEmpDepartment(e.target.value)} placeholder="Contoh: Pemasaran, Keuangan" className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 font-medium text-xs text-gray-800" />
+              </div>
+              
+              <div className="space-y-1.5 flex flex-col text-left">
+                <label className="text-gray-400 uppercase tracking-wider text-[9px] font-bold">ID Karyawan *</label>
+                <input type="text" value={empIdString} onChange={e => setEmpIdString(e.target.value)} className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 font-medium text-xs text-gray-800" />
+              </div>
+              
+              <div className="space-y-1.5 flex flex-col text-left">
+                <label className="text-gray-400 uppercase tracking-wider text-[9px] font-bold">Saldo Cuti Tahunan (Hari)</label>
+                <input type="number" value={empLeaveBalance} onChange={e => setEmpLeaveBalance(Number(e.target.value))} className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 font-medium text-xs text-gray-800" />
+              </div>
+            </div>
+            
+            <div className="p-5 border-t border-gray-100 bg-gray-50/50 flex justify-end gap-3">
+              <button onClick={() => setIsAddingEmployee(false)} className="px-4 py-2.5 rounded-xl border border-gray-200 hover:bg-gray-100 text-xs font-semibold text-gray-700 transition-colors cursor-pointer">
+                Batal
+              </button>
+              <button onClick={handleCreateEmployee} className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-md shadow-blue-100 transition-colors cursor-pointer">
+                Daftarkan
               </button>
             </div>
           </div>

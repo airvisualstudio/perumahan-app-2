@@ -45,16 +45,19 @@ export async function GET(request: Request) {
       allRecords,
       officeSettings,
       settings: data.settings,
-      users: data.users.map(u => ({
-        id: u.id,
-        name: u.name,
-        email: u.email,
-        role: u.role,
-        department: u.department,
-        employee_id: u.employee_id,
-        annual_leave_balance: u.annual_leave_balance,
-        is_active: u.is_active
-      }))
+      users: (data.employees || []).map(e => {
+        const u = data.users.find(usr => usr.id === e.user_id);
+        return {
+          id: e.user_id || e.id,
+          name: e.name,
+          email: u ? u.email : '',
+          role: u ? u.role : 'staff',
+          department: e.department,
+          employee_id: e.employee_id,
+          annual_leave_balance: e.annual_leave_balance,
+          is_active: e.is_active
+        };
+      })
     });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
@@ -181,14 +184,14 @@ export async function POST(request: Request) {
 
     if (action === 'apply_leave') {
       const { leave_type, start_date, end_date, total_days, reason, category, attachment_url } = body;
-      const user = data.users.find(u => u.id === userId);
-      if (!user) {
-        return NextResponse.json({ success: false, error: 'User not found' }, { status: 400 });
+      const employee = (data.employees || []).find(e => e.user_id === userId);
+      if (!employee) {
+        return NextResponse.json({ success: false, error: 'Karyawan tidak ditemukan' }, { status: 400 });
       }
 
       // Check annual leave balance
-      if (category === 'cuti' && leave_type === 'Cuti Tahunan' && user.annual_leave_balance < total_days) {
-        return NextResponse.json({ success: false, error: `Saldo cuti tahunan tidak mencukupi (Sisa: ${user.annual_leave_balance} hari).` }, { status: 400 });
+      if (category === 'cuti' && leave_type === 'Cuti Tahunan' && employee.annual_leave_balance < total_days) {
+        return NextResponse.json({ success: false, error: `Saldo cuti tahunan tidak mencukupi (Sisa: ${employee.annual_leave_balance} hari).` }, { status: 400 });
       }
 
       // For dynamic permissions, check if attachment is required
@@ -233,9 +236,10 @@ export async function POST(request: Request) {
 
       // If approved and is cuti tahunan, reduce balance
       if (status === 'approved' && request.leave_type === 'Cuti Tahunan') {
-        const user = data.users.find(u => u.id === request.user_id);
-        if (user) {
-          user.annual_leave_balance = Math.max(0, user.annual_leave_balance - request.total_days);
+        if (!data.employees) data.employees = [];
+        const employee = data.employees.find(e => e.user_id === request.user_id);
+        if (employee) {
+          employee.annual_leave_balance = Math.max(0, employee.annual_leave_balance - request.total_days);
         }
       }
 
