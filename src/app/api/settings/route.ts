@@ -62,7 +62,7 @@ export async function POST(request: Request) {
     }
 
     if (action === 'update_user_access') {
-      const { target_user_id, accessible_clusters, role, department } = body;
+      const { target_user_id, accessible_clusters, role, department, name, employee_id, annual_leave_balance } = body;
       const userIndex = data.users.findIndex((u: any) => u.id === target_user_id);
       if (userIndex === -1) {
         return NextResponse.json({ success: false, error: 'User tidak ditemukan' }, { status: 404 });
@@ -74,8 +74,27 @@ export async function POST(request: Request) {
       if (role !== undefined) {
         data.users[userIndex].role = role;
       }
-      if (department !== undefined) {
-        data.users[userIndex].department = department;
+
+      // Sync employee details if linked
+      if (!data.employees) data.employees = [];
+      const employeeIndex = data.employees.findIndex((e: any) => e.user_id === target_user_id);
+      if (employeeIndex !== -1) {
+        if (department !== undefined) data.employees[employeeIndex].department = department;
+        if (name !== undefined) data.employees[employeeIndex].name = name;
+        if (employee_id !== undefined) data.employees[employeeIndex].employee_id = employee_id;
+        if (annual_leave_balance !== undefined) data.employees[employeeIndex].annual_leave_balance = Number(annual_leave_balance);
+      } else {
+        data.employees.push({
+          id: 'emp-' + target_user_id.split('-')[1],
+          user_id: target_user_id,
+          name: name || 'Staff Domus',
+          department: department || 'Umum',
+          employee_id: employee_id || ('EMP-' + Math.random().toString().substr(2, 6)),
+          join_date: new Date().toISOString().split('T')[0],
+          annual_leave_balance: annual_leave_balance !== undefined ? Number(annual_leave_balance) : 12,
+          is_active: true,
+          created_at: new Date().toISOString()
+        });
       }
 
       // Add audit log
@@ -85,6 +104,102 @@ export async function POST(request: Request) {
         action: 'user.update_access',
         entity_type: 'user',
         entity_id: target_user_id,
+        created_at: new Date().toISOString()
+      });
+
+      db.save(data);
+      return NextResponse.json({ success: true });
+    }
+
+    if (action === 'update_employee') {
+      const { id, name, department, employee_id, annual_leave_balance, is_active } = body;
+      if (!data.employees) data.employees = [];
+      const employeeIndex = data.employees.findIndex((e: any) => e.id === id);
+      if (employeeIndex === -1) {
+        return NextResponse.json({ success: false, error: 'Karyawan tidak ditemukan' }, { status: 404 });
+      }
+
+      if (name !== undefined) data.employees[employeeIndex].name = name;
+      if (department !== undefined) data.employees[employeeIndex].department = department;
+      if (employee_id !== undefined) data.employees[employeeIndex].employee_id = employee_id;
+      if (annual_leave_balance !== undefined) data.employees[employeeIndex].annual_leave_balance = Number(annual_leave_balance);
+      if (is_active !== undefined) data.employees[employeeIndex].is_active = is_active;
+
+      // Add audit log
+      data.auditLogs.unshift({
+        id: 'aud-' + Math.random().toString(36).substr(2, 9),
+        user_id: actor_id || 'usr-admin',
+        action: 'employee.update',
+        entity_type: 'employee',
+        entity_id: id,
+        created_at: new Date().toISOString()
+      });
+
+      db.save(data);
+      return NextResponse.json({ success: true });
+    }
+
+    if (action === 'create_employee') {
+      const { name, department, employee_id, annual_leave_balance } = body;
+      if (!data.employees) data.employees = [];
+
+      const newEmpId = 'emp-' + Math.random().toString(36).substr(2, 9);
+      data.employees.push({
+        id: newEmpId,
+        name: name || 'Karyawan Baru',
+        department: department || 'Umum',
+        employee_id: employee_id || ('EMP-' + Math.random().toString().substr(2, 6)),
+        join_date: new Date().toISOString().split('T')[0],
+        annual_leave_balance: annual_leave_balance !== undefined ? Number(annual_leave_balance) : 12,
+        is_active: true,
+        created_at: new Date().toISOString()
+      });
+
+      // Add audit log
+      data.auditLogs.unshift({
+        id: 'aud-' + Math.random().toString(36).substr(2, 9),
+        user_id: actor_id || 'usr-admin',
+        action: 'employee.create',
+        entity_type: 'employee',
+        entity_id: newEmpId,
+        created_at: new Date().toISOString()
+      });
+
+      db.save(data);
+      return NextResponse.json({ success: true });
+    }
+
+    if (action === 'create_user_for_employee') {
+      const { employee_id, email, password, role } = body;
+      if (!data.employees) data.employees = [];
+      const employeeIndex = data.employees.findIndex((e: any) => e.id === employee_id);
+      if (employeeIndex === -1) {
+        return NextResponse.json({ success: false, error: 'Karyawan tidak ditemukan' }, { status: 404 });
+      }
+
+      const existingUser = data.users.find((u: any) => u.email === email);
+      if (existingUser) {
+        return NextResponse.json({ success: false, error: 'Email sudah terdaftar' }, { status: 400 });
+      }
+
+      const newUserId = 'usr-' + Math.random().toString(36).substr(2, 9);
+      data.users.push({
+        id: newUserId,
+        email: email,
+        role: role || 'staff',
+        is_active: true,
+        created_at: new Date().toISOString()
+      });
+
+      data.employees[employeeIndex].user_id = newUserId;
+
+      // Add audit log
+      data.auditLogs.unshift({
+        id: 'aud-' + Math.random().toString(36).substr(2, 9),
+        user_id: actor_id || 'usr-admin',
+        action: 'user.create_for_employee',
+        entity_type: 'user',
+        entity_id: newUserId,
         created_at: new Date().toISOString()
       });
 

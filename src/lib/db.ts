@@ -8,17 +8,24 @@ const DB_PATH = path.join(process.cwd(), 'data', 'db.json');
 export interface User {
   id: string;
   email: string;
+  role: 'admin' | 'manager' | 'staff';
+  is_active: boolean;
+  google_id?: string;
+  created_at: string;
+  accessible_clusters?: string[];
+}
+
+export interface Employee {
+  id: string;
+  user_id?: string;
   name: string;
   avatar_url?: string;
-  role: 'admin' | 'manager' | 'staff';
   department: string;
   employee_id: string;
   join_date: string;
   annual_leave_balance: number;
   is_active: boolean;
-  google_id?: string;
   created_at: string;
-  accessible_clusters?: string[];
 }
 
 export interface ClusterDoc {
@@ -341,6 +348,7 @@ export interface SystemSettings {
 // Full Database Schema
 export interface DatabaseSchema {
   users: User[];
+  employees: Employee[];
   clusters: Cluster[];
   unitTypes: UnitType[];
   units: PropertyUnit[];
@@ -361,11 +369,18 @@ export interface DatabaseSchema {
 // Initial Seed Data
 const generateSeedData = (): DatabaseSchema => {
   const users: User[] = [
+    { id: 'usr-admin', email: 'admin@domus.com', role: 'admin', is_active: true, created_at: new Date().toISOString() },
+    { id: 'usr-manager', email: 'manager@domus.com', role: 'manager', is_active: true, created_at: new Date().toISOString() },
+    { id: 'usr-finance', email: 'finance@domus.com', role: 'staff', is_active: true, created_at: new Date().toISOString() },
+    { id: 'usr-sales', email: 'sales@domus.com', role: 'staff', is_active: true, created_at: new Date().toISOString() },
+    { id: 'usr-staff', email: 'staff@domus.com', role: 'staff', is_active: true, created_at: new Date().toISOString() }
+  ];
+
+  const employees: Employee[] = [
     {
-      id: 'usr-admin',
-      email: 'admin@domus.com',
+      id: 'emp-admin',
+      user_id: 'usr-admin',
       name: 'Ahmad Admin',
-      role: 'admin',
       department: 'HR & IT',
       employee_id: 'EMP-001',
       join_date: '2024-01-15',
@@ -374,10 +389,9 @@ const generateSeedData = (): DatabaseSchema => {
       created_at: new Date().toISOString()
     },
     {
-      id: 'usr-manager',
-      email: 'manager@domus.com',
+      id: 'emp-manager',
+      user_id: 'usr-manager',
       name: 'Budi Purnomo',
-      role: 'manager',
       department: 'Pemasaran',
       employee_id: 'EMP-002',
       join_date: '2024-02-10',
@@ -386,10 +400,9 @@ const generateSeedData = (): DatabaseSchema => {
       created_at: new Date().toISOString()
     },
     {
-      id: 'usr-finance',
-      email: 'finance@domus.com',
+      id: 'emp-finance',
+      user_id: 'usr-finance',
       name: 'Chika Olivia',
-      role: 'staff',
       department: 'Keuangan',
       employee_id: 'EMP-003',
       join_date: '2024-03-01',
@@ -398,10 +411,9 @@ const generateSeedData = (): DatabaseSchema => {
       created_at: new Date().toISOString()
     },
     {
-      id: 'usr-sales',
-      email: 'sales@domus.com',
+      id: 'emp-sales',
+      user_id: 'usr-sales',
       name: 'Rina Wijaya',
-      role: 'staff',
       department: 'Pemasaran',
       employee_id: 'EMP-004',
       join_date: '2024-04-01',
@@ -410,10 +422,9 @@ const generateSeedData = (): DatabaseSchema => {
       created_at: new Date().toISOString()
     },
     {
-      id: 'usr-staff',
-      email: 'staff@domus.com',
+      id: 'emp-staff',
+      user_id: 'usr-staff',
       name: 'Dendi Pratama',
-      role: 'staff',
       department: 'Umum',
       employee_id: 'EMP-005',
       join_date: '2024-05-01',
@@ -1174,6 +1185,7 @@ const generateSeedData = (): DatabaseSchema => {
 
   return {
     users,
+    employees,
     clusters,
     unitTypes,
     units,
@@ -1219,6 +1231,41 @@ class JsonDatabase {
         // Auto-upgrade templates to use Staff Pemasaran and Manager Pemasaran
         if (this.schema) {
           let needsSave = false;
+
+          // Migration: split users into users and employees if employees is missing
+          if (!this.schema.employees) {
+            this.schema.employees = this.schema.users.map((u: any) => {
+              const empId = 'emp-' + u.id.split('-')[1];
+              return {
+                id: empId,
+                user_id: u.id,
+                name: u.name || 'Staff Domus',
+                avatar_url: u.avatar_url,
+                department: u.department || 'Umum',
+                employee_id: u.employee_id || ('EMP-' + Math.random().toString().substr(2, 6)),
+                join_date: u.join_date || new Date().toISOString().split('T')[0],
+                annual_leave_balance: u.annual_leave_balance !== undefined ? u.annual_leave_balance : 12,
+                is_active: u.is_active !== undefined ? u.is_active : true,
+                created_at: u.created_at || new Date().toISOString()
+              };
+            });
+
+            // Clean user records to only keep User interface properties
+            this.schema.users = this.schema.users.map((u: any) => {
+              const cleaned: any = {
+                id: u.id,
+                email: u.email,
+                role: u.role || 'staff',
+                is_active: u.is_active !== undefined ? u.is_active : true,
+                created_at: u.created_at || new Date().toISOString()
+              };
+              if (u.google_id) cleaned.google_id = u.google_id;
+              if (u.accessible_clusters) cleaned.accessible_clusters = u.accessible_clusters;
+              return cleaned;
+            });
+
+            needsSave = true;
+          }
           if (this.schema.approvalTemplates) {
             const invoiceTpl = this.schema.approvalTemplates.find(t => t.id === 'tpl-invoice');
             if (invoiceTpl && invoiceTpl.chain[0].role !== 'Staff Pemasaran') {

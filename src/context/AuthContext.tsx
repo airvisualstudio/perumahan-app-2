@@ -43,10 +43,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .then(res => res.json())
       .then(json => {
         if (json.success && json.data.users) {
-          const dbUsers = json.data.users;
+          const dbUsers = json.data.users || [];
+          const dbEmployees = json.data.employees || [];
           const foundDbUser = dbUsers.find((u: any) => u.id === savedUserId);
+          
           if (foundDbUser) {
-            setUser(foundDbUser);
+            const foundEmployee = dbEmployees.find((e: any) => e.user_id === savedUserId);
+            const joinedUser = {
+              ...foundDbUser,
+              name: foundEmployee ? foundEmployee.name : 'Staf Domus',
+              department: foundEmployee ? foundEmployee.department : 'Umum',
+              employee_id: foundEmployee ? foundEmployee.employee_id : 'EMP-MOCK',
+              annual_leave_balance: foundEmployee ? foundEmployee.annual_leave_balance : 12,
+              avatar_url: foundEmployee ? foundEmployee.avatar_url : undefined
+            };
+            setUser(joinedUser);
             setIsLoading(false);
             return;
           }
