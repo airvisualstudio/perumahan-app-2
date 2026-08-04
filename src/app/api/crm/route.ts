@@ -6,6 +6,7 @@ export async function GET(request: Request) {
     const data = db.get();
     return NextResponse.json({ 
       success: true, 
+      companies: data.companies || [],
       clusters: data.clusters,
       unitTypes: data.unitTypes,
       units: data.units,
@@ -24,6 +25,7 @@ export async function POST(request: Request) {
 
     // Protect Property CRUD actions - only Admin or Manager role allowed
     const propertyCrudActions = [
+      'create_company', 'update_company', 'delete_company',
       'create_cluster', 'update_cluster', 'delete_cluster',
       'create_unit_type', 'update_unit_type', 'delete_unit_type',
       'create_unit', 'update_unit', 'delete_unit'
@@ -289,11 +291,111 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, followup });
     }
 
+    if (action === 'create_company') {
+      const { name, code, legal_name, npwp, address, phone, email, logo_url, bank_account, director_name, actor_id } = body;
+      
+      if (!name) {
+        return NextResponse.json({ success: false, error: 'Nama Perusahaan wajib diisi.' }, { status: 400 });
+      }
+
+      const newCompany = {
+        id: 'comp-' + Math.random().toString(36).substr(2, 9),
+        name,
+        code: code || '',
+        legal_name: legal_name || name,
+        npwp: npwp || '',
+        address: address || '',
+        phone: phone || '',
+        email: email || '',
+        logo_url: logo_url || '',
+        bank_account: bank_account || '',
+        director_name: director_name || '',
+        created_by: actor_id,
+        created_at: new Date().toISOString()
+      };
+
+      if (!data.companies) data.companies = [];
+      data.companies.push(newCompany);
+
+      data.auditLogs.unshift({
+        id: 'aud-' + Math.random().toString(36).substr(2, 9),
+        user_id: actor_id,
+        action: 'company.create',
+        entity_type: 'company',
+        entity_id: newCompany.id,
+        created_at: new Date().toISOString()
+      });
+
+      db.save(data);
+      return NextResponse.json({ success: true, company: newCompany, companies: data.companies });
+    }
+
+    if (action === 'update_company') {
+      const { company_id, name, code, legal_name, npwp, address, phone, email, logo_url, bank_account, director_name, actor_id } = body;
+      const company = (data.companies || []).find(c => c.id === company_id);
+      if (!company) {
+        return NextResponse.json({ success: false, error: 'Perusahaan tidak ditemukan' }, { status: 404 });
+      }
+
+      if (name) company.name = name;
+      if (code !== undefined) company.code = code;
+      if (legal_name !== undefined) company.legal_name = legal_name;
+      if (npwp !== undefined) company.npwp = npwp;
+      if (address !== undefined) company.address = address;
+      if (phone !== undefined) company.phone = phone;
+      if (email !== undefined) company.email = email;
+      if (logo_url !== undefined) company.logo_url = logo_url;
+      if (bank_account !== undefined) company.bank_account = bank_account;
+      if (director_name !== undefined) company.director_name = director_name;
+      company.updated_at = new Date().toISOString();
+
+      data.auditLogs.unshift({
+        id: 'aud-' + Math.random().toString(36).substr(2, 9),
+        user_id: actor_id,
+        action: 'company.update',
+        entity_type: 'company',
+        entity_id: company_id,
+        created_at: new Date().toISOString()
+      });
+
+      db.save(data);
+      return NextResponse.json({ success: true, company, companies: data.companies });
+    }
+
+    if (action === 'delete_company') {
+      const { company_id, actor_id } = body;
+      
+      if (!data.companies) data.companies = [];
+      data.companies = data.companies.filter(c => c.id !== company_id);
+
+      // Unassign company_id from clusters under this company
+      if (data.clusters) {
+        data.clusters.forEach(cls => {
+          if (cls.company_id === company_id) {
+            delete cls.company_id;
+          }
+        });
+      }
+
+      data.auditLogs.unshift({
+        id: 'aud-' + Math.random().toString(36).substr(2, 9),
+        user_id: actor_id,
+        action: 'company.delete',
+        entity_type: 'company',
+        entity_id: company_id,
+        created_at: new Date().toISOString()
+      });
+
+      db.save(data);
+      return NextResponse.json({ success: true, companies: data.companies, clusters: data.clusters });
+    }
+
     if (action === 'create_cluster') {
-      const { name, location, description, status, svg_content, logo_url, address, email, phone, bank_account, documents, actor_id } = body;
+      const { company_id, name, location, description, status, svg_content, logo_url, address, email, phone, bank_account, documents, actor_id } = body;
       
       const newCluster = {
         id: 'cls-' + Math.random().toString(36).substr(2, 9),
+        company_id: company_id || undefined,
         name,
         location,
         description,
@@ -395,12 +497,15 @@ export async function POST(request: Request) {
     }
 
     if (action === 'update_cluster') {
-      const { cluster_id, name, location, description, status, svg_content, logo_url, address, email, phone, bank_account, documents, actor_id } = body;
+      const { cluster_id, company_id, name, location, description, status, svg_content, logo_url, address, email, phone, bank_account, documents, actor_id } = body;
       const cluster = data.clusters.find(c => c.id === cluster_id);
       if (!cluster) {
         return NextResponse.json({ success: false, error: 'Cluster not found' }, { status: 444 });
       }
 
+      if (company_id !== undefined) {
+        cluster.company_id = company_id;
+      }
       cluster.name = name;
       cluster.location = location;
       cluster.description = description;

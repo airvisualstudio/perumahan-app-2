@@ -28,6 +28,23 @@ export interface Employee {
   created_at: string;
 }
 
+export interface Company {
+  id: string;
+  name: string;
+  code?: string;
+  legal_name?: string;
+  npwp?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  logo_url?: string;
+  bank_account?: string;
+  director_name?: string;
+  created_by?: string;
+  created_at: string;
+  updated_at?: string;
+}
+
 export interface ClusterDoc {
   id: string;
   category: 'sertifikat_induk' | 'pbg_induk' | 'kkpr' | 'site_plan_legal' | 'izin_lingkungan' | 'pbb_induk' | 'npwp_proyek';
@@ -40,6 +57,7 @@ export interface ClusterDoc {
 
 export interface Cluster {
   id: string;
+  company_id?: string;
   name: string;
   location: string;
   description: string;
@@ -349,6 +367,7 @@ export interface SystemSettings {
 export interface DatabaseSchema {
   users: User[];
   employees: Employee[];
+  companies: Company[];
   clusters: Cluster[];
   unitTypes: UnitType[];
   units: PropertyUnit[];
@@ -434,9 +453,43 @@ const generateSeedData = (): DatabaseSchema => {
     }
   ];
 
+  const companies: Company[] = [
+    {
+      id: 'comp-domus-main',
+      name: 'PT Domus Somnia Properti',
+      code: 'DSP',
+      legal_name: 'PT Domus Somnia Properti Tbk',
+      npwp: '01.234.567.8-901.000',
+      address: 'Grand Surapati Core Blok B-03, Jl. Phh. Mustofa No.39, Bandung',
+      phone: '(022) 1234567',
+      email: 'info@domus.com',
+      logo_url: '',
+      bank_account: '131-00-1234567-8 a/n PT Domus Somnia Properti',
+      director_name: 'Ir. Ahmad Somnia',
+      created_by: 'usr-admin',
+      created_at: new Date().toISOString()
+    },
+    {
+      id: 'comp-griya-indah',
+      name: 'PT Griya Indah Development',
+      code: 'GID',
+      legal_name: 'PT Griya Indah Development',
+      npwp: '02.987.654.3-102.000',
+      address: 'Jl. Raya Soekarno-Hatta No. 450, Bandung',
+      phone: '(022) 7654321',
+      email: 'contact@griyaindah.co.id',
+      logo_url: '',
+      bank_account: '132-00-9876543-2 a/n PT Griya Indah Development',
+      director_name: 'Bambang Indrajit, S.E.',
+      created_by: 'usr-admin',
+      created_at: new Date().toISOString()
+    }
+  ];
+
   const clusters: Cluster[] = [
     {
       id: 'cls-melati',
+      company_id: 'comp-domus-main',
       name: 'Cluster Melati',
       location: 'Bandung Utara',
       description: 'Hunian asri dengan konsep modern tropis di perbukitan Bandung Utara.',
@@ -447,6 +500,7 @@ const generateSeedData = (): DatabaseSchema => {
     },
     {
       id: 'cls-anggrek',
+      company_id: 'comp-griya-indah',
       name: 'Cluster Anggrek',
       location: 'Bandung Timur',
       description: 'Kawasan mandiri strategis dekat akses tol, ideal untuk keluarga muda.',
@@ -1186,6 +1240,7 @@ const generateSeedData = (): DatabaseSchema => {
   return {
     users,
     employees,
+    companies,
     clusters,
     unitTypes,
     units,
@@ -1231,6 +1286,53 @@ class JsonDatabase {
         // Auto-upgrade templates to use Staff Pemasaran and Manager Pemasaran
         if (this.schema) {
           let needsSave = false;
+
+          // Migration: companies seed/backfill
+          if (!this.schema.companies || this.schema.companies.length === 0) {
+            this.schema.companies = [
+              {
+                id: 'comp-domus-main',
+                name: 'PT Domus Somnia Properti',
+                code: 'DSP',
+                legal_name: 'PT Domus Somnia Properti Tbk',
+                npwp: '01.234.567.8-901.000',
+                address: 'Grand Surapati Core Blok B-03, Jl. Phh. Mustofa No.39, Bandung',
+                phone: '(022) 1234567',
+                email: 'info@domus.com',
+                bank_account: '131-00-1234567-8 a/n PT Domus Somnia Properti',
+                director_name: 'Ir. Ahmad Somnia',
+                created_by: 'usr-admin',
+                created_at: new Date().toISOString()
+              },
+              {
+                id: 'comp-griya-indah',
+                name: 'PT Griya Indah Development',
+                code: 'GID',
+                legal_name: 'PT Griya Indah Development',
+                npwp: '02.987.654.3-102.000',
+                address: 'Jl. Raya Soekarno-Hatta No. 450, Bandung',
+                phone: '(022) 7654321',
+                email: 'contact@griyaindah.co.id',
+                bank_account: '132-00-9876543-2 a/n PT Griya Indah Development',
+                director_name: 'Bambang Indrajit, S.E.',
+                created_by: 'usr-admin',
+                created_at: new Date().toISOString()
+              }
+            ];
+            needsSave = true;
+          }
+
+          // Backfill company_id for existing clusters if missing
+          if (this.schema.clusters) {
+            this.schema.clusters.forEach(cluster => {
+              if (!cluster.company_id) {
+                if (cluster.id === 'cls-melati') cluster.company_id = 'comp-domus-main';
+                else if (cluster.id === 'cls-anggrek') cluster.company_id = 'comp-griya-indah';
+                else cluster.company_id = 'comp-domus-main';
+                needsSave = true;
+              }
+            });
+          }
 
           // Migration: split users into users and employees if employees is missing
           if (!this.schema.employees) {

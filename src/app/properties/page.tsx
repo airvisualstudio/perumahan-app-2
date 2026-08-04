@@ -12,12 +12,18 @@ import {
   FileText, 
   ShieldCheck, 
   Building2, 
+  Building,
   UploadCloud, 
   Check, 
   Info, 
   AlertCircle,
   FolderOpen,
-  DollarSign
+  DollarSign,
+  Briefcase,
+  Phone,
+  Mail,
+  Search,
+  UserCheck
 } from 'lucide-react';
 
 const docCategories = [
@@ -29,6 +35,23 @@ const docCategories = [
   { key: 'pbb_induk', label: 'PBB Induk', desc: 'Kwitansi/Bukti bayar Pajak Bumi & Bangunan Induk' },
   { key: 'npwp_proyek', label: 'NPWP Proyek', desc: 'Nomor Pokok Wajib Pajak khusus kantor/proyek cabang' },
 ] as const;
+
+interface Company {
+  id: string;
+  name: string;
+  code?: string;
+  legal_name?: string;
+  npwp?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  logo_url?: string;
+  bank_account?: string;
+  director_name?: string;
+  created_by?: string;
+  created_at: string;
+  updated_at?: string;
+}
 
 interface ClusterDoc {
   id: string;
@@ -42,6 +65,7 @@ interface ClusterDoc {
 
 interface Cluster {
   id: string;
+  company_id?: string;
   name: string;
   location: string;
   description: string;
@@ -92,10 +116,15 @@ export default function PropertiesManagementPage() {
   const [isLoading, setIsLoading] = useState(true);
   
   // Data Lists
+  const [companies, setCompanies] = useState<Company[]>([]);
   const [clusters, setClusters] = useState<Cluster[]>([]);
   const [unitTypes, setUnitTypes] = useState<UnitType[]>([]);
   const [units, setUnits] = useState<PropertyUnit[]>([]);
   
+  // Navigation Tab State
+  const [activeTab, setActiveTab] = useState<'companies' | 'clusters'>('companies');
+  const [searchCompany, setSearchCompany] = useState('');
+
   // Settings fallbacks
   const [orgLogo, setOrgLogo] = useState('');
   const [orgAddress, setOrgAddress] = useState('');
@@ -111,7 +140,22 @@ export default function PropertiesManagementPage() {
   // RBAC Permission check
   const isAllowedToMutate = user?.role === 'admin' || user?.role === 'manager';
 
+  // Company Form State
+  const [isAddingCompany, setIsAddingCompany] = useState(false);
+  const [isEditingCompanyId, setIsEditingCompanyId] = useState('');
+  const [coName, setCoName] = useState('');
+  const [coCode, setCoCode] = useState('');
+  const [coLegalName, setCoLegalName] = useState('');
+  const [coNpwp, setCoNpwp] = useState('');
+  const [coAddress, setCoAddress] = useState('');
+  const [coPhone, setCoPhone] = useState('');
+  const [coEmail, setCoEmail] = useState('');
+  const [coLogo, setCoLogo] = useState('');
+  const [coBankAccount, setCoBankAccount] = useState('');
+  const [coDirectorName, setCoDirectorName] = useState('');
+
   // Cluster Form State
+  const [clCompanyId, setClCompanyId] = useState('');
   const [clName, setClName] = useState('');
   const [clLocation, setClLocation] = useState('');
   const [clDesc, setClDesc] = useState('');
@@ -159,6 +203,7 @@ export default function PropertiesManagementPage() {
       const res = await fetch('/api/db');
       const json = await res.json();
       if (json.success) {
+        let loadedCompanies = json.data.companies || [];
         let loadedClusters = json.data.clusters || [];
         let loadedUnits = json.data.units || [];
         let loadedUnitTypes = json.data.unitTypes || [];
@@ -171,6 +216,7 @@ export default function PropertiesManagementPage() {
           loadedUnitTypes = loadedUnitTypes.filter((ut: any) => accessClusters.includes(ut.cluster_id));
         }
 
+        setCompanies(loadedCompanies);
         setClusters(loadedClusters);
         setUnits(loadedUnits);
         setUnitTypes(loadedUnitTypes);
@@ -196,7 +242,122 @@ export default function PropertiesManagementPage() {
     }
   }, [user]);
 
-  // Form Handlers
+  // Company Form Handlers
+  const handleCompanyLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCoLogo(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleCreateCompany = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isAllowedToMutate) return;
+    if (!coName) {
+      alert('Nama perusahaan wajib diisi!');
+      return;
+    }
+    try {
+      const isEditing = !!isEditingCompanyId;
+      const res = await fetch('/api/crm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: isEditing ? 'update_company' : 'create_company',
+          company_id: isEditing ? isEditingCompanyId : undefined,
+          name: coName,
+          code: coCode,
+          legal_name: coLegalName,
+          npwp: coNpwp,
+          address: coAddress,
+          phone: coPhone,
+          email: coEmail,
+          logo_url: coLogo,
+          bank_account: coBankAccount,
+          director_name: coDirectorName,
+          actor_id: user?.id
+        })
+      });
+      const result = await res.json();
+      if (result.success) {
+        alert(isEditing ? 'Data Perusahaan berhasil diperbarui!' : 'Perusahaan baru berhasil ditambahkan!');
+        setIsAddingCompany(false);
+        setIsEditingCompanyId('');
+        resetCompanyForm();
+        fetchPropertiesData();
+      } else {
+        alert(result.error || 'Gagal menyimpan perusahaan.');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const resetCompanyForm = () => {
+    setCoName('');
+    setCoCode('');
+    setCoLegalName('');
+    setCoNpwp('');
+    setCoAddress('');
+    setCoPhone('');
+    setCoEmail('');
+    setCoLogo('');
+    setCoBankAccount('');
+    setCoDirectorName('');
+    setIsEditingCompanyId('');
+  };
+
+  const handleStartEditCompany = (comp: Company) => {
+    setIsEditingCompanyId(comp.id);
+    setCoName(comp.name);
+    setCoCode(comp.code || '');
+    setCoLegalName(comp.legal_name || '');
+    setCoNpwp(comp.npwp || '');
+    setCoAddress(comp.address || '');
+    setCoPhone(comp.phone || '');
+    setCoEmail(comp.email || '');
+    setCoLogo(comp.logo_url || '');
+    setCoBankAccount(comp.bank_account || '');
+    setCoDirectorName(comp.director_name || '');
+    setIsAddingCompany(true);
+  };
+
+  const handleDeleteCompany = async (companyId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!isAllowedToMutate) return;
+    const comp = companies.find(c => c.id === companyId);
+    const linkedClusters = clusters.filter(c => c.company_id === companyId);
+    const confirmMsg = linkedClusters.length > 0
+      ? `Perusahaan "${comp?.name}" membawahi ${linkedClusters.length} perumahan. Menghapus perusahaan ini akan melepas relasi perumahan tersebut. Yakin ingin menghapus?`
+      : `Yakin ingin menghapus perusahaan "${comp?.name}"?`;
+    
+    if (!window.confirm(confirmMsg)) return;
+
+    try {
+      const res = await fetch('/api/crm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'delete_company',
+          company_id: companyId,
+          actor_id: user?.id
+        })
+      });
+      const result = await res.json();
+      if (result.success) {
+        alert('Perusahaan berhasil dihapus.');
+        fetchPropertiesData();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // Cluster Form Handlers
   const handleClusterLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -236,6 +397,7 @@ export default function PropertiesManagementPage() {
         body: JSON.stringify({
           action: isEditing ? 'update_cluster' : 'create_cluster',
           cluster_id: isEditing ? isEditingClusterId : undefined,
+          company_id: clCompanyId || undefined,
           name: clName,
           location: clLocation,
           description: clDesc,
@@ -264,6 +426,7 @@ export default function PropertiesManagementPage() {
   };
 
   const resetClusterForm = () => {
+    setClCompanyId('');
     setClName('');
     setClLocation('');
     setClDesc('');
@@ -280,6 +443,7 @@ export default function PropertiesManagementPage() {
 
   const handleStartEditCluster = (cluster: Cluster) => {
     setIsEditingClusterId(cluster.id);
+    setClCompanyId(cluster.company_id || '');
     setClName(cluster.name);
     setClLocation(cluster.location);
     setClDesc(cluster.description || '');
@@ -563,20 +727,80 @@ export default function PropertiesManagementPage() {
           </div>
         </div>
 
+        {/* ── TOP TAB NAVIGATION BAR ── */}
+        {!selectedClusterId && (
+          <div className="flex border-b border-gray-200/80 gap-2 sm:gap-6 text-xs sm:text-sm font-bold text-gray-500 overflow-x-auto no-scrollbar">
+            <button
+              type="button"
+              onClick={() => { setActiveTab('companies'); setIsAddingCompany(false); setIsAddingCluster(false); }}
+              className={`pb-3 border-b-2 flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
+                activeTab === 'companies'
+                  ? 'border-blue-600 text-blue-600 font-extrabold'
+                  : 'border-transparent hover:text-gray-900'
+              }`}
+            >
+              <Building size={17} />
+              <span>Perusahaan / Developer ({companies.length})</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => { setActiveTab('clusters'); setIsAddingCluster(false); setIsAddingCompany(false); }}
+              className={`pb-3 border-b-2 flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
+                activeTab === 'clusters'
+                  ? 'border-blue-600 text-blue-600 font-extrabold'
+                  : 'border-transparent hover:text-gray-900'
+              }`}
+            >
+              <Layers size={17} />
+              <span>Perumahan / Cluster ({clusters.length})</span>
+            </button>
+          </div>
+        )}
+
         {/* ── MAIN CONTENT SWITCHER ── */}
         
-        {/* VIEW 1: Adding a new Cluster/Housing Project */}
+        {/* VIEW 1: Adding/Editing a Cluster/Housing Project */}
         {isAddingCluster && isAllowedToMutate ? (
           <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm flex flex-col gap-5 text-left">
-            <div>
-              <h2 className="text-lg font-extrabold text-gray-900">{isEditingClusterId ? 'Edit Cluster Perumahan' : 'Tambah Cluster Perumahan Baru'}</h2>
-              <p className="text-xs text-gray-500 mt-0.5">
-                {isEditingClusterId ? 'Ubah informasi perumahan, lokasi, deskripsi, atau unggah peta SVG baru.' : 'Daftarkan perumahan baru lengkap dengan lokasi, deskripsi, dan upload denah peta SVG.'}
-              </p>
+            <div className="flex justify-between items-center border-b border-gray-100 pb-4">
+              <div>
+                <h2 className="text-lg font-extrabold text-gray-900">{isEditingClusterId ? 'Edit Cluster Perumahan' : 'Tambah Cluster Perumahan Baru'}</h2>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {isEditingClusterId ? 'Ubah informasi perumahan, lokasi, deskripsi, atau unggah peta SVG baru.' : 'Daftarkan perumahan baru lengkap dengan perusahaan induk, lokasi, deskripsi, dan denah peta SVG.'}
+                </p>
+              </div>
+              <button
+                onClick={() => { setIsAddingCluster(false); setIsEditingClusterId(''); resetClusterForm(); }}
+                className="px-3.5 py-1.5 border border-gray-200 rounded-xl font-bold text-xs hover:bg-gray-50 transition-colors"
+              >
+                Batal
+              </button>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <form onSubmit={handleCreateCluster} className="lg:col-span-2 flex flex-col gap-4 text-xs font-semibold">
+                
+                {/* Perusahaan Induk Dropdown */}
+                <div className="flex flex-col gap-1.5 p-3.5 bg-blue-50/40 border border-blue-100 rounded-xl">
+                  <label className="text-blue-700 uppercase tracking-wider text-[9px] font-black flex items-center gap-1.5">
+                    <Building size={12} /> Perusahaan Induk (Developer PT)
+                  </label>
+                  <select
+                    value={clCompanyId}
+                    onChange={e => setClCompanyId(e.target.value)}
+                    className="px-3.5 py-2.5 border border-gray-200 bg-white rounded-xl focus:outline-none focus:border-blue-500 font-bold text-xs text-gray-800"
+                  >
+                    <option value="">-- Tanpa Perusahaan Induk (Independen) --</option>
+                    {companies.map(comp => (
+                      <option key={comp.id} value={comp.id}>
+                        {comp.name} {comp.code ? `(${comp.code})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="text-[10px] text-gray-500 italic">Pilih entitas PT yang menaungi proyek perumahan ini.</span>
+                </div>
+
                 <div className="flex flex-col gap-1.5">
                   <label className="text-gray-400 uppercase tracking-wider text-[9px]">Nama Perumahan / Cluster *</label>
                   <input
@@ -695,16 +919,19 @@ export default function PropertiesManagementPage() {
                   </div>
 
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-gray-400 uppercase tracking-wider text-[9px]">Peta Site Plan (File .svg) *</label>
-                    <label className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none bg-slate-50 hover:bg-slate-100 cursor-pointer flex items-center justify-center gap-1.5 font-bold transition-all border-dashed">
-                      <span>{selectedSvgFileName ? `Terpilih: ${selectedSvgFileName.substring(0, 15)}...` : "Pilih File SVG"}</span>
-                      <input
-                        type="file"
-                        accept=".svg,image/svg+xml"
-                        onChange={handleSvgFileUpload}
-                        className="hidden"
-                      />
-                    </label>
+                    <label className="text-gray-400 uppercase tracking-wider text-[9px]">Unggah Peta Site Plan (SVG)</label>
+                    <div className="flex items-center gap-2">
+                      <label className="flex-1 px-3.5 py-2 border border-dashed border-blue-300 rounded-xl bg-blue-50/50 hover:bg-blue-50 cursor-pointer flex items-center justify-center font-bold text-blue-700 transition-all gap-1.5">
+                        <UploadCloud size={16} />
+                        <span className="truncate">{selectedSvgFileName || 'Unggah berkas .svg'}</span>
+                        <input
+                          type="file"
+                          accept=".svg"
+                          onChange={handleSvgFileUpload}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
                   </div>
                 </div>
 
@@ -829,12 +1056,12 @@ export default function PropertiesManagementPage() {
                   </div>
                 </div>
 
-                <div className="flex gap-2 pt-2 border-t border-gray-100 mt-2">
+                <div className="flex gap-3 pt-4 border-t border-gray-100 mt-2">
                   <button
                     type="submit"
-                    className="flex-1 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-bold shadow-md hover:shadow-lg transition-all text-xs"
+                    className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-bold hover:shadow-lg transition-all text-xs"
                   >
-                    {isEditingClusterId ? 'Simpan Perubahan' : 'Simpan Perumahan'}
+                    {isEditingClusterId ? 'Simpan Perubahan Cluster' : 'Buat Cluster Perumahan'}
                   </button>
                   <button
                     type="button"
@@ -843,7 +1070,7 @@ export default function PropertiesManagementPage() {
                       setIsEditingClusterId('');
                       resetClusterForm();
                     }}
-                    className="flex-1 py-3 bg-gray-100 border text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition-colors text-xs"
+                    className="px-5 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition-colors text-xs"
                   >
                     Batal
                   </button>
@@ -868,7 +1095,11 @@ export default function PropertiesManagementPage() {
                       )}
                       <div className="flex flex-col">
                         <span className="font-extrabold text-xs text-gray-900 tracking-tight leading-none uppercase">{clName || 'NAMA CLUSTER PERUMAHAN'}</span>
-                        <span className="text-[8px] text-gray-400 font-bold uppercase tracking-wider mt-0.5">Housing Project Branding</span>
+                        {clCompanyId && (
+                          <span className="text-[9px] text-purple-600 font-bold uppercase mt-1">
+                            {companies.find(c => c.id === clCompanyId)?.name}
+                          </span>
+                        )}
                       </div>
                     </div>
                     <div className="flex flex-col text-right text-[8px] text-gray-500 font-semibold leading-relaxed max-w-[130px]">
@@ -891,6 +1122,7 @@ export default function PropertiesManagementPage() {
           // VIEW 2: Inspected Cluster Detail Page (Unit Types & Kavlings list)
           (() => {
             const cluster = clusters.find(c => c.id === selectedClusterId);
+            const parentComp = companies.find(c => c.id === cluster?.company_id);
             const clusterTypes = unitTypes.filter(t => t.cluster_id === selectedClusterId);
             const clusterUnits = units.filter(u => u.cluster_id === selectedClusterId);
             
@@ -899,7 +1131,14 @@ export default function PropertiesManagementPage() {
                 {/* Detail Header & Back button */}
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
                   <div className="flex flex-col gap-1">
-                    <span className="text-[9px] font-black uppercase text-blue-600 tracking-wider">Detail Perumahan</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[9px] font-black uppercase text-blue-600 tracking-wider">Detail Perumahan</span>
+                      {parentComp && (
+                        <span className="text-[9px] font-extrabold bg-purple-50 text-purple-700 border border-purple-100 rounded px-2 py-0.5 flex items-center gap-1">
+                          <Building size={10} /> {parentComp.name}
+                        </span>
+                      )}
+                    </div>
                     <h2 className="text-xl font-extrabold text-gray-950">{cluster?.name}</h2>
                     <span className="text-xs text-gray-500 font-semibold">{cluster?.location} · {clusterUnits.length} Kavling Terdaftar</span>
                   </div>
@@ -1051,44 +1290,33 @@ export default function PropertiesManagementPage() {
                         </div>
                       </form>
                     ) : (
-                      // Render list of unit types
-                      <div className="flex flex-col gap-2.5">
+                      <div className="flex flex-col gap-3">
                         {clusterTypes.length === 0 ? (
-                          <div className="text-center py-6 border border-dashed border-gray-100 rounded-xl text-gray-400 italic text-[11px]">
-                            Belum ada spesifikasi tipe unit terdaftar.
-                          </div>
+                          <span className="text-xs text-gray-400 italic py-2">Belum ada tipe unit.</span>
                         ) : (
-                          clusterTypes.map((type) => (
-                            <div key={type.id} className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex flex-col text-left gap-1 group/type relative">
-                              <div className="flex justify-between items-start">
-                                <span className="font-extrabold text-gray-900 text-xs">{type.name}</span>
-                                {isAllowedToMutate && (
-                                  <div className="flex items-center gap-1.5 opacity-0 group-hover/type:opacity-100 transition-opacity">
-                                    <button
-                                      type="button"
-                                      onClick={() => handleStartEditUnitType(type)}
-                                      className="p-1 hover:bg-slate-200 rounded text-slate-500 hover:text-blue-600 transition-colors"
-                                      title="Edit Tipe Unit"
-                                    >
-                                      <Edit3 size={11} />
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleDeleteUnitType(type.id)}
-                                      className="p-1 hover:bg-red-100 rounded text-slate-400 hover:text-red-600 transition-colors"
-                                      title="Hapus Tipe Unit"
-                                    >
-                                      <Trash2 size={11} />
-                                    </button>
-                                  </div>
-                                )}
+                          clusterTypes.map(type => (
+                            <div key={type.id} className="p-3 bg-gray-50 rounded-xl border border-gray-150 flex justify-between items-start">
+                              <div className="flex flex-col gap-0.5">
+                                <span className="font-extrabold text-xs text-gray-900">{type.name}</span>
+                                <span className="text-[10px] text-gray-500">LB: {type.building_area} m² · LT: {type.land_area} m²</span>
+                                <span className="text-[11px] font-bold text-blue-600 mt-1">{formatIDR(type.base_price)}</span>
                               </div>
-                              <span className="text-[10px] text-gray-400 font-semibold">
-                                LB: {type.building_area} m² · LT: {type.land_area} m² · KT: {type.bedrooms} / KM: {type.bathrooms}
-                              </span>
-                              <span className="font-extrabold text-blue-600 text-[11px] mt-1">
-                                {formatIDR(type.base_price)}
-                              </span>
+                              {isAllowedToMutate && (
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    onClick={() => handleStartEditUnitType(type)}
+                                    className="p-1 text-gray-400 hover:text-blue-600 rounded"
+                                  >
+                                    <Edit3 size={12} />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteUnitType(type.id)}
+                                    className="p-1 text-gray-400 hover:text-red-600 rounded"
+                                  >
+                                    <Trash2 size={12} />
+                                  </button>
+                                </div>
+                              )}
                             </div>
                           ))
                         )}
@@ -1096,207 +1324,121 @@ export default function PropertiesManagementPage() {
                     )}
                   </div>
 
-                  {/* Legalitas & Dokumen Perizinan Perumahan */}
-                  <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm flex flex-col gap-4 self-start">
-                    <div className="border-b border-gray-100 pb-3 flex justify-between items-center text-left">
-                      <h3 className="font-extrabold text-sm text-gray-950 flex items-center gap-1.5">
-                        <FolderOpen size={16} className="text-blue-600" />
-                        Legalitas & Perizinan Proyek
-                      </h3>
-                    </div>
-                    
-                    <div className="flex flex-col gap-2.5 text-left">
-                      {(!cluster?.documents || cluster.documents.length === 0) ? (
-                        <div className="text-center py-6 border border-dashed border-gray-150 rounded-xl text-gray-400 italic text-[11px] flex flex-col items-center justify-center gap-1.5">
-                          <Info size={16} className="text-gray-300" />
-                          <span>Belum ada berkas perizinan diunggah.</span>
-                        </div>
-                      ) : (
-                        cluster.documents.map((doc) => {
-                          const matchingCategory = docCategories.find(c => c.key === doc.category);
-                          return (
-                            <div key={doc.id} className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex flex-col gap-1.5">
-                              <div className="flex justify-between items-start">
-                                <span className="font-extrabold text-gray-950 text-xs leading-normal">{matchingCategory?.label || doc.category.replace('_', ' ')}</span>
-                              </div>
-                              {doc.doc_number && (
-                                <span className="text-[10px] text-gray-600 font-semibold leading-none">
-                                  No: <span className="text-gray-900 font-extrabold">{doc.doc_number}</span>
-                                </span>
-                              )}
-                              {doc.issued_date && (
-                                <span className="text-[9px] text-gray-400 font-bold leading-none">
-                                  Terbit: {doc.issued_date}
-                                </span>
-                              )}
-                              <div className="flex items-center justify-between border-t border-gray-100 pt-2 mt-0.5">
-                                <span className="text-[8px] text-gray-400 font-bold">Upload: {doc.uploaded_at}</span>
-                                <a
-                                  href={doc.file_url}
-                                  download={doc.file_name}
-                                  className="text-[9px] font-bold text-blue-600 hover:underline flex items-center gap-0.5"
-                                >
-                                  Unduh Berkas ➔
-                                </a>
-                              </div>
-                            </div>
-                          );
-                        })
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Right 2 Columns: Kavling / Plots List & Form */}
+                  {/* Right Column: Kavling / Units Table & Add Form */}
                   <div className="lg:col-span-2 bg-white border border-gray-200 rounded-2xl p-5 shadow-sm flex flex-col gap-4">
                     <div className="flex justify-between items-center border-b border-gray-100 pb-3">
-                      <h3 className="font-extrabold text-sm text-gray-950">Daftar Kavling & Plot ({clusterUnits.length})</h3>
-                      {!isAddingUnit && clusterTypes.length > 0 && isAllowedToMutate && (
+                      <h3 className="font-extrabold text-sm text-gray-950">Daftar Kavling & Unit ({clusterUnits.length})</h3>
+                      {!isAddingUnit && isAllowedToMutate && (
                         <button
-                          onClick={() => {
-                            setUUnitTypeId(clusterTypes[0].id);
-                            setIsAddingUnit(true);
-                          }}
-                          className="px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl font-bold text-[10px] transition-colors border border-blue-100"
+                          onClick={() => setIsAddingUnit(true)}
+                          className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs transition-colors shadow-sm"
                         >
                           + TAMBAH KAVLING
                         </button>
                       )}
                     </div>
 
-                    {/* Add Kavling Form */}
                     {isAddingUnit && isAllowedToMutate ? (
-                      <form onSubmit={handleCreateUnit} className="bg-slate-50 border border-slate-100 p-4 rounded-xl flex flex-col gap-4 text-xs font-semibold text-left">
-                        <div>
-                          <h4 className="font-extrabold text-xs text-gray-900">{isEditingUnitId ? 'Edit Data Kavling' : 'Tambah Kavling Baru'}</h4>
-                          <p className="text-[10px] text-gray-400 font-medium">
-                            {isEditingUnitId ? 'Perbarui nomor blok, tipe unit, harga, orientasi, atau status kavling ini.' : 'Kavling ini otomatis akan dipetakan ke site plan SVG jika id element SVG cocok.'}
-                          </p>
+                      <form onSubmit={handleCreateUnit} className="flex flex-col gap-4 text-xs font-semibold p-4 bg-gray-50 border border-gray-200 rounded-2xl">
+                        <div className="flex justify-between items-center border-b border-gray-200 pb-2">
+                          <span className="font-extrabold text-xs text-gray-900">{isEditingUnitId ? 'Edit Data Kavling' : 'Tambah Kavling Baru'}</span>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                           <div className="flex flex-col gap-1.5">
-                            <label className="text-gray-400 uppercase tracking-wider text-[9px]">Nomor Blok * (Cth: A-15)</label>
+                            <label className="text-gray-400 uppercase tracking-wider text-[9px]">Nomor Blok *</label>
                             <input
                               type="text"
                               required
-                              placeholder="Blok & Nomor"
+                              placeholder="cth: A-01"
                               value={uBlockNumber}
                               onChange={e => setUBlockNumber(e.target.value)}
-                              className="px-3 py-2 border border-gray-200 bg-white rounded-xl focus:outline-none focus:border-blue-500 font-medium text-xs"
+                              className="px-3 py-2 border border-gray-200 bg-white rounded-xl focus:outline-none focus:border-blue-500 font-medium"
                             />
                           </div>
 
                           <div className="flex flex-col gap-1.5">
-                            <label className="text-gray-400 uppercase tracking-wider text-[9px]">Tipe Unit Properti *</label>
+                            <label className="text-gray-400 uppercase tracking-wider text-[9px]">Pilih Tipe Unit *</label>
                             <select
                               value={uUnitTypeId}
                               onChange={e => setUUnitTypeId(e.target.value)}
-                              className="px-3 py-2 border border-gray-200 bg-white rounded-xl focus:outline-none font-medium text-xs"
+                              required
+                              className="px-3 py-2 border border-gray-200 bg-white rounded-xl focus:outline-none font-medium"
                             >
-                              {clusterTypes.map(type => (
-                                <option key={type.id} value={type.id}>{type.name}</option>
+                              <option value="">-- Pilih Tipe --</option>
+                              {clusterTypes.map(t => (
+                                <option key={t.id} value={t.id}>{t.name} (LB {t.building_area}/LT {t.land_area})</option>
                               ))}
                             </select>
                           </div>
-                        </div>
 
-                        <div className="grid grid-cols-2 gap-4">
                           <div className="flex flex-col gap-1.5">
                             <label className="text-gray-400 uppercase tracking-wider text-[9px]">Harga Jual (Rp) *</label>
                             <input
                               type="number"
                               required
-                              placeholder="Harga jual unit"
+                              placeholder="cth: 475000000"
                               value={uSellPrice}
                               onChange={e => setUSellPrice(e.target.value)}
-                              className="px-3 py-2 border border-gray-200 bg-white rounded-xl focus:outline-none focus:border-blue-500 font-medium text-xs"
+                              className="px-3 py-2 border border-gray-200 bg-white rounded-xl focus:outline-none focus:border-blue-500 font-medium"
                             />
-                          </div>
-
-                          <div className="flex flex-col gap-1.5">
-                            <label className="text-gray-400 uppercase tracking-wider text-[9px]">Orientasi Kavling</label>
-                            <select
-                              value={uOrientation}
-                              onChange={e => setUOrientation(e.target.value as any)}
-                              className="px-3 py-2 border border-gray-200 bg-white rounded-xl focus:outline-none font-medium text-xs"
-                            >
-                              <option value="middle">Tengah (Middle)</option>
-                              <option value="hook">Sudut Jalan (Hook)</option>
-                              <option value="corner">Pojok (Corner)</option>
-                            </select>
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                          <div className="flex flex-col gap-1.5">
+                            <label className="text-gray-400 uppercase tracking-wider text-[9px]">Orientasi</label>
+                            <select
+                              value={uOrientation}
+                              onChange={e => setUOrientation(e.target.value as any)}
+                              className="px-3 py-2 border border-gray-200 bg-white rounded-xl focus:outline-none font-medium"
+                            >
+                              <option value="middle">Tengah (Standard)</option>
+                              <option value="hook">Hook (Pojok)</option>
+                              <option value="corner">Corner</option>
+                            </select>
+                          </div>
+
                           <div className="flex flex-col gap-1.5">
                             <label className="text-gray-400 uppercase tracking-wider text-[9px]">Status Ketersediaan</label>
                             <select
                               value={uStatus}
-                              onChange={e => {
-                                setUStatus(e.target.value);
-                                if (e.target.value !== 'available') {
-                                  setUConstructionStatus('belum_terbangun');
-                                }
-                              }}
-                              className="px-3 py-2 border border-gray-200 bg-white rounded-xl focus:outline-none font-medium text-xs"
+                              onChange={e => setUStatus(e.target.value)}
+                              className="px-3 py-2 border border-gray-200 bg-white rounded-xl focus:outline-none font-medium"
                             >
-                              <option value="available">Tersedia / Kosong (Available)</option>
-                              <option value="reserved">Minat (Reserved)</option>
-                              <option value="booking">Booking Fee Paid</option>
-                              <option value="kpr_process">Proses KPR</option>
+                              <option value="available">Tersedia (Available)</option>
+                              <option value="reserved">Reserved / NUP</option>
+                              <option value="booking">Booking Fee</option>
+                              <option value="kpr_process">Proses KPR/Cash</option>
                               <option value="sold">Terjual (Sold)</option>
-                              <option value="unavailable">Tidak Tersedia</option>
+                              <option value="unavailable">Hold / Tidak Dijual</option>
                             </select>
                           </div>
 
-                          {uStatus === 'available' ? (
-                            <div className="flex flex-col gap-1.5">
-                              <label className="text-gray-400 uppercase tracking-wider text-[9px]">Tahap Pembangunan *</label>
-                              <select
-                                value={uConstructionStatus}
-                                onChange={e => setUConstructionStatus(e.target.value)}
-                                className="px-3 py-2 border border-gray-200 bg-white rounded-xl focus:outline-none font-bold text-xs text-indigo-700"
-                              >
-                                <option value="belum_terbangun">Belum Terbangun</option>
-                                <option value="proses_pembangunan">Proses Pembangunan</option>
-                                <option value="finishing">Finishing</option>
-                                <option value="ready">Ready (Siap Huni)</option>
-                              </select>
-                            </div>
-                          ) : (
-                            <div className="flex flex-col gap-1.5">
-                              <label className="text-gray-400 uppercase tracking-wider text-[9px]">Catatan Unit</label>
-                              <input
-                                type="text"
-                                placeholder="Dekat fasilitas umum, dll..."
-                                value={uNotes}
-                                onChange={e => setUNotes(e.target.value)}
-                                className="px-3 py-2 border border-gray-200 bg-white rounded-xl focus:outline-none focus:border-blue-500 font-medium text-xs"
-                              />
-                            </div>
-                          )}
+                          <div className="flex flex-col gap-1.5">
+                            <label className="text-gray-400 uppercase tracking-wider text-[9px]">Progres Fisik Bangunan</label>
+                            <select
+                              value={uConstructionStatus}
+                              onChange={e => setUConstructionStatus(e.target.value)}
+                              className="px-3 py-2 border border-gray-200 bg-white rounded-xl focus:outline-none font-medium"
+                            >
+                              <option value="belum_terbangun">Belum Terbangun (Kavling Siap Bangun)</option>
+                              <option value="proses_pembangunan">Proses Pembangunan</option>
+                              <option value="finishing">Finishing / Tahap Akhir</option>
+                              <option value="ready">Ready Stock (Siap Huni)</option>
+                            </select>
+                          </div>
                         </div>
 
-                        {uStatus === 'available' && (
-                          <div className="flex flex-col gap-1.5">
-                            <label className="text-gray-400 uppercase tracking-wider text-[9px]">Catatan Unit</label>
-                            <input
-                              type="text"
-                              placeholder="Dekat fasilitas umum, dll..."
-                              value={uNotes}
-                              onChange={e => setUNotes(e.target.value)}
-                              className="px-3 py-2 border border-gray-200 bg-white rounded-xl focus:outline-none focus:border-blue-500 font-medium text-xs"
-                            />
-                          </div>
-                        )}
+                        {/* Administrasi Legalitas & Pajak Kavling */}
+                        <div className="flex flex-col gap-3 p-3.5 bg-white border border-gray-200 rounded-xl mt-1">
+                          <span className="text-[10px] font-extrabold text-slate-700 uppercase tracking-wider flex items-center gap-1 border-b border-gray-100 pb-2">
+                            🏛️ Legalitas & Perpajakan Kavling Spesiﬁk
+                          </span>
 
-                        {/* Legalitas & Perpajakan */}
-                        <div className="border-t border-dashed border-gray-200 pt-3.5 mt-1 flex flex-col gap-3.5">
-                          <h5 className="font-extrabold text-[10px] text-blue-600 uppercase tracking-widest">⚖️ Legalitas & Perpajakan</h5>
-                          
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="flex flex-col gap-1.5">
-                              <label className="text-gray-400 uppercase tracking-wider text-[9px]">Status Sertifikat Tanah</label>
+                              <label className="text-gray-400 uppercase tracking-wider text-[9px]">Status Sertifikat</label>
                               <select
                                 value={uLegalStatus}
                                 onChange={e => setULegalStatus(e.target.value as any)}
@@ -1322,147 +1464,12 @@ export default function PropertiesManagementPage() {
                               </select>
                             </div>
                           </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-1">
-                            {/* Dokumen Pertanahan Uploader */}
-                            <div className="flex flex-col gap-2 p-3 bg-blue-50/20 border border-blue-100/50 rounded-xl">
-                              <span className="text-[10px] font-extrabold text-blue-700 uppercase tracking-wide flex items-center gap-1">📁 Dokumen Pertanahan</span>
-                              <label className="px-3 py-1.5 border border-dashed border-blue-300 hover:bg-blue-50 hover:border-blue-400 rounded-lg cursor-pointer flex items-center justify-center gap-1 font-bold text-[10px] text-blue-700 bg-white transition-all">
-                                <UploadCloud size={12} />
-                                <span>+ Unggah Sertifikat/AJB</span>
-                                <input
-                                  type="file"
-                                  accept=".pdf,.jpg,.jpeg,.png,.docx"
-                                  onChange={(e) => {
-                                    const file = e.target.files?.[0];
-                                    if (!file) return;
-                                    const reader = new FileReader();
-                                    reader.onload = (event) => {
-                                      const url = event.target?.result as string;
-                                      const newDoc = {
-                                        id: 'land-' + Math.random().toString(36).substr(2, 9),
-                                        name: file.name,
-                                        url,
-                                        uploaded_at: new Date().toLocaleDateString('id-ID')
-                                      };
-                                      setULandDocuments(prev => [...prev, newDoc]);
-                                    };
-                                    reader.readAsDataURL(file);
-                                  }}
-                                  className="hidden"
-                                />
-                              </label>
-
-                              {/* List of land documents */}
-                              <div className="flex flex-col gap-1.5 overflow-y-auto max-h-32">
-                                {uLandDocuments.length === 0 ? (
-                                  <span className="text-[9px] text-gray-400 italic text-center py-2">Belum ada berkas pertanahan.</span>
-                                ) : (
-                                  uLandDocuments.map((doc, idx) => (
-                                    <div key={doc.id || idx} className="flex justify-between items-center bg-white p-1.5 border border-gray-100 rounded-lg shadow-sm">
-                                      <div className="flex items-center gap-1 min-w-0">
-                                        <span className="text-[10px]">📄</span>
-                                        <a href={doc.url} download={doc.name} className="text-[9px] font-bold text-slate-700 hover:text-blue-600 hover:underline truncate" title={doc.name}>
-                                          {doc.name}
-                                        </a>
-                                      </div>
-                                      <button
-                                        type="button"
-                                        onClick={() => setULandDocuments(prev => prev.filter(d => d.id !== doc.id))}
-                                        className="text-gray-400 hover:text-red-600 font-black text-[9px] px-1"
-                                      >
-                                        ✕
-                                      </button>
-                                    </div>
-                                  ))
-                                )}
-                              </div>
-                            </div>
-
-                            {/* Dokumen Perpajakan Uploader */}
-                            <div className="flex flex-col gap-2 p-3 bg-emerald-50/20 border border-emerald-100/50 rounded-xl">
-                              <span className="text-[10px] font-extrabold text-emerald-700 uppercase tracking-wide flex items-center gap-1">📁 Dokumen Perpajakan (PBB)</span>
-                              
-                              <div className="flex flex-col gap-1.5 mt-1 border-b border-emerald-100/50 pb-2">
-                                <div>
-                                  <label className="text-[8px] text-slate-500 uppercase tracking-wider font-semibold">Nomor Objek Pajak (NOP)</label>
-                                  <input
-                                    type="text"
-                                    placeholder="NOP PBB (18 digit)"
-                                    value={uPbbNop}
-                                    onChange={e => setUPbbNop(e.target.value)}
-                                    className="w-full px-2 py-1 border border-gray-200 bg-white rounded-md focus:outline-none text-[10px] font-medium text-slate-800"
-                                  />
-                                </div>
-                                <div className="mt-1">
-                                  <label className="text-[8px] text-slate-500 uppercase tracking-wider font-semibold">Atas Nama Wajib Pajak</label>
-                                  <input
-                                    type="text"
-                                    placeholder="Atas nama di PBB"
-                                    value={uPbbOwnerName}
-                                    onChange={e => setUPbbOwnerName(e.target.value)}
-                                    className="w-full px-2 py-1 border border-gray-200 bg-white rounded-md focus:outline-none text-[10px] font-medium text-slate-800"
-                                  />
-                                </div>
-                              </div>
-                              <label className="px-3 py-1.5 border border-dashed border-emerald-300 hover:bg-emerald-50 hover:border-emerald-400 rounded-lg cursor-pointer flex items-center justify-center gap-1 font-bold text-[10px] text-emerald-700 bg-white transition-all">
-                                <UploadCloud size={12} />
-                                <span>+ Unggah Bukti PBB</span>
-                                <input
-                                  type="file"
-                                  accept=".pdf,.jpg,.jpeg,.png,.docx"
-                                  onChange={(e) => {
-                                    const file = e.target.files?.[0];
-                                    if (!file) return;
-                                    const reader = new FileReader();
-                                    reader.onload = (event) => {
-                                      const url = event.target?.result as string;
-                                      const newDoc = {
-                                        id: 'tax-' + Math.random().toString(36).substr(2, 9),
-                                        name: file.name,
-                                        url,
-                                        uploaded_at: new Date().toLocaleDateString('id-ID')
-                                      };
-                                      setUTaxDocuments(prev => [...prev, newDoc]);
-                                    };
-                                    reader.readAsDataURL(file);
-                                  }}
-                                  className="hidden"
-                                />
-                              </label>
-
-                              {/* List of tax documents */}
-                              <div className="flex flex-col gap-1.5 overflow-y-auto max-h-32">
-                                {uTaxDocuments.length === 0 ? (
-                                  <span className="text-[9px] text-gray-400 italic text-center py-2">Belum ada bukti PBB.</span>
-                                ) : (
-                                  uTaxDocuments.map((doc, idx) => (
-                                    <div key={doc.id || idx} className="flex justify-between items-center bg-white p-1.5 border border-gray-100 rounded-lg shadow-sm">
-                                      <div className="flex items-center gap-1 min-w-0">
-                                        <span className="text-[10px]">📄</span>
-                                        <a href={doc.url} download={doc.name} className="text-[9px] font-bold text-slate-700 hover:text-emerald-600 hover:underline truncate" title={doc.name}>
-                                          {doc.name}
-                                        </a>
-                                      </div>
-                                      <button
-                                        type="button"
-                                        onClick={() => setUTaxDocuments(prev => prev.filter(d => d.id !== doc.id))}
-                                        className="text-gray-400 hover:text-red-600 font-black text-[9px] px-1"
-                                      >
-                                        ✕
-                                      </button>
-                                    </div>
-                                  ))
-                                )}
-                              </div>
-                            </div>
-                          </div>
                         </div>
 
                         <div className="flex gap-2 pt-2 border-t border-gray-200 mt-1">
                           <button
                             type="submit"
-                            className="flex-1 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition-colors text-xs"
+                            className="px-5 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition-colors text-xs"
                           >
                             Simpan Kavling
                           </button>
@@ -1473,7 +1480,7 @@ export default function PropertiesManagementPage() {
                               setIsEditingUnitId('');
                               resetUnitForm();
                             }}
-                            className="flex-1 py-2 bg-gray-200 text-gray-700 border rounded-lg font-bold hover:bg-gray-300 transition-colors text-xs"
+                            className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-bold hover:bg-gray-300 transition-colors text-xs"
                           >
                             Batal
                           </button>
@@ -1515,27 +1522,15 @@ export default function PropertiesManagementPage() {
                                   </td>
                                   <td className="p-3 font-extrabold text-[10px] text-blue-600 uppercase">
                                     {unit.legal_status ? unit.legal_status.toUpperCase() : 'SHM'}
-                                    {unit.land_documents && unit.land_documents.length > 0 && (
-                                      <span className="ml-1 text-[8px] bg-blue-50 text-blue-700 px-1 py-0.5 rounded border border-blue-100">
-                                        {unit.land_documents.length} berkas
-                                      </span>
-                                    )}
                                   </td>
                                   <td className="p-3 text-[10px] font-bold">
-                                    <div className="flex flex-col items-start gap-1">
-                                      <span className={`px-1.5 py-0.5 rounded text-[8px] border ${
-                                        unit.pbb_status === 'paid' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                                        unit.pbb_status === 'unpaid' ? 'bg-rose-50 text-rose-700 border-rose-200' :
-                                        'bg-slate-100 text-slate-600 border-slate-200'
-                                      }`}>
-                                        {unit.pbb_status === 'paid' ? 'LUNAS' : unit.pbb_status === 'unpaid' ? 'BELUM BAYAR' : 'BELUM DAFTAR'}
-                                      </span>
-                                      {unit.tax_documents && unit.tax_documents.length > 0 && (
-                                        <span className="text-[8px] bg-emerald-50 text-emerald-700 px-1 py-0.5 rounded border border-emerald-100 font-extrabold">
-                                          {unit.tax_documents.length} berkas
-                                        </span>
-                                      )}
-                                    </div>
+                                    <span className={`px-1.5 py-0.5 rounded text-[8px] border ${
+                                      unit.pbb_status === 'paid' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                                      unit.pbb_status === 'unpaid' ? 'bg-rose-50 text-rose-700 border-rose-200' :
+                                      'bg-slate-100 text-slate-600 border-slate-200'
+                                    }`}>
+                                      {unit.pbb_status === 'paid' ? 'LUNAS' : unit.pbb_status === 'unpaid' ? 'BELUM BAYAR' : 'BELUM DAFTAR'}
+                                    </span>
                                   </td>
                                   <td className="p-3 capitalize font-medium text-gray-500">{unit.orientation}</td>
                                   <td className="p-3 text-center">
@@ -1582,8 +1577,371 @@ export default function PropertiesManagementPage() {
               </div>
             );
           })()
+        ) : activeTab === 'companies' ? (
+          // VIEW 3: Main Management of Companies (Multi-Perusahaan)
+          <div className="flex flex-col gap-6 text-left">
+            
+            {/* Top Metric Cards for Companies */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="bg-white border border-gray-200/80 rounded-2xl p-4 shadow-sm flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Total Perusahaan (PT)</span>
+                  <div className="text-2xl font-black text-gray-900 mt-1">{companies.length}</div>
+                </div>
+                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
+                  <Building size={20} />
+                </div>
+              </div>
+
+              <div className="bg-white border border-gray-200/80 rounded-2xl p-4 shadow-sm flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Total Perumahan / Cluster</span>
+                  <div className="text-2xl font-black text-gray-900 mt-1">{clusters.length}</div>
+                </div>
+                <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold">
+                  <Building2 size={20} />
+                </div>
+              </div>
+
+              <div className="bg-white border border-gray-200/80 rounded-2xl p-4 shadow-sm flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Total Unit Kavling</span>
+                  <div className="text-2xl font-black text-gray-900 mt-1">{units.length}</div>
+                </div>
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+                  <Layers size={20} />
+                </div>
+              </div>
+            </div>
+
+            {/* Header & Search Bar */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h2 className="font-extrabold text-base text-gray-900">Entitas Perusahaan Developer</h2>
+                <p className="text-xs text-gray-500 mt-0.5">Kelola PT/Developer induk yang membawahi beberapa proyek perumahan.</p>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <Search size={14} className="absolute left-3 top-3 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Cari perusahaan..."
+                    value={searchCompany}
+                    onChange={e => setSearchCompany(e.target.value)}
+                    className="pl-8 pr-3 py-2 bg-white border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-blue-500 font-medium"
+                  />
+                </div>
+
+                {!isAddingCompany && isAllowedToMutate && (
+                  <button
+                    onClick={() => { resetCompanyForm(); setIsAddingCompany(true); }}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md hover:shadow-lg transition-all cursor-pointer whitespace-nowrap"
+                  >
+                    <Plus size={15} /> Tambah Perusahaan
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Form Tambah / Edit Perusahaan */}
+            {isAddingCompany && isAllowedToMutate && (
+              <form onSubmit={handleCreateCompany} className="bg-white border border-blue-200 rounded-2xl p-6 shadow-sm flex flex-col gap-4 text-xs font-semibold text-left">
+                <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+                  <h3 className="font-extrabold text-sm text-gray-900">{isEditingCompanyId ? 'Edit Data Perusahaan (PT)' : 'Tambah Perusahaan (PT) Baru'}</h3>
+                  <button
+                    type="button"
+                    onClick={() => { setIsAddingCompany(false); resetCompanyForm(); }}
+                    className="text-gray-400 hover:text-gray-600 text-xs font-bold"
+                  >
+                    Batal ✕
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-gray-400 uppercase tracking-wider text-[9px]">Nama Perusahaan (PT) *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="cth: PT Domus Somnia Utama"
+                      value={coName}
+                      onChange={e => setCoName(e.target.value)}
+                      className="px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 font-medium"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-gray-400 uppercase tracking-wider text-[9px]">Kode Singkat Perusahaan</label>
+                    <input
+                      type="text"
+                      placeholder="cth: DSU"
+                      value={coCode}
+                      onChange={e => setCoCode(e.target.value)}
+                      className="px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 font-medium"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-gray-400 uppercase tracking-wider text-[9px]">Nama Resmi Badan Hukum</label>
+                    <input
+                      type="text"
+                      placeholder="cth: PT Domus Somnia Utama Tbk"
+                      value={coLegalName}
+                      onChange={e => setCoLegalName(e.target.value)}
+                      className="px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 font-medium"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-gray-400 uppercase tracking-wider text-[9px]">NPWP Perusahaan</label>
+                    <input
+                      type="text"
+                      placeholder="cth: 01.234.567.8-901.000"
+                      value={coNpwp}
+                      onChange={e => setCoNpwp(e.target.value)}
+                      className="px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 font-medium"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-gray-400 uppercase tracking-wider text-[9px]">Direktur / Penanggung Jawab</label>
+                    <input
+                      type="text"
+                      placeholder="cth: Ir. Ahmad Somnia"
+                      value={coDirectorName}
+                      onChange={e => setCoDirectorName(e.target.value)}
+                      className="px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 font-medium"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-gray-400 uppercase tracking-wider text-[9px]">Nomor Telepon</label>
+                    <input
+                      type="text"
+                      placeholder="cth: (022) 1234567"
+                      value={coPhone}
+                      onChange={e => setCoPhone(e.target.value)}
+                      className="px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 font-medium"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-gray-400 uppercase tracking-wider text-[9px]">Email Perusahaan</label>
+                    <input
+                      type="email"
+                      placeholder="cth: info@domus.com"
+                      value={coEmail}
+                      onChange={e => setCoEmail(e.target.value)}
+                      className="px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 font-medium"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-gray-400 uppercase tracking-wider text-[9px]">Alamat Kantor Pusat</label>
+                    <textarea
+                      placeholder="Alamat domisili PT..."
+                      value={coAddress}
+                      onChange={e => setCoAddress(e.target.value)}
+                      rows={2}
+                      className="px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 resize-none font-medium"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-gray-400 uppercase tracking-wider text-[9px]">Rekening Bank Perusahaan</label>
+                    <textarea
+                      placeholder="cth: Mandiri 131-00-1234567-8 a/n PT Domus Somnia"
+                      value={coBankAccount}
+                      onChange={e => setCoBankAccount(e.target.value)}
+                      rows={2}
+                      className="px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 resize-none font-medium"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-2 pt-2 border-t border-gray-100">
+                  <button
+                    type="submit"
+                    className="px-5 py-2 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-colors text-xs"
+                  >
+                    {isEditingCompanyId ? 'Simpan Perubahan PT' : 'Tambah Perusahaan Baru'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setIsAddingCompany(false); resetCompanyForm(); }}
+                    className="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition-colors text-xs"
+                  >
+                    Batal
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* List Grid of Companies */}
+            {(() => {
+              const filteredCompanies = companies.filter(c => 
+                c.name.toLowerCase().includes(searchCompany.toLowerCase()) ||
+                (c.code && c.code.toLowerCase().includes(searchCompany.toLowerCase()))
+              );
+
+              if (filteredCompanies.length === 0) {
+                return (
+                  <div className="bg-white border border-gray-200 rounded-2xl p-10 text-center flex flex-col items-center justify-center gap-3">
+                    <Building size={48} className="text-gray-300" />
+                    <span className="text-sm font-bold text-gray-800">Tidak ada data Perusahaan</span>
+                    <span className="text-xs text-gray-400 max-w-sm">Gunakan tombol Tambah Perusahaan di atas untuk menambah entitas PT baru.</span>
+                  </div>
+                );
+              }
+
+              return (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {filteredCompanies.map(comp => {
+                    const linkedClusters = clusters.filter(cl => cl.company_id === comp.id);
+                    const totalCompanyUnits = linkedClusters.reduce((sum, cl) => {
+                      return sum + units.filter(u => u.cluster_id === cl.id).length;
+                    }, 0);
+
+                    return (
+                      <div key={comp.id} className="bg-white border border-gray-200/90 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col gap-4 text-left">
+                        {/* Company Card Header */}
+                        <div className="flex justify-between items-start gap-3 border-b border-gray-100 pb-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-extrabold text-lg flex-shrink-0 shadow-sm">
+                              {comp.code ? comp.code.substring(0, 3) : comp.name.substring(0, 2).toUpperCase()}
+                            </div>
+                            <div className="flex flex-col min-w-0">
+                              <div className="flex items-center gap-2">
+                                <h3 className="font-extrabold text-base text-gray-900 truncate">{comp.name}</h3>
+                                {comp.code && (
+                                  <span className="px-2 py-0.5 bg-blue-50 text-blue-700 font-extrabold text-[9px] rounded border border-blue-100">
+                                    {comp.code}
+                                  </span>
+                                )}
+                              </div>
+                              <span className="text-[11px] text-gray-400 font-medium truncate">{comp.legal_name || comp.name}</span>
+                            </div>
+                          </div>
+
+                          {isAllowedToMutate && (
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                onClick={() => handleStartEditCompany(comp)}
+                                className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-500 hover:text-blue-600 transition-colors"
+                                title="Edit Perusahaan"
+                              >
+                                <Edit3 size={13} />
+                              </button>
+                              <button
+                                onClick={(e) => handleDeleteCompany(comp.id, e)}
+                                className="p-1.5 hover:bg-red-50 rounded-lg text-slate-400 hover:text-red-600 transition-colors"
+                                title="Hapus Perusahaan"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Company Info Grid */}
+                        <div className="grid grid-cols-2 gap-3 text-xs">
+                          {comp.npwp && (
+                            <div className="flex flex-col gap-0.5">
+                              <span className="text-[9px] text-gray-400 font-bold uppercase">NPWP PT</span>
+                              <span className="font-semibold text-gray-700 truncate">{comp.npwp}</span>
+                            </div>
+                          )}
+
+                          {comp.director_name && (
+                            <div className="flex flex-col gap-0.5">
+                              <span className="text-[9px] text-gray-400 font-bold uppercase">Direktur</span>
+                              <span className="font-semibold text-gray-700 truncate">{comp.director_name}</span>
+                            </div>
+                          )}
+
+                          {(comp.phone || comp.email) && (
+                            <div className="flex flex-col gap-0.5">
+                              <span className="text-[9px] text-gray-400 font-bold uppercase">Kontak</span>
+                              <span className="font-semibold text-gray-700 truncate">{comp.phone || comp.email}</span>
+                            </div>
+                          )}
+
+                          {comp.bank_account && (
+                            <div className="flex flex-col gap-0.5">
+                              <span className="text-[9px] text-gray-400 font-bold uppercase">Rekening Bank</span>
+                              <span className="font-semibold text-purple-700 truncate">{comp.bank_account}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {comp.address && (
+                          <div className="text-[11px] text-gray-500 bg-slate-50 p-2.5 rounded-xl border border-slate-100 font-medium">
+                            <span className="text-gray-400 font-bold">Alamat: </span>{comp.address}
+                          </div>
+                        )}
+
+                        {/* Linked Clusters List / Chips Section */}
+                        <div className="bg-slate-50/70 border border-slate-200/60 rounded-xl p-3.5 flex flex-col gap-2.5">
+                          <div className="flex justify-between items-center">
+                            <span className="text-[10px] font-extrabold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                              <Building2 size={12} className="text-purple-600" />
+                              Perumahan Terdaftar ({linkedClusters.length})
+                            </span>
+                            <span className="text-[10px] font-bold text-gray-400">{totalCompanyUnits} Unit Kavling</span>
+                          </div>
+
+                          {linkedClusters.length === 0 ? (
+                            <span className="text-[11px] text-gray-400 italic py-1">Belum ada perumahan di bawah PT ini.</span>
+                          ) : (
+                            <div className="flex flex-wrap gap-2">
+                              {linkedClusters.map(cl => {
+                                const clUnitsCount = units.filter(u => u.cluster_id === cl.id).length;
+                                return (
+                                  <button
+                                    key={cl.id}
+                                    onClick={() => setSelectedClusterId(cl.id)}
+                                    className="px-2.5 py-1 bg-white border border-gray-200 hover:border-purple-300 rounded-lg text-xs font-bold text-gray-800 hover:text-purple-700 shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer"
+                                  >
+                                    <span>{cl.name}</span>
+                                    <span className="text-[9px] bg-purple-50 text-purple-700 px-1.5 py-0.2 rounded-full font-black">
+                                      {clUnitsCount} unit
+                                    </span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+
+                          {isAllowedToMutate && (
+                            <button
+                              onClick={() => {
+                                setClCompanyId(comp.id);
+                                setIsAddingCluster(true);
+                              }}
+                              className="mt-1 text-[11px] font-bold text-blue-600 hover:text-blue-700 hover:underline flex items-center gap-1 w-fit cursor-pointer"
+                            >
+                              + Tambah Perumahan untuk {comp.code || 'PT ini'} ➔
+                            </button>
+                          )}
+                        </div>
+
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+
+          </div>
         ) : (
-          // VIEW 3: Main list of Perumahan / Clusters
+          // VIEW 4: Main list of Perumahan / Clusters
           <div className="flex flex-col gap-5 text-left">
             <div className="flex justify-between items-center">
               <div>
@@ -1593,7 +1951,7 @@ export default function PropertiesManagementPage() {
               {isAllowedToMutate && (
                 <button
                   onClick={() => setIsAddingCluster(true)}
-                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-bold bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md hover:shadow-lg transition-all"
+                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-bold bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md hover:shadow-lg transition-all cursor-pointer"
                 >
                   <Plus size={16} /> Tambah Perumahan
                 </button>
@@ -1610,6 +1968,8 @@ export default function PropertiesManagementPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
                 {clusters.map(cluster => {
                   const clusterUnits = units.filter(u => u.cluster_id === cluster.id);
+                  const parentCompany = companies.find(c => c.id === cluster.company_id);
+
                   return (
                     <div
                       key={cluster.id}
@@ -1625,7 +1985,7 @@ export default function PropertiesManagementPage() {
                           <img src={cluster.logo_url} alt="Logo" className="w-12 h-12 object-cover rounded-xl border border-gray-150 flex-shrink-0 mt-1" />
                         )}
                         <div className="flex-1 min-w-0">
-                          <div className="flex justify-between items-center w-full">
+                          <div className="flex justify-between items-center w-full gap-2">
                             <span className="text-[9px] font-black bg-blue-50 text-blue-700 border border-blue-100 rounded px-2 py-0.5 uppercase tracking-wide">
                               {cluster.status.replace('_', ' ')}
                             </span>
@@ -1651,10 +2011,18 @@ export default function PropertiesManagementPage() {
                               </div>
                             )}
                           </div>
+
                           <h3 className="font-black text-sm text-gray-900 mt-2 truncate group-hover:text-blue-600 transition-colors">
                             {cluster.name}
                           </h3>
-                          <p className="text-[10px] text-gray-400 font-semibold mt-0.5">{cluster.location}</p>
+
+                          {parentCompany && (
+                            <span className="text-[9px] font-black bg-purple-50 text-purple-700 border border-purple-100 rounded px-2 py-0.5 mt-1 inline-flex items-center gap-1 max-w-full truncate">
+                              <Building size={10} /> {parentCompany.name}
+                            </span>
+                          )}
+
+                          <p className="text-[10px] text-gray-400 font-semibold mt-1">{cluster.location}</p>
                           {cluster.address && (
                             <p className="text-[9px] text-gray-400 font-medium truncate mt-0.5" title={cluster.address}>{cluster.address}</p>
                           )}
