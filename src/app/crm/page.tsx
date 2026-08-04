@@ -330,6 +330,37 @@ export default function CRMModulePage() {
   }, []);
 
   useEffect(() => {
+    if (typeof window !== 'undefined' && units.length > 0) {
+      const params = new URLSearchParams(window.location.search);
+      const urlClusterId = params.get('clusterId');
+      const urlUnitId = params.get('unitId');
+      const urlTab = params.get('tab');
+
+      if (urlTab === 'units' || urlTab === 'pipeline' || urlTab === 'prospects') {
+        setActiveTab(urlTab as any);
+      }
+
+      if (urlClusterId) {
+        setActiveClusterId(urlClusterId);
+      }
+
+      if (urlUnitId) {
+        const matched = units.find(u => u.id === urlUnitId);
+        if (matched) {
+          setSelectedUnit(matched);
+          setNewStatus(matched.status);
+          setEditNotes(matched.notes || '');
+          if (matched.cluster_id) {
+            setActiveClusterId(matched.cluster_id);
+          }
+          setActiveTab('units');
+          setViewMode('map');
+        }
+      }
+    }
+  }, [units]);
+
+  useEffect(() => {
     if (activeClusterId) {
       const filteredTypes = unitTypes.filter(t => t.cluster_id === activeClusterId);
       if (filteredTypes.length > 0) {

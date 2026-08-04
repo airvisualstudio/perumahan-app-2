@@ -26,13 +26,49 @@ import {
   Image,
   FileText,
   File,
-  Trash2
+  Trash2,
+  Home as HomeIcon
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 interface Props {
   params: Promise<{ id: string }>;
+}
+
+interface Company {
+  id: string;
+  name: string;
+  code: string;
+  legal_name?: string;
+}
+
+interface Cluster {
+  id: string;
+  name: string;
+  company_id?: string;
+}
+
+interface UnitType {
+  id: string;
+  name: string;
+  building_area: number;
+  land_area: number;
+}
+
+interface Unit {
+  id: string;
+  cluster_id: string;
+  unit_type_id: string;
+  block_number: string;
+  sell_price: number;
+  orientation: string;
+  status: string;
+  reserved_for?: string;
+  bank_name?: string;
+  akad_date?: string;
+  loan_amount?: number;
+  interest_rate?: number;
 }
 
 interface Prospect {
@@ -100,17 +136,6 @@ interface HistoryLog {
   created_at: string;
 }
 
-interface Cluster {
-  id: string;
-  name: string;
-}
-
-interface Unit {
-  id: string;
-  block_number: string;
-  status: string;
-}
-
 const pipelineStages = [
   { key: 'prospect_baru', label: 'Prospect Baru', color: 'bg-blue-100 text-blue-700 border-blue-200' },
   { key: 'dihubungi', label: 'Dihubungi', color: 'bg-indigo-100 text-indigo-700 border-indigo-200' },
@@ -134,6 +159,8 @@ export default function ProspectDetailPage({ params }: Props) {
   const [history, setHistory] = useState<HistoryLog[]>([]);
   const [clusters, setClusters] = useState<Cluster[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
+  const [unitTypes, setUnitTypes] = useState<UnitType[]>([]);
+  const [companies, setCompanies] = useState<Company[]>([]);
   const [documents, setDocuments] = useState<Document[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -283,6 +310,8 @@ export default function ProspectDetailPage({ params }: Props) {
       setProspect(p);
       setClusters(dbData.clusters || []);
       setUnits(dbData.units || []);
+      setUnitTypes(dbData.unitTypes || []);
+      setCompanies(dbData.companies || []);
       
       // Filter followups and histories
       const filteredFUs = dbData.followups.filter((f: any) => f.prospect_id === prospectId);
@@ -515,8 +544,27 @@ export default function ProspectDetailPage({ params }: Props) {
     );
   }
 
+  const formatIDR = (num: number) => {
+    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(num);
+  };
+
+  const unitStatusLabels: Record<string, { label: string; bg: string; text: string; border: string }> = {
+    available: { label: 'Tersedia', bg: 'bg-green-50', text: 'text-green-700', border: 'border-green-200' },
+    reserved: { label: 'Reserved', bg: 'bg-yellow-50', text: 'text-yellow-700', border: 'border-yellow-200' },
+    booking: { label: 'Booking Fee', bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
+    kpr_process: { label: 'Proses KPR/Cash', bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200' },
+    sold: { label: 'Terjual (Akad PPJB)', bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
+    unavailable: { label: 'Tidak Tersedia', bg: 'bg-gray-50', text: 'text-gray-700', border: 'border-gray-200' },
+  };
+
   const selectedCluster = clusters.find(c => c.id === prospect.interested_cluster_id);
   const activeStageConfig = pipelineStages.find(s => s.key === prospect.pipeline_stage);
+
+  // Find booked / purchased unit for this prospect
+  const bookedUnit = units.find(u => u.id === prospect.booked_unit_id || u.reserved_for === prospect.id);
+  const bookedCluster = clusters.find(c => c.id === (bookedUnit ? bookedUnit.cluster_id : prospect.interested_cluster_id));
+  const bookedType = unitTypes.find(t => t.id === (bookedUnit ? bookedUnit.unit_type_id : prospect.interested_type_id));
+  const bookedCompany = companies.find(comp => comp.id === bookedCluster?.company_id);
 
   return (
     <AppShell>
@@ -559,8 +607,102 @@ export default function ProspectDetailPage({ params }: Props) {
         {/* Details and Timeline Columns */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           
-          {/* Left Column: Profile Card Info */}
+          {/* Left Column: Profile Card Info & Unit Details */}
           <div className="flex flex-col gap-6">
+            
+            {/* Unit Kavling Dipilih / Diproses Akad Card */}
+            <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm flex flex-col gap-5">
+              <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                <h2 className="font-extrabold text-base flex items-center gap-2 text-gray-900">
+                  <HomeIcon size={18} className="text-emerald-600" />
+                  Detail Unit Dibeli / Diproses
+                </h2>
+                {bookedUnit && (
+                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${unitStatusLabels[bookedUnit.status]?.bg || 'bg-blue-50'} ${unitStatusLabels[bookedUnit.status]?.text || 'text-blue-700'} ${unitStatusLabels[bookedUnit.status]?.border || 'border-blue-200'}`}>
+                    {unitStatusLabels[bookedUnit.status]?.label || bookedUnit.status}
+                  </span>
+                )}
+              </div>
+
+              {bookedUnit ? (
+                <div className="flex flex-col gap-4">
+                  {/* Block Number & Price Banner */}
+                  <div className="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 p-4.5 rounded-2xl text-white flex justify-between items-center shadow-md border border-slate-800">
+                    <div className="flex flex-col text-left">
+                      <span className="text-[10px] text-indigo-300 font-bold uppercase tracking-wider">Unit Kavling</span>
+                      <span className="text-2xl font-black text-white tracking-tight">{bookedUnit.block_number}</span>
+                      <span className="text-xs text-indigo-200 font-bold mt-0.5">
+                        {bookedCluster?.name || 'Cluster Properti'} 
+                        {bookedCompany ? ` · ${bookedCompany.name}` : ''}
+                      </span>
+                    </div>
+                    <div className="text-right flex flex-col items-end">
+                      <span className="text-[10px] text-indigo-300 font-bold uppercase tracking-wider">Harga Jual</span>
+                      <span className="text-lg font-black text-emerald-400">
+                        {formatIDR(bookedUnit.sell_price)}
+                      </span>
+                      <span className="text-[10px] text-slate-300 font-bold uppercase tracking-wider mt-0.5">
+                        Orientasi: {bookedUnit.orientation?.toUpperCase()}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Unit Technical & KPR Specification Grid */}
+                  <div className="grid grid-cols-2 gap-3 text-xs font-semibold">
+                    <div className="bg-slate-50 border border-slate-100 p-3 rounded-xl flex flex-col gap-0.5">
+                      <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Tipe Bangunan</span>
+                      <span className="text-gray-800 font-extrabold">{bookedType?.name || 'Tipe Standar'}</span>
+                      <span className="text-[10px] text-gray-500 font-medium">
+                        LB {bookedType?.building_area || 0}m² / LT {bookedType?.land_area || 0}m²
+                      </span>
+                    </div>
+
+                    <div className="bg-slate-50 border border-slate-100 p-3 rounded-xl flex flex-col gap-0.5">
+                      <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Bank Pembiayaan</span>
+                      <span className="text-gray-800 font-extrabold">{bookedUnit.bank_name || 'Bank KPR / Cash'}</span>
+                      <span className="text-[10px] text-gray-500 font-medium">
+                        Suku Bunga: {bookedUnit.interest_rate ? `${bookedUnit.interest_rate}%` : '-'}
+                      </span>
+                    </div>
+
+                    <div className="bg-slate-50 border border-slate-100 p-3 rounded-xl flex flex-col gap-0.5">
+                      <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Estimasi Plafon KPR</span>
+                      <span className="text-emerald-700 font-extrabold">
+                        {bookedUnit.loan_amount ? formatIDR(bookedUnit.loan_amount) : '-'}
+                      </span>
+                    </div>
+
+                    <div className="bg-slate-50 border border-slate-100 p-3 rounded-xl flex flex-col gap-0.5">
+                      <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Jadwal / Tanggal Akad</span>
+                      <span className="text-indigo-700 font-extrabold">
+                        {bookedUnit.akad_date ? new Date(bookedUnit.akad_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Direct Link Button to Siteplan Map */}
+                  <Link
+                    href={`/crm?clusterId=${bookedUnit.cluster_id}&unitId=${bookedUnit.id}`}
+                    className="w-full py-3 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl font-black text-xs flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all group cursor-pointer"
+                  >
+                    <MapPin size={16} className="group-hover:scale-110 transition-transform" />
+                    <span>LIHAT POSISI UNIT DI SITEPLAN MAPS ➔</span>
+                  </Link>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-3 text-center py-2">
+                  <p className="text-xs text-gray-500 font-medium">Prospek ini belum memiliki record pemesanan/booking unit kavling tertentu.</p>
+                  <Link
+                    href={`/crm?clusterId=${prospect.interested_cluster_id || ''}`}
+                    className="w-full py-2.5 px-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
+                  >
+                    <MapPin size={14} className="text-emerald-400" />
+                    <span>Buka Peta Siteplan Untuk Pilih Unit ➔</span>
+                  </Link>
+                </div>
+              )}
+            </div>
+
             <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm flex flex-col gap-5">
               <h2 className="font-extrabold text-base border-b border-gray-100 pb-3 flex items-center gap-2">
                 <User size={18} className="text-blue-600" />
