@@ -25,7 +25,8 @@ import {
   ExternalLink,
   Image,
   FileText,
-  File
+  File,
+  Trash2
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -51,6 +52,7 @@ interface Prospect {
   tags: string[];
   notes?: string;
   last_followup_at?: string;
+  created_by?: string;
   created_at: string;
   attachments?: { id: string; url: string; file_name: string; file_size_bytes: number }[];
 }
@@ -223,6 +225,39 @@ export default function ProspectDetailPage({ params }: Props) {
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
+  };
+
+  // State & Handler Hapus Berkas Lampiran (RBAC Role-Based)
+  const [attachmentToDelete, setAttachmentToDelete] = useState<{ id: string; file_name: string } | null>(null);
+  const [isDeletingAtt, setIsDeletingAtt] = useState(false);
+
+  const handleConfirmDeleteAttachment = async () => {
+    if (!attachmentToDelete || !prospect || !user) return;
+    setIsDeletingAtt(true);
+    try {
+      const res = await fetch('/api/crm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'delete_prospect_attachment',
+          prospect_id: prospect.id,
+          attachment_id: attachmentToDelete.id,
+          actor_id: user.id
+        })
+      });
+      const result = await res.json();
+      if (result.success) {
+        setAttachmentToDelete(null);
+        fetchDetails();
+      } else {
+        alert(result.error || 'Gagal menghapus berkas.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Terjadi kesalahan koneksi saat menghapus berkas.');
+    } finally {
+      setIsDeletingAtt(false);
+    }
   };
   
   // Transition confirm warning
@@ -606,6 +641,11 @@ export default function ProspectDetailPage({ params }: Props) {
                                     att.url.includes('images.unsplash.com') || 
                                     /\.(png|jpe?g|webp|gif|svg)$/i.test(att.file_name);
                       const isPdf = att.url.startsWith('data:application/pdf') || /\.pdf$/i.test(att.file_name);
+                      
+                      const canDeleteAttachment = user?.role === 'admin' || 
+                                                  user?.role === 'manager' || 
+                                                  prospect?.assigned_to === user?.id || 
+                                                  prospect?.created_by === user?.id;
 
                       return (
                         <div 
@@ -614,7 +654,7 @@ export default function ProspectDetailPage({ params }: Props) {
                         >
                           <div 
                             onClick={() => handleOpenFile(att)}
-                            className="flex items-center gap-2.5 truncate max-w-[65%] cursor-pointer flex-1"
+                            className="flex items-center gap-2.5 truncate max-w-[55%] cursor-pointer flex-1"
                             title={`Klik untuk melihat: ${att.file_name}`}
                           >
                             {isImg ? (
@@ -660,6 +700,31 @@ export default function ProspectDetailPage({ params }: Props) {
                               <Download size={12} />
                               <span>Unduh</span>
                             </button>
+
+                            {canDeleteAttachment ? (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setAttachmentToDelete(att);
+                                }}
+                                className="px-2 py-1 bg-white hover:bg-red-600 hover:text-white border border-red-200 text-red-600 rounded-lg text-[10px] font-bold flex items-center gap-1 shadow-2xs transition-all cursor-pointer"
+                                title="Hapus Berkas (Hak Akses Sesuai Role)"
+                              >
+                                <Trash2 size={12} />
+                                <span>Hapus</span>
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                disabled
+                                className="px-2 py-1 bg-gray-50 border border-gray-200 text-gray-300 rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-not-allowed"
+                                title="Hanya Admin/Manager atau Sales penanggung jawab yang dapat menghapus berkas ini"
+                              >
+                                <Trash2 size={12} />
+                                <span>Hapus</span>
+                              </button>
+                            )}
                           </div>
                         </div>
                       );
@@ -1026,6 +1091,45 @@ export default function ProspectDetailPage({ params }: Props) {
                     title={docPreviewModal.fileName}
                   />
                 </object>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* DELETE ATTACHMENT CONFIRMATION MODAL */}
+        {attachmentToDelete && (
+          <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white max-w-sm w-full rounded-2xl shadow-2xl p-6 flex flex-col gap-4 text-center">
+              <div className="w-12 h-12 rounded-full bg-red-50 text-red-600 border border-red-200 flex items-center justify-center mx-auto">
+                <Trash2 size={24} />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-base text-gray-950">Hapus Berkas Konsumen?</h3>
+                <p className="text-xs text-gray-500 leading-relaxed mt-2">
+                  Apakah Anda yakin ingin menghapus berkas <strong className="text-gray-800">&quot;{attachmentToDelete.file_name}&quot;</strong> dari data konsumen ini? 
+                  Tindakan ini tidak dapat dibatalkan.
+                </p>
+                <div className="mt-3 p-2.5 bg-slate-50 border border-slate-200/80 rounded-xl text-[10px] text-slate-600 text-left flex items-center gap-2">
+                  <span className="font-extrabold text-blue-600">Hak Akses:</span>
+                  <span>Diizinkan untuk role <strong>{user?.role?.toUpperCase()}</strong></span>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  disabled={isDeletingAtt}
+                  onClick={handleConfirmDeleteAttachment}
+                  className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold shadow transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <Trash2 size={14} />
+                  <span>{isDeletingAtt ? 'Menghapus...' : 'Ya, Hapus'}</span>
+                </button>
+                <button
+                  disabled={isDeletingAtt}
+                  onClick={() => setAttachmentToDelete(null)}
+                  className="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                >
+                  Batal
+                </button>
               </div>
             </div>
           </div>

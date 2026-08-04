@@ -238,6 +238,69 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, prospect });
     }
 
+    if (action === 'delete_prospect_attachment') {
+      const { prospect_id, attachment_id, actor_id } = body;
+      const prospect = data.prospects.find(p => p.id === prospect_id);
+      if (!prospect) {
+        return NextResponse.json({ success: false, error: 'Prospek tidak ditemukan.' }, { status: 404 });
+      }
+
+      const actor = data.users.find(u => u.id === actor_id);
+      if (!actor) {
+        return NextResponse.json({ success: false, error: 'User tidak ditemukan.' }, { status: 404 });
+      }
+
+      // Hak Akses Hapus Berkas sesuai Tingkatan User (Role / Level):
+      // - Admin & Manager: Memiliki hak penuh untuk menghapus berkas pada prospek manapun.
+      // - Staff (Sales): Hanya berhak menghapus berkas pada prospek yang di-assign padanya atau dibuat olehnya.
+      const isAllowed = actor.role === 'admin' || 
+                        actor.role === 'manager' || 
+                        prospect.assigned_to === actor.id || 
+                        prospect.created_by === actor.id;
+
+      if (!isAllowed) {
+        return NextResponse.json({ 
+          success: false, 
+          error: 'Akses ditolak. Tingkatan akun Anda (Staff) tidak memiliki izin untuk menghapus berkas pada prospek sales lain.' 
+        }, { status: 403 });
+      }
+
+      if (!prospect.attachments) {
+        prospect.attachments = [];
+      }
+
+      const attIndex = prospect.attachments.findIndex(a => a.id === attachment_id);
+      if (attIndex === -1) {
+        return NextResponse.json({ success: false, error: 'Berkas tidak ditemukan.' }, { status: 404 });
+      }
+
+      const deletedAtt = prospect.attachments[attIndex];
+      prospect.attachments.splice(attIndex, 1);
+
+      // Log riwayat prospek
+      data.prospectHistory.unshift({
+        id: 'ph-' + Math.random().toString(36).substr(2, 9),
+        prospect_id,
+        event_type: 'attachment_deleted',
+        actor_id,
+        description: `Menghapus berkas dokumen: ${deletedAtt.file_name}`,
+        created_at: new Date().toISOString()
+      });
+
+      // Audit log
+      data.auditLogs.unshift({
+        id: 'aud-' + Math.random().toString(36).substr(2, 9),
+        user_id: actor_id,
+        action: 'prospect_attachment.delete',
+        entity_type: 'prospect',
+        entity_id: prospect_id,
+        created_at: new Date().toISOString()
+      });
+
+      db.save(data);
+      return NextResponse.json({ success: true, prospect, deleted_attachment_id: attachment_id });
+    }
+
     if (action === 'add_followup_comment') {
       const { followup_id, content, actor_id } = body;
       const followup = data.followups.find(f => f.id === followup_id);
