@@ -20,7 +20,12 @@ import {
   ArrowLeft,
   X,
   Eye,
-  MessageSquare
+  MessageSquare,
+  Download,
+  ExternalLink,
+  Image,
+  FileText,
+  File
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -145,6 +150,80 @@ export default function ProspectDetailPage({ params }: Props) {
 
   // Lightbox Image
   const [lightboxImg, setLightboxImg] = useState<string | null>(null);
+  
+  // Document / PDF Preview Modal State
+  const [docPreviewModal, setDocPreviewModal] = useState<{
+    url: string;
+    fileName: string;
+    isPdf: boolean;
+  } | null>(null);
+
+  const getFileBlobUrl = (url: string, mimeType?: string): string => {
+    if (!url || !url.startsWith('data:')) return url;
+    try {
+      const parts = url.split(';base64,');
+      const contentType = mimeType || parts[0].replace('data:', '');
+      const base64Str = parts[1];
+      if (!base64Str) return url;
+
+      const byteCharacters = atob(base64Str);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: contentType });
+      return URL.createObjectURL(blob);
+    } catch (err) {
+      console.error("Error converting Data URL to Blob:", err);
+      return url;
+    }
+  };
+
+  const handleOpenFile = (att: { url: string; file_name: string }) => {
+    if (!att || !att.url) return;
+    const url = att.url;
+    const fileName = att.file_name || 'berkas';
+
+    const isImg = url.startsWith('data:image/') || 
+                  url.includes('images.unsplash.com') || 
+                  /\.(png|jpe?g|webp|gif|svg)$/i.test(fileName);
+
+    if (isImg) {
+      setLightboxImg(url);
+      return;
+    }
+
+    const isPdf = url.startsWith('data:application/pdf') || /\.pdf$/i.test(fileName);
+    const viewUrl = getFileBlobUrl(url, isPdf ? 'application/pdf' : undefined);
+
+    if (isPdf) {
+      setDocPreviewModal({
+        url: viewUrl,
+        fileName,
+        isPdf: true
+      });
+      return;
+    }
+
+    // For other document types (DOCX, XLSX, TXT, etc.), trigger download
+    triggerFileDownload(att);
+  };
+
+  const triggerFileDownload = (att: { url: string; file_name: string }) => {
+    if (!att || !att.url) return;
+    const url = att.url;
+    const fileName = att.file_name || 'berkas';
+    const downloadUrl = getFileBlobUrl(url);
+
+    const a = document.createElement('a');
+    a.href = downloadUrl;
+    a.download = fileName;
+    a.target = '_blank';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
   
   // Transition confirm warning
   const [isTransitionWarningOpen, setIsTransitionWarningOpen] = useState(false);
@@ -505,12 +584,12 @@ export default function ProspectDetailPage({ params }: Props) {
                 </h2>
                 
                 {/* Upload Button */}
-                <label className="flex items-center gap-1.5 px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl cursor-pointer font-bold text-[10px] transition-colors border border-blue-100">
-                  <Plus size={12} />
-                  UNGGAH
+                <label className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl cursor-pointer font-bold text-[11px] transition-colors border border-blue-100 shadow-2xs">
+                  <Plus size={13} />
+                  UNGGAH BERKAS
                   <input
                     type="file"
-                    accept="image/*,application/pdf"
+                    accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt"
                     onChange={handleUploadDossier}
                     className="hidden"
                   />
@@ -521,28 +600,70 @@ export default function ProspectDetailPage({ params }: Props) {
               <div className="flex flex-col gap-3">
                 <h3 className="text-[10px] font-black uppercase text-gray-400 tracking-wider">Berkas Lampiran Konsumen</h3>
                 {prospect.attachments && prospect.attachments.length > 0 ? (
-                  <div className="flex flex-col gap-2">
-                    {prospect.attachments.map((att) => (
-                      <div 
-                        key={att.id}
-                        onClick={() => {
-                          if (att.url.startsWith('data:image') || att.url.includes('images.unsplash.com')) {
-                            setLightboxImg(att.url);
-                          } else {
-                            alert(`Membuka file: ${att.file_name}`);
-                          }
-                        }}
-                        className="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-100 hover:border-blue-200 hover:bg-blue-50/20 rounded-xl cursor-pointer transition-all"
-                      >
-                        <div className="flex items-center gap-2 truncate max-w-[80%]">
-                          <Paperclip size={14} className="text-slate-400 flex-shrink-0" />
-                          <span className="font-bold text-slate-700 text-[11px] truncate">{att.file_name}</span>
+                  <div className="flex flex-col gap-2.5">
+                    {prospect.attachments.map((att) => {
+                      const isImg = att.url.startsWith('data:image/') || 
+                                    att.url.includes('images.unsplash.com') || 
+                                    /\.(png|jpe?g|webp|gif|svg)$/i.test(att.file_name);
+                      const isPdf = att.url.startsWith('data:application/pdf') || /\.pdf$/i.test(att.file_name);
+
+                      return (
+                        <div 
+                          key={att.id}
+                          className="flex items-center justify-between p-3 bg-slate-50/80 border border-slate-200/70 hover:border-blue-300 hover:bg-blue-50/30 rounded-xl transition-all group"
+                        >
+                          <div 
+                            onClick={() => handleOpenFile(att)}
+                            className="flex items-center gap-2.5 truncate max-w-[65%] cursor-pointer flex-1"
+                            title={`Klik untuk melihat: ${att.file_name}`}
+                          >
+                            {isImg ? (
+                              <Image size={16} className="text-purple-600 flex-shrink-0" />
+                            ) : isPdf ? (
+                              <FileText size={16} className="text-red-600 flex-shrink-0" />
+                            ) : (
+                              <Paperclip size={16} className="text-blue-600 flex-shrink-0" />
+                            )}
+                            <div className="flex flex-col truncate text-left">
+                              <span className="font-bold text-slate-800 text-xs truncate group-hover:text-blue-700 transition-colors">
+                                {att.file_name}
+                              </span>
+                              <span className="text-[9px] text-gray-400 font-semibold">
+                                {formatBytes(att.file_size_bytes)}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 flex-shrink-0">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenFile(att);
+                              }}
+                              className="px-2.5 py-1 bg-white hover:bg-blue-600 hover:text-white border border-gray-200 text-blue-700 rounded-lg text-[10px] font-bold flex items-center gap-1 shadow-2xs transition-all cursor-pointer"
+                              title="Buka / Pratinjau Berkas"
+                            >
+                              <Eye size={12} />
+                              <span>Buka</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                triggerFileDownload(att);
+                              }}
+                              className="px-2.5 py-1 bg-white hover:bg-gray-800 hover:text-white border border-gray-200 text-gray-700 rounded-lg text-[10px] font-bold flex items-center gap-1 shadow-2xs transition-all cursor-pointer"
+                              title="Unduh Berkas"
+                            >
+                              <Download size={12} />
+                              <span>Unduh</span>
+                            </button>
+                          </div>
                         </div>
-                        <span className="text-[9px] text-gray-400 font-bold flex-shrink-0">
-                          {formatBytes(att.file_size_bytes)}
-                        </span>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 ) : (
                   <div className="text-center py-4 border border-dashed border-gray-100 rounded-xl text-gray-400 italic text-[11px]">
@@ -846,6 +967,66 @@ export default function ProspectDetailPage({ params }: Props) {
               >
                 <X size={20} />
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* DOCUMENT / PDF PREVIEW MODAL */}
+        {docPreviewModal && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[999] flex items-center justify-center p-4" onClick={() => setDocPreviewModal(null)}>
+            <div className="bg-white max-w-4xl w-full rounded-2xl shadow-2xl flex flex-col h-[85vh] overflow-hidden" onClick={e => e.stopPropagation()}>
+              <div className="flex justify-between items-center px-6 py-4 border-b border-gray-200 bg-gray-50">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-9 h-9 rounded-xl bg-red-50 text-red-600 border border-red-100 flex items-center justify-center flex-shrink-0">
+                    <FileText size={18} />
+                  </div>
+                  <div className="flex flex-col min-w-0 text-left">
+                    <h3 className="font-extrabold text-sm text-gray-900 truncate">{docPreviewModal.fileName}</h3>
+                    <span className="text-[10px] text-gray-500 font-medium">Pratinjau Berkas PDF / Dokumen Konsumen</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <a
+                    href={docPreviewModal.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-3 py-1.5 bg-white border border-gray-200 hover:bg-gray-100 text-gray-700 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-2xs"
+                  >
+                    <ExternalLink size={13} />
+                    <span>Tab Baru</span>
+                  </a>
+
+                  <button
+                    onClick={() => triggerFileDownload({ url: docPreviewModal.url, file_name: docPreviewModal.fileName })}
+                    className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
+                  >
+                    <Download size={13} />
+                    <span>Unduh</span>
+                  </button>
+
+                  <button
+                    onClick={() => setDocPreviewModal(null)}
+                    className="p-1.5 hover:bg-gray-200 rounded-full text-gray-500 hover:text-gray-900 transition-colors ml-1 cursor-pointer"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex-1 w-full bg-slate-100 p-2 relative">
+                <object
+                  data={docPreviewModal.url}
+                  type="application/pdf"
+                  className="w-full h-full rounded-xl border border-gray-200 bg-white"
+                >
+                  <iframe
+                    src={docPreviewModal.url}
+                    className="w-full h-full rounded-xl border border-gray-200 bg-white"
+                    title={docPreviewModal.fileName}
+                  />
+                </object>
+              </div>
             </div>
           </div>
         )}
