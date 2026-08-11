@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import AppShell from '@/components/AppShell';
 import { useAuth } from '@/context/AuthContext';
+import { useCrudModal } from '@/context/CrudModalContext';
 import { 
   FileText, 
   Plus, 
@@ -90,6 +91,7 @@ function terbilang(nominal: number): string {
 
 export default function DocumentHubPage() {
   const { user } = useAuth();
+  const { showSuccess, showError, showConfirm } = useCrudModal();
   
   // Tabs: 'list' | 'create' | 'queue'
   const [activeTab, setActiveTab] = useState<'list' | 'create' | 'queue'>('list');
@@ -189,29 +191,35 @@ export default function DocumentHubPage() {
     }
   };
 
-  const handleDeleteTemplate = async (templateId: string) => {
-    if (!confirm('Hapus template ini? Dokumen yang sudah dibuat tidak akan terpengaruh.')) return;
-    try {
-      const res = await fetch('/api/documents', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'delete_template',
-          actor_id: user?.id || 'usr-admin',
-          template_id: templateId
-        })
-      });
-      const json = await res.json();
-      if (json.success) {
-        setDocTemplates(json.templates || []);
-        if (selectedTemplate?.id === templateId) {
-          setSelectedTemplate(null);
-          setDocType('');
+  const handleDeleteTemplate = (templateId: string) => {
+    showConfirm(
+      'Konfirmasi Hapus Template',
+      'Apakah Anda yakin ingin menghapus template ini? Dokumen yang sudah dibuat tidak akan terpengaruh.',
+      async () => {
+        const res = await fetch('/api/documents', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'delete_template',
+            actor_id: user?.id || 'usr-admin',
+            template_id: templateId
+          })
+        });
+        const json = await res.json();
+        if (json.success) {
+          showSuccess('Template Dihapus', 'Template dokumen berhasil dihapus.', 'DELETE');
+          setDocTemplates(json.templates || []);
+          if (selectedTemplate?.id === templateId) {
+            setSelectedTemplate(null);
+            setDocType('');
+          }
+        } else {
+          showError('Gagal Hapus', json.error || 'Gagal menghapus template.');
         }
-      }
-    } catch (e) {
-      console.error(e);
-    }
+      },
+      'DELETE',
+      'Hapus Template'
+    );
   };
 
   useEffect(() => {
@@ -323,15 +331,18 @@ export default function DocumentHubPage() {
           detail: { timestamp: new Date().toLocaleTimeString('id-ID'), channel: 'finance-notif', message }
         }));
         
+        showSuccess('Dokumen Berhasil Dibuat', `Dokumen ${docType} (${json.document?.doc_number || ''}) berhasil dibuat dalam bentuk Draft.`, 'DOCUMENT');
         setActiveTab('list');
         setDocClusterId('');
         fetchDocumentsData();
         if (json.document) {
           setSelectedDoc(json.document);
         }
+      } else {
+        showError('Gagal Membuat Dokumen', json.error || 'Terjadi kesalahan saat membuat dokumen.');
       }
-    } catch (error) {
-      console.error(error);
+    } catch (error: any) {
+      showError('Gagal Membuat Dokumen', error?.message || 'Terjadi kesalahan sistem.');
     }
   };
 

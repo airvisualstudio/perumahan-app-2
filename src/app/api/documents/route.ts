@@ -18,7 +18,16 @@ export async function GET(request: Request) {
 
     // Verification portal request
     if (token) {
-      const doc = data.documents.find(d => d.doc_token === token);
+      const target = token.trim();
+      const targetNormalized = target.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+
+      const doc = data.documents.find(d => {
+        if (d.doc_token === target) return true;
+        if (d.doc_number.toLowerCase() === target.toLowerCase()) return true;
+        const docNumNormalized = d.doc_number.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+        return docNumNormalized.length > 3 && docNumNormalized === targetNormalized;
+      });
+
       if (!doc) {
         return NextResponse.json({ success: false, error: 'Document token not found' }, { status: 404 });
       }

@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import AppShell from '@/components/AppShell';
 import { useAuth } from '@/context/AuthContext';
+import { useCrudModal } from '@/context/CrudModalContext';
 import { 
   Settings, 
   Users, 
@@ -570,6 +571,7 @@ function TemplateBuilder({
 
 export default function BackofficePage() {
   const { user } = useAuth();
+  const { showSuccess, showError, showConfirm } = useCrudModal();
   
   const [activeTab, setActiveTab] = useState<'company' | 'users' | 'gps' | 'audit' | 'templates' | 'properties'>('company');
 
@@ -826,23 +828,14 @@ export default function BackofficePage() {
       });
       const json = await res.json();
       if (json.success) {
-        setCompanySaveSuccess('Profil Perusahaan berhasil disimpan!');
-        const message = `Admin *${user?.name}* memperbarui profil perusahaan:
-- Nama: *${orgName}*
-- Email: *${orgEmail}*
-- Telp: *${orgPhone}*
-- Bank Rekening: *${orgBankAccount}*`;
-        window.dispatchEvent(new CustomEvent('simulated-slack-webhook', {
-          detail: { timestamp: new Date().toLocaleTimeString('id-ID'), channel: 'hr-notif', message }
-        }));
-        setTimeout(() => setCompanySaveSuccess(''), 3000);
+        showSuccess('Pengaturan Perusahaan Disimpan', 'Profil perusahaan berhasil diperbarui.', 'UPDATE');
+        setCompanySaveSuccess('Profil perusahaan berhasil diperbarui!');
         fetchBackofficeData();
       } else {
-        alert(json.error || 'Gagal menyimpan profil perusahaan');
+        showError('Gagal Menyimpan', json.error || 'Gagal menyimpan profil perusahaan.');
       }
-    } catch (error) {
-      console.error(error);
-      alert('Terjadi kesalahan koneksi');
+    } catch (err: any) {
+      showError('Gagal Menyimpan', err?.message || 'Terjadi kesalahan koneksi.');
     } finally {
       setIsSavingCompany(false);
     }
@@ -868,10 +861,10 @@ export default function BackofficePage() {
       });
       const json = await res.json();
       if (json.success) {
+        showSuccess('Akses Perusahaan Diperbarui', `Akses perumahan untuk ${selectedUserForAccess.name} berhasil diperbarui.`, 'UPDATE');
         setSelectedUserForAccess(null);
         fetchBackofficeData();
         
-        // Dispatch mock slack notification
         const clusterNames = tempRole === 'admin' 
           ? 'Semua Perumahan (Admin)' 
           : tempSelectedClusters.length > 0 
@@ -882,11 +875,10 @@ export default function BackofficePage() {
           detail: { timestamp: new Date().toLocaleTimeString('id-ID'), channel: 'hr-notif', message }
         }));
       } else {
-        alert(json.error || 'Gagal menyimpan akses perumahan');
+        showError('Gagal Menyimpan Akses', json.error || 'Gagal menyimpan akses perumahan.');
       }
-    } catch (error) {
-      console.error(error);
-      alert('Terjadi kesalahan koneksi');
+    } catch (err: any) {
+      showError('Gagal Menyimpan Akses', err?.message || 'Terjadi kesalahan koneksi.');
     }
   };
 
@@ -909,6 +901,7 @@ export default function BackofficePage() {
       });
       const json = await res.json();
       if (json.success) {
+        showSuccess('Data Karyawan Diperbarui', `Data karyawan ${empName} berhasil diperbarui.`, 'UPDATE');
         setSelectedEmployee(null);
         fetchBackofficeData();
         
@@ -917,11 +910,10 @@ export default function BackofficePage() {
           detail: { timestamp: new Date().toLocaleTimeString('id-ID'), channel: 'hr-notif', message }
         }));
       } else {
-        alert(json.error || 'Gagal menyimpan data karyawan');
+        showError('Gagal Menyimpan', json.error || 'Gagal menyimpan data karyawan.');
       }
-    } catch (error) {
-      console.error(error);
-      alert('Terjadi kesalahan koneksi');
+    } catch (err: any) {
+      showError('Gagal Menyimpan', err?.message || 'Terjadi kesalahan koneksi.');
     }
   };
 
@@ -941,6 +933,7 @@ export default function BackofficePage() {
       });
       const json = await res.json();
       if (json.success) {
+        showSuccess('Karyawan Baru Ditambahkan', `Karyawan ${empName} berhasil ditambahkan!`, 'CREATE');
         setIsAddingEmployee(false);
         setEmpName('');
         setEmpDepartment('');
@@ -953,11 +946,10 @@ export default function BackofficePage() {
           detail: { timestamp: new Date().toLocaleTimeString('id-ID'), channel: 'hr-notif', message }
         }));
       } else {
-        alert(json.error || 'Gagal membuat data karyawan');
+        showError('Gagal Menambah Karyawan', json.error || 'Gagal membuat data karyawan.');
       }
-    } catch (error) {
-      console.error(error);
-      alert('Terjadi kesalahan koneksi');
+    } catch (err: any) {
+      showError('Gagal Menambah Karyawan', err?.message || 'Terjadi kesalahan koneksi.');
     }
   };
 
@@ -1006,26 +998,51 @@ export default function BackofficePage() {
     setNewPermissionRequiresAttachment(false);
   };
 
-  const handleDeletePermissionType = (id: string) => {
-    if (!confirm('Apakah Anda yakin ingin menghapus tipe izin ini?')) return;
-    setPermissionTypes(permissionTypes.filter(pt => pt.id !== id));
+  const handleDeletePermissionType = (name: string) => {
+    showConfirm(
+      'Konfirmasi Hapus Tipe Izin',
+      `Apakah Anda yakin ingin menghapus tipe izin "${name}"?`,
+      () => {
+        setPermissionTypes(prev => prev.filter(p => p.name !== name));
+        showSuccess('Tipe Izin Dihapus', `Tipe izin "${name}" telah dihapus dari daftar.`, 'DELETE');
+      },
+      'DELETE',
+      'Hapus Tipe Izin'
+    );
   };
 
-  const handleDeleteTemplate = async (id: string) => {
-    if (!confirm('Hapus template ini? Dokumen yang sudah dibuat tidak akan terpengaruh.')) return;
-    setDeletingId(id);
-    try {
-      const res = await fetch('/api/documents', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'delete_template', actor_id: user?.id || 'usr-admin', template_id: id })
-      });
-      const json = await res.json();
-      if (json.success) setTemplates(json.templates || []);
-    } catch (e) {
-      console.error(e);
-    }
-    setDeletingId(null);
+  const handleDeleteTemplate = (id: string) => {
+    showConfirm(
+      'Konfirmasi Hapus Template',
+      'Hapus template ini? Dokumen yang sudah dibuat tidak akan terpengaruh.',
+      async () => {
+        setDeletingId(id);
+        try {
+          const res = await fetch('/api/documents', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'delete_template',
+              actor_id: user?.id || 'usr-admin',
+              template_id: id
+            })
+          });
+          const json = await res.json();
+          if (json.success) {
+            showSuccess('Template Dihapus', 'Template dokumen berhasil dihapus.', 'DELETE');
+            setTemplates(json.templates || []);
+          } else {
+            showError('Gagal Hapus', json.error || 'Gagal menghapus template.');
+          }
+        } catch (e: any) {
+          showError('Gagal Hapus', e?.message || 'Terjadi kesalahan sistem.');
+        } finally {
+          setDeletingId(null);
+        }
+      },
+      'DELETE',
+      'Hapus Template'
+    );
   };
 
   const handleTemplateSaved = (saved: DocumentTemplate) => {
@@ -1228,74 +1245,87 @@ export default function BackofficePage() {
     setIsAddingUnit(true);
   };
 
-  const handleDeleteCluster = async (clusterId: string, e: React.MouseEvent) => {
+  const handleDeleteCluster = (clusterId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!confirm('Apakah Anda yakin ingin menghapus perumahan ini? Seluruh data tipe unit dan kavling di dalamnya juga akan terhapus.')) return;
-    try {
-      const res = await fetch('/api/crm', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'delete_cluster',
-          cluster_id: clusterId,
-          actor_id: user?.id
-        })
-      });
-      const result = await res.json();
-      if (result.success) {
-        alert('Cluster perumahan berhasil dihapus.');
-        if (selectedClusterId === clusterId) {
-          setSelectedClusterId('');
+    showConfirm(
+      'Konfirmasi Hapus Perumahan',
+      'Apakah Anda yakin ingin menghapus perumahan ini? Seluruh data tipe unit dan kavling di dalamnya juga akan terhapus.',
+      async () => {
+        const res = await fetch('/api/crm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'delete_cluster',
+            cluster_id: clusterId,
+            actor_id: user?.id
+          })
+        });
+        const result = await res.json();
+        if (result.success) {
+          showSuccess('Perumahan Dihapus', 'Cluster perumahan berhasil dihapus.', 'DELETE');
+          if (selectedClusterId === clusterId) setSelectedClusterId('');
+          fetchBackofficeData();
+        } else {
+          showError('Gagal Hapus', result.error || 'Gagal menghapus perumahan.');
         }
-        fetchBackofficeData();
-      }
-    } catch (err) {
-      console.error(err);
-    }
+      },
+      'DELETE',
+      'Hapus Perumahan'
+    );
   };
 
-  const handleDeleteUnitType = async (typeId: string) => {
-    if (!confirm('Apakah Anda yakin ingin menghapus tipe unit ini? Kavling yang terkait dengan tipe ini juga akan dihapus.')) return;
-    try {
-      const res = await fetch('/api/crm', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'delete_unit_type',
-          unit_type_id: typeId,
-          actor_id: user?.id
-        })
-      });
-      const result = await res.json();
-      if (result.success) {
-        alert('Tipe unit berhasil dihapus.');
-        fetchBackofficeData();
-      }
-    } catch (err) {
-      console.error(err);
-    }
+  const handleDeleteUnitType = (typeId: string) => {
+    showConfirm(
+      'Konfirmasi Hapus Tipe Unit',
+      'Apakah Anda yakin ingin menghapus tipe unit ini? Kavling yang terkait dengan tipe ini juga akan dihapus.',
+      async () => {
+        const res = await fetch('/api/crm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'delete_unit_type',
+            unit_type_id: typeId,
+            actor_id: user?.id
+          })
+        });
+        const result = await res.json();
+        if (result.success) {
+          showSuccess('Tipe Unit Dihapus', 'Tipe unit berhasil dihapus.', 'DELETE');
+          fetchBackofficeData();
+        } else {
+          showError('Gagal Hapus', result.error || 'Gagal menghapus tipe unit.');
+        }
+      },
+      'DELETE',
+      'Hapus Tipe Unit'
+    );
   };
 
-  const handleDeleteUnit = async (unitId: string) => {
-    if (!confirm('Apakah Anda yakin ingin menghapus kavling ini?')) return;
-    try {
-      const res = await fetch('/api/crm', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'delete_unit',
-          unit_id: unitId,
-          actor_id: user?.id
-        })
-      });
-      const result = await res.json();
-      if (result.success) {
-        alert('Kavling berhasil dihapus.');
-        fetchBackofficeData();
-      }
-    } catch (err) {
-      console.error(err);
-    }
+  const handleDeleteUnit = (unitId: string) => {
+    showConfirm(
+      'Konfirmasi Hapus Kavling',
+      'Apakah Anda yakin ingin menghapus kavling ini?',
+      async () => {
+        const res = await fetch('/api/crm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'delete_unit',
+            unit_id: unitId,
+            actor_id: user?.id
+          })
+        });
+        const result = await res.json();
+        if (result.success) {
+          showSuccess('Kavling Dihapus', 'Kavling berhasil dihapus.', 'DELETE');
+          fetchBackofficeData();
+        } else {
+          showError('Gagal Hapus', result.error || 'Gagal menghapus kavling.');
+        }
+      },
+      'DELETE',
+      'Hapus Kavling'
+    );
   };
 
   const handleSvgFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {

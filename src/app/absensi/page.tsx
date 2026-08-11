@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import AppShell from '@/components/AppShell';
 import { useAuth } from '@/context/AuthContext';
+import { useCrudModal } from '@/context/CrudModalContext';
 import { 
   MapPin, 
   Clock, 
@@ -43,6 +44,7 @@ interface Leave {
 
 export default function AttendancePage() {
   const { user } = useAuth();
+  const { showSuccess, showError, showConfirm } = useCrudModal();
   const [todayRecord, setTodayRecord] = useState<any>(null);
   const [history, setHistory] = useState<any[]>([]);
   const [leaves, setLeaves] = useState<any[]>([]);
@@ -461,7 +463,7 @@ export default function AttendancePage() {
     if (!user || !coordinates) return;
 
     if (isLateToday && (!notes || notes.trim() === '')) {
-      alert("Alasan terlambat wajib diisi untuk melakukan clock-in.");
+      showError("Validasi Clock-In", "Alasan terlambat wajib diisi untuk melakukan clock-in.");
       return;
     }
 
@@ -507,10 +509,15 @@ export default function AttendancePage() {
         window.dispatchEvent(new CustomEvent('simulated-slack-webhook', {
           detail: { timestamp: new Date().toLocaleTimeString('id-ID'), channel: 'hr-notif', message }
         }));
+        showSuccess(
+          'Clock-In Berhasil',
+          `Clock-in berhasil dicatat (${workMode}) pada pukul ${new Date(json.record.clock_in_at).toLocaleTimeString('id-ID')}. Status: ${isLateToday ? 'TERLAMBAT' : 'TEPAT WAKTU'}`,
+          'CREATE'
+        );
         setNotes('');
         fetchAttendanceDetails();
       } else {
-        alert(json.error);
+        showError('Gagal Clock-In', json.error || 'Terjadi kesalahan saat clock-in.');
       }
     } catch (error) {
       console.error(error);
@@ -538,7 +545,14 @@ export default function AttendancePage() {
         window.dispatchEvent(new CustomEvent('simulated-slack-webhook', {
           detail: { timestamp: new Date().toLocaleTimeString('id-ID'), channel: 'hr-notif', message }
         }));
+        showSuccess(
+          'Clock-Out Berhasil',
+          `Clock-out berhasil dicatat pada pukul ${new Date(json.record.clock_out_at).toLocaleTimeString('id-ID')}. Terima kasih atas kerja keras Anda hari ini!`,
+          'CREATE'
+        );
         fetchAttendanceDetails();
+      } else {
+        showError('Gagal Clock-Out', json.error || 'Terjadi kesalahan saat clock-out.');
       }
     } catch (error) {
       console.error(error);
@@ -574,13 +588,14 @@ export default function AttendancePage() {
           detail: { timestamp: new Date().toLocaleTimeString('id-ID'), channel: 'hr-notif', message }
         }));
 
+        showSuccess('Pengajuan Cuti Terkirim', `Pengajuan cuti (${cutiType}) selama ${totalDays} hari berhasil dikirimkan.`, 'CREATE');
         setIsCutiOpen(false);
         setCutiStart('');
         setCutiEnd('');
         setCutiReason('');
         fetchAttendanceDetails();
       } else {
-        alert(json.error);
+        showError('Gagal Pengajuan Cuti', json.error);
       }
     } catch (err) {
       console.error(err);
@@ -831,39 +846,46 @@ export default function AttendancePage() {
       });
       const json = await res.json();
       if (json.success) {
-        alert(editingLogRecord ? "Log absensi berhasil diubah!" : "Log absensi baru berhasil ditambahkan!");
+        showSuccess(
+          editingLogRecord ? 'Log Absensi Diperbarui' : 'Log Absensi Ditambahkan',
+          editingLogRecord ? 'Log absensi karyawan berhasil diperbarui!' : 'Log absensi karyawan baru berhasil ditambahkan!',
+          editingLogRecord ? 'UPDATE' : 'CREATE'
+        );
         setIsLogModalOpen(false);
         setEditingLogRecord(null);
         fetchAttendanceDetails();
       } else {
-        alert(json.error);
+        showError('Gagal Menyimpan Log', json.error);
       }
     } catch (err) {
       console.error(err);
     }
   };
 
-  const handleDeleteAttendanceLog = async (id: string) => {
-    if (!confirm("Apakah Anda yakin ingin menghapus log absensi ini?")) return;
-    try {
-      const res = await fetch('/api/attendance', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'delete_attendance_log',
-          id
-        })
-      });
-      const json = await res.json();
-      if (json.success) {
-        alert("Log absensi berhasil dihapus!");
-        fetchAttendanceDetails();
-      } else {
-        alert(json.error);
-      }
-    } catch (err) {
-      console.error(err);
-    }
+  const handleDeleteAttendanceLog = (id: string) => {
+    showConfirm(
+      'Konfirmasi Hapus Log Absensi',
+      'Apakah Anda yakin ingin menghapus log absensi ini?',
+      async () => {
+        const res = await fetch('/api/attendance', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'delete_attendance_log',
+            id
+          })
+        });
+        const json = await res.json();
+        if (json.success) {
+          showSuccess('Log Absensi Dihapus', 'Log absensi berhasil dihapus.', 'DELETE');
+          fetchAttendanceDetails();
+        } else {
+          showError('Gagal Hapus', json.error || 'Gagal menghapus log absensi.');
+        }
+      },
+      'DELETE',
+      'Hapus Log Absensi'
+    );
   };
 
   if (isLoading) {

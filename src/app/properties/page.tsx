@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import AppShell from '@/components/AppShell';
 import { useAuth } from '@/context/AuthContext';
+import { useCrudModal } from '@/context/CrudModalContext';
 import { 
   Layers, 
   MapPin, 
@@ -113,6 +114,7 @@ interface PropertyUnit {
 
 export default function PropertiesManagementPage() {
   const { user } = useAuth();
+  const { showSuccess, showError, showConfirm } = useCrudModal();
   const [isLoading, setIsLoading] = useState(true);
   
   // Data Lists
@@ -258,7 +260,7 @@ export default function PropertiesManagementPage() {
     e.preventDefault();
     if (!isAllowedToMutate) return;
     if (!coName) {
-      alert('Nama perusahaan wajib diisi!');
+      showError('Validasi Form', 'Nama perusahaan wajib diisi!');
       return;
     }
     try {
@@ -284,16 +286,20 @@ export default function PropertiesManagementPage() {
       });
       const result = await res.json();
       if (result.success) {
-        alert(isEditing ? 'Data Perusahaan berhasil diperbarui!' : 'Perusahaan baru berhasil ditambahkan!');
+        showSuccess(
+          isEditing ? 'Perusahaan Diperbarui' : 'Perusahaan Dibuat',
+          isEditing ? `Data Perusahaan "${coName}" berhasil diperbarui!` : `Perusahaan baru "${coName}" berhasil ditambahkan!`,
+          isEditing ? 'UPDATE' : 'CREATE'
+        );
         setIsAddingCompany(false);
         setIsEditingCompanyId('');
         resetCompanyForm();
         fetchPropertiesData();
       } else {
-        alert(result.error || 'Gagal menyimpan perusahaan.');
+        showError('Gagal Menyimpan', result.error || 'Gagal menyimpan perusahaan.');
       }
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      showError('Gagal Menyimpan', err?.message || 'Terjadi kesalahan sistem.');
     }
   };
 
@@ -326,7 +332,7 @@ export default function PropertiesManagementPage() {
     setIsAddingCompany(true);
   };
 
-  const handleDeleteCompany = async (companyId: string, e: React.MouseEvent) => {
+  const handleDeleteCompany = (companyId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!isAllowedToMutate) return;
     const comp = companies.find(c => c.id === companyId);
@@ -335,26 +341,30 @@ export default function PropertiesManagementPage() {
       ? `Perusahaan "${comp?.name}" membawahi ${linkedClusters.length} perumahan. Menghapus perusahaan ini akan melepas relasi perumahan tersebut. Yakin ingin menghapus?`
       : `Yakin ingin menghapus perusahaan "${comp?.name}"?`;
     
-    if (!window.confirm(confirmMsg)) return;
-
-    try {
-      const res = await fetch('/api/crm', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'delete_company',
-          company_id: companyId,
-          actor_id: user?.id
-        })
-      });
-      const result = await res.json();
-      if (result.success) {
-        alert('Perusahaan berhasil dihapus.');
-        fetchPropertiesData();
-      }
-    } catch (err) {
-      console.error(err);
-    }
+    showConfirm(
+      'Konfirmasi Hapus Perusahaan',
+      confirmMsg,
+      async () => {
+        const res = await fetch('/api/crm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'delete_company',
+            company_id: companyId,
+            actor_id: user?.id
+          })
+        });
+        const result = await res.json();
+        if (result.success) {
+          showSuccess('Hapus Berhasil', `Perusahaan "${comp?.name || ''}" telah berhasil dihapus.`, 'DELETE');
+          fetchPropertiesData();
+        } else {
+          showError('Gagal Hapus', result.error || 'Gagal menghapus perusahaan.');
+        }
+      },
+      'DELETE',
+      'Hapus Perusahaan'
+    );
   };
 
   // Cluster Form Handlers
@@ -386,7 +396,7 @@ export default function PropertiesManagementPage() {
     e.preventDefault();
     if (!isAllowedToMutate) return;
     if (!clName || !clLocation) {
-      alert('Nama perumahan dan lokasi wajib diisi!');
+      showError('Validasi Form', 'Nama perumahan dan lokasi wajib diisi!');
       return;
     }
     try {
@@ -414,14 +424,20 @@ export default function PropertiesManagementPage() {
       });
       const result = await res.json();
       if (result.success) {
-        alert(isEditing ? 'Cluster perumahan berhasil diperbarui!' : 'Cluster perumahan baru berhasil dibuat!');
+        showSuccess(
+          isEditing ? 'Cluster Diperbarui' : 'Cluster Dibuat',
+          isEditing ? `Cluster perumahan "${clName}" berhasil diperbarui!` : `Cluster perumahan baru "${clName}" berhasil dibuat!`,
+          isEditing ? 'UPDATE' : 'CREATE'
+        );
         setIsAddingCluster(false);
         setIsEditingClusterId('');
         resetClusterForm();
         fetchPropertiesData();
+      } else {
+        showError('Gagal Menyimpan', result.error || 'Gagal menyimpan cluster.');
       }
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      showError('Gagal Menyimpan', err?.message || 'Terjadi kesalahan sistem.');
     }
   };
 
@@ -459,33 +475,37 @@ export default function PropertiesManagementPage() {
     setIsAddingCluster(true);
   };
 
-  const handleDeleteCluster = async (clusterId: string, e: React.MouseEvent) => {
+  const handleDeleteCluster = (clusterId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!isAllowedToMutate) return;
-    if (!window.confirm('Apakah Anda yakin ingin menghapus perumahan ini? Seluruh tipe unit dan kavling di dalamnya juga akan terhapus.')) {
-      return;
-    }
-    try {
-      const res = await fetch('/api/crm', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'delete_cluster',
-          cluster_id: clusterId,
-          actor_id: user?.id
-        })
-      });
-      const result = await res.json();
-      if (result.success) {
-        alert('Cluster perumahan berhasil dihapus.');
-        if (selectedClusterId === clusterId) {
-          setSelectedClusterId('');
+    const cl = clusters.find(c => c.id === clusterId);
+    showConfirm(
+      'Konfirmasi Hapus Cluster',
+      `Apakah Anda yakin ingin menghapus perumahan "${cl?.name || ''}"? Seluruh tipe unit dan kavling di dalamnya juga akan terhapus.`,
+      async () => {
+        const res = await fetch('/api/crm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'delete_cluster',
+            cluster_id: clusterId,
+            actor_id: user?.id
+          })
+        });
+        const result = await res.json();
+        if (result.success) {
+          showSuccess('Hapus Berhasil', `Cluster perumahan "${cl?.name || ''}" berhasil dihapus.`, 'DELETE');
+          if (selectedClusterId === clusterId) {
+            setSelectedClusterId('');
+          }
+          fetchPropertiesData();
+        } else {
+          showError('Gagal Hapus', result.error || 'Gagal menghapus cluster perumahan.');
         }
-        fetchPropertiesData();
-      }
-    } catch (err) {
-      console.error(err);
-    }
+      },
+      'DELETE',
+      'Hapus Perumahan'
+    );
   };
 
   // Unit Type Handlers
@@ -493,7 +513,7 @@ export default function PropertiesManagementPage() {
     e.preventDefault();
     if (!isAllowedToMutate) return;
     if (!utName || !utBuildingArea || !utLandArea || !utBasePrice) {
-      alert('Informasi tipe unit wajib diisi!');
+      showError('Validasi Form', 'Informasi tipe unit wajib diisi!');
       return;
     }
     try {
@@ -518,14 +538,20 @@ export default function PropertiesManagementPage() {
       });
       const result = await res.json();
       if (result.success) {
-        alert(isEditing ? 'Tipe unit berhasil diperbarui!' : 'Tipe unit baru berhasil ditambahkan!');
+        showSuccess(
+          isEditing ? 'Tipe Unit Diperbarui' : 'Tipe Unit Dibuat',
+          isEditing ? `Tipe unit "${utName}" berhasil diperbarui!` : `Tipe unit baru "${utName}" berhasil ditambahkan!`,
+          isEditing ? 'UPDATE' : 'CREATE'
+        );
         setIsAddingUnitType(false);
         setIsEditingUnitTypeId('');
         resetUnitTypeForm();
         fetchPropertiesData();
+      } else {
+        showError('Gagal Menyimpan', result.error || 'Gagal menyimpan tipe unit.');
       }
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      showError('Gagal Menyimpan', err?.message || 'Terjadi kesalahan sistem.');
     }
   };
 
@@ -553,29 +579,33 @@ export default function PropertiesManagementPage() {
     setIsAddingUnitType(true);
   };
 
-  const handleDeleteUnitType = async (typeId: string) => {
+  const handleDeleteUnitType = (typeId: string) => {
     if (!isAllowedToMutate) return;
-    if (!window.confirm('Apakah Anda yakin ingin menghapus tipe unit ini? Semua kavling dengan tipe ini juga akan terhapus.')) {
-      return;
-    }
-    try {
-      const res = await fetch('/api/crm', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'delete_unit_type',
-          unit_type_id: typeId,
-          actor_id: user?.id
-        })
-      });
-      const result = await res.json();
-      if (result.success) {
-        alert('Tipe unit berhasil dihapus.');
-        fetchPropertiesData();
-      }
-    } catch (err) {
-      console.error(err);
-    }
+    const ut = unitTypes.find(t => t.id === typeId);
+    showConfirm(
+      'Konfirmasi Hapus Tipe Unit',
+      `Apakah Anda yakin ingin menghapus tipe unit "${ut?.name || ''}"? Semua kavling dengan tipe ini juga akan terhapus.`,
+      async () => {
+        const res = await fetch('/api/crm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'delete_unit_type',
+            unit_type_id: typeId,
+            actor_id: user?.id
+          })
+        });
+        const result = await res.json();
+        if (result.success) {
+          showSuccess('Hapus Berhasil', `Tipe unit "${ut?.name || ''}" berhasil dihapus.`, 'DELETE');
+          fetchPropertiesData();
+        } else {
+          showError('Gagal Hapus', result.error || 'Gagal menghapus tipe unit.');
+        }
+      },
+      'DELETE',
+      'Hapus Tipe Unit'
+    );
   };
 
   // Kavling / Unit Handlers
@@ -583,7 +613,7 @@ export default function PropertiesManagementPage() {
     e.preventDefault();
     if (!isAllowedToMutate) return;
     if (!uBlockNumber || !uUnitTypeId || !uSellPrice) {
-      alert('Informasi kavling wajib diisi!');
+      showError('Validasi Form', 'Informasi kavling wajib diisi!');
       return;
     }
     try {
@@ -613,14 +643,20 @@ export default function PropertiesManagementPage() {
       });
       const result = await res.json();
       if (result.success) {
-        alert(isEditing ? 'Data kavling berhasil diperbarui!' : 'Kavling baru berhasil ditambahkan!');
+        showSuccess(
+          isEditing ? 'Kavling Diperbarui' : 'Kavling Dibuat',
+          isEditing ? `Data kavling Blok "${uBlockNumber}" berhasil diperbarui!` : `Kavling baru Blok "${uBlockNumber}" berhasil ditambahkan!`,
+          isEditing ? 'UPDATE' : 'CREATE'
+        );
         setIsAddingUnit(false);
         setIsEditingUnitId('');
         resetUnitForm();
         fetchPropertiesData();
+      } else {
+        showError('Gagal Menyimpan', result.error || 'Gagal menyimpan data kavling.');
       }
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      showError('Gagal Menyimpan', err?.message || 'Terjadi kesalahan sistem.');
     }
   };
 
@@ -655,29 +691,33 @@ export default function PropertiesManagementPage() {
     setIsAddingUnit(true);
   };
 
-  const handleDeleteUnit = async (unitId: string) => {
+  const handleDeleteUnit = (unitId: string) => {
     if (!isAllowedToMutate) return;
-    if (!window.confirm('Apakah Anda yakin ingin menghapus kavling ini?')) {
-      return;
-    }
-    try {
-      const res = await fetch('/api/crm', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'delete_unit',
-          unit_id: unitId,
-          actor_id: user?.id
-        })
-      });
-      const result = await res.json();
-      if (result.success) {
-        alert('Kavling berhasil dihapus.');
-        fetchPropertiesData();
-      }
-    } catch (err) {
-      console.error(err);
-    }
+    const un = units.find(u => u.id === unitId);
+    showConfirm(
+      'Konfirmasi Hapus Kavling',
+      `Apakah Anda yakin ingin menghapus kavling Blok "${un?.block_number || ''}"?`,
+      async () => {
+        const res = await fetch('/api/crm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'delete_unit',
+            unit_id: unitId,
+            actor_id: user?.id
+          })
+        });
+        const result = await res.json();
+        if (result.success) {
+          showSuccess('Hapus Berhasil', `Kavling Blok "${un?.block_number || ''}" berhasil dihapus.`, 'DELETE');
+          fetchPropertiesData();
+        } else {
+          showError('Gagal Hapus', result.error || 'Gagal menghapus kavling.');
+        }
+      },
+      'DELETE',
+      'Hapus Kavling'
+    );
   };
 
   const formatIDR = (num: number) => {

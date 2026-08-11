@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import AppShell from '@/components/AppShell';
 import KavlingMap from '@/components/KavlingMap';
 import { useAuth } from '@/context/AuthContext';
+import { useCrudModal } from '@/context/CrudModalContext';
 import { 
   Home as HomeIcon, 
   MapPin, 
@@ -111,6 +112,7 @@ const pipelineStages = [
 
 export default function CRMModulePage() {
   const { user, availableUsers } = useAuth();
+  const { showSuccess, showError, showConfirm } = useCrudModal();
   const [draggedOverStage, setDraggedOverStage] = useState<string | null>(null);
 
   const handleDragStart = (e: React.DragEvent, prospectId: string) => {
@@ -252,42 +254,48 @@ export default function CRMModulePage() {
           detail: { timestamp: new Date().toLocaleTimeString('id-ID'), channel: 'marketing-notif', message }
         }));
 
+        showSuccess('Lead Diperbarui', `Data prospek "${editFormName}" telah berhasil diperbarui!`, 'UPDATE');
         setEditingProspect(null);
         fetchData();
+      } else {
+        showError('Gagal Memperbarui', result.error || 'Gagal memperbarui prospek.');
       }
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      showError('Gagal Memperbarui', err?.message || 'Terjadi kesalahan sistem.');
     }
   };
 
-  const handleDeleteProspect = async (prospectId: string, prospectName: string) => {
-    if (!window.confirm(`Apakah Anda yakin ingin menghapus prospek "${prospectName}"? Tindakan ini tidak dapat dibatalkan.`)) {
-      return;
-    }
+  const handleDeleteProspect = (prospectId: string, prospectName: string) => {
+    showConfirm(
+      'Konfirmasi Hapus Lead',
+      `Apakah Anda yakin ingin menghapus prospek "${prospectName}"? Tindakan ini tidak dapat dibatalkan.`,
+      async () => {
+        const res = await fetch('/api/crm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'delete_prospect',
+            prospect_id: prospectId,
+            actor_id: user?.id
+          })
+        });
+        const result = await res.json();
+        if (result.success) {
+          // Slack webhook log
+          const message = `Sales Agent ${user?.name} menghapus prospek: *${prospectName}*`;
+          window.dispatchEvent(new CustomEvent('simulated-slack-webhook', {
+            detail: { timestamp: new Date().toLocaleTimeString('id-ID'), channel: 'marketing-notif', message }
+          }));
 
-    try {
-      const res = await fetch('/api/crm', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'delete_prospect',
-          prospect_id: prospectId,
-          actor_id: user?.id
-        })
-      });
-      const result = await res.json();
-      if (result.success) {
-        // Slack webhook log
-        const message = `Sales Agent ${user?.name} menghapus prospek *${prospectName}*`;
-        window.dispatchEvent(new CustomEvent('simulated-slack-webhook', {
-          detail: { timestamp: new Date().toLocaleTimeString('id-ID'), channel: 'marketing-notif', message }
-        }));
-
-        fetchData();
-      }
-    } catch (err) {
-      console.error(err);
-    }
+          showSuccess('Lead Dihapus', `Prospek "${prospectName}" telah berhasil dihapus.`, 'DELETE');
+          fetchData();
+        } else {
+          showError('Gagal Hapus', result.error || 'Gagal menghapus prospek.');
+        }
+      },
+      'DELETE',
+      'Hapus Prospek'
+    );
   };
 
   const fetchData = async () => {
@@ -397,6 +405,7 @@ export default function CRMModulePage() {
           detail: { timestamp: new Date().toLocaleTimeString('id-ID'), channel: 'marketing-notif', message }
         }));
 
+        showSuccess('Lead Ditambahkan', `Prospek baru "${formName}" telah berhasil ditambahkan!`, 'CREATE');
         setIsAddProspectOpen(false);
         // Reset form
         setFormName('');
@@ -406,9 +415,11 @@ export default function CRMModulePage() {
         setFormIncome('');
         setFormNotes('');
         fetchData();
+      } else {
+        showError('Gagal Menambah Lead', result.error || 'Gagal menambahkan prospek baru.');
       }
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      showError('Gagal Menambah Lead', err?.message || 'Terjadi kesalahan sistem.');
     }
   };
 

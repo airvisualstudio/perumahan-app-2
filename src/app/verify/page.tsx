@@ -38,6 +38,7 @@ export default function PublicVerificationPortal() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [activeMode, setActiveMode] = useState<'input' | 'camera' | 'upload'>('input');
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   
   // HTML5 QR Scanner states
   const [isScannerLoaded, setIsScannerLoaded] = useState(false);
@@ -163,44 +164,143 @@ export default function PublicVerificationPortal() {
     }
   };
 
-  // Handle File Upload and scan for QR
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle File Upload (Image or PDF)
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    if (typeof window === 'undefined' || !(window as any).Html5Qrcode) {
-      setError('Library scanner belum siap.');
-      return;
-    }
 
     setIsLoading(true);
     setError(null);
     setDoc(null);
+    setUploadedFileName(file.name);
 
-    const html5QrCode = new (window as any).Html5Qrcode("file-reader-dummy");
-    
-    html5QrCode.scanFile(file, true)
-      .then((decodedText: string) => {
-        const token = extractToken(decodedText);
-        setTokenInput(token);
-        setActiveMode('input');
-        handleVerify(token);
-      })
-      .catch((err: any) => {
-        console.error("QR File Decode Error:", err);
-        setError("Gagal mendeteksi QR Code dari gambar yang diunggah. Pastikan QR Code terlihat jelas.");
+    if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        let tokenFound = '';
+
+        // 1. Try pdf.js extraction & canvas QR scan if available
+        if (typeof window !== 'undefined' && (window as any).pdfjsLib) {
+          try {
+            (window as any).pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+            const pdf = await (window as any).pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            let fullPdfText = '';
+
+            for (let i = 1; i <= Math.min(pdf.numPages, 5); i++) {
+              const page = await pdf.getPage(i);
+              const textContent = await page.getTextContent();
+              const pageText = textContent.items.map((item: any) => item.str).join(' ');
+              fullPdfText += ' ' + pageText;
+
+              // Render page to canvas to scan embedded QR code image
+              try {
+                const viewport = page.getViewport({ scale: 1.5 });
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+
+                if (context) {
+                  await page.render({ canvasContext: context, viewport }).promise;
+                  const dataUrl = canvas.toDataURL('image/png');
+                  const blob = await (await fetch(dataUrl)).blob();
+                  const pngFile = new File([blob], 'page.png', { type: 'image/png' });
+
+                  if ((window as any).Html5Qrcode) {
+                    const html5QrCode = new (window as any).Html5Qrcode("file-reader-dummy");
+                    const scannedResult = await html5QrCode.scanFile(pngFile, true);
+                    if (scannedResult) {
+                      tokenFound = extractToken(scannedResult);
+                      if (tokenFound) break;
+                    }
+                  }
+                }
+              } catch (qrErr) {
+                // Ignore page QR scan error, fall through to text match
+              }
+            }
+
+            if (!tokenFound && fullPdfText) {
+              const urlMatch = fullPdfText.match(/\/verify\/([a-zA-Z0-9_-]+)/);
+              const tokenParamMatch = fullPdfText.match(/token=([a-zA-Z0-9_-]+)/);
+              const hexUuidMatch = fullPdfText.match(/[a-f0-9]{32}/i);
+              const docNumMatch = fullPdfText.match(/(INV|KWT|SUR|DOC)[\/_\-][0-9]{4}[\/_\-][0-9]{2}[\/_\-][0-9]{4}/i);
+
+              if (urlMatch && urlMatch[1]) tokenFound = urlMatch[1];
+              else if (tokenParamMatch && tokenParamMatch[1]) tokenFound = tokenParamMatch[1];
+              else if (hexUuidMatch && hexUuidMatch[0]) tokenFound = hexUuidMatch[0];
+              else if (docNumMatch && docNumMatch[0]) tokenFound = docNumMatch[0];
+            }
+          } catch (pdfJsErr) {
+            console.error("PDFjs parse error:", pdfJsErr);
+          }
+        }
+
+        // 2. Fallback: Read raw bytes as string if pdf.js did not find token
+        if (!tokenFound) {
+          const rawText = new TextDecoder('latin1').decode(arrayBuffer);
+          const urlMatch = rawText.match(/\/verify\/([a-zA-Z0-9_-]+)/);
+          const tokenParamMatch = rawText.match(/token=([a-zA-Z0-9_-]+)/);
+          const hexUuidMatch = rawText.match(/[a-f0-9]{32}/i);
+          const docNumMatch = rawText.match(/(INV|KWT|SUR|DOC)[\/_\-][0-9]{4}[\/_\-][0-9]{2}[\/_\-][0-9]{4}/i);
+
+          if (urlMatch && urlMatch[1]) tokenFound = urlMatch[1];
+          else if (tokenParamMatch && tokenParamMatch[1]) tokenFound = tokenParamMatch[1];
+          else if (hexUuidMatch && hexUuidMatch[0]) tokenFound = hexUuidMatch[0];
+          else if (docNumMatch && docNumMatch[0]) tokenFound = docNumMatch[0];
+        }
+
+        if (tokenFound) {
+          const cleanToken = extractToken(tokenFound);
+          setTokenInput(cleanToken);
+          setActiveMode('input');
+          await handleVerify(cleanToken);
+        } else {
+          setError(`File PDF "${file.name}" tidak memiliki token verifikasi atau QR Code resmi Domus CRM.`);
+          setIsLoading(false);
+        }
+      } catch (err) {
+        console.error("PDF Read Error:", err);
+        setError("Gagal membaca file PDF. Pastikan file PDF tidak terkunci atau rusak.");
         setIsLoading(false);
-      });
+      }
+    } else {
+      // Image upload QR scanning
+      if (typeof window === 'undefined' || !(window as any).Html5Qrcode) {
+        setError('Library scanner belum siap. Silakan muat ulang.');
+        setIsLoading(false);
+        return;
+      }
+
+      const html5QrCode = new (window as any).Html5Qrcode("file-reader-dummy");
+      
+      html5QrCode.scanFile(file, true)
+        .then((decodedText: string) => {
+          const token = extractToken(decodedText);
+          setTokenInput(token);
+          setActiveMode('input');
+          handleVerify(token);
+        })
+        .catch((err: any) => {
+          console.error("QR File Decode Error:", err);
+          setError(`Gagal mendeteksi QR Code dari gambar "${file.name}". Pastikan QR Code terlihat jelas.`);
+          setIsLoading(false);
+        });
+    }
   };
 
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col justify-between font-sans">
       
-      {/* CDN Script for html5-qrcode */}
+      {/* CDN Scripts for html5-qrcode & pdf.js */}
       <Script 
         src="https://unpkg.com/html5-qrcode" 
         strategy="lazyOnload"
         onLoad={() => setIsScannerLoaded(true)}
+      />
+      <Script 
+        src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" 
+        strategy="lazyOnload"
       />
 
       {/* Main Container */}
@@ -236,6 +336,7 @@ export default function PublicVerificationPortal() {
                 onClick={() => {
                   setDoc(null);
                   setError(null);
+                  setUploadedFileName(null);
                 }}
                 className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 self-start font-bold transition-colors"
               >
@@ -284,6 +385,11 @@ export default function PublicVerificationPortal() {
                     <div>
                       <h2 className="text-md font-black text-emerald-500 tracking-wider">✓ DOKUMEN VALID & ASLI</h2>
                       <p className="text-slate-500 text-[10px] font-semibold mt-1">Diterbitkan secara resmi oleh pengembang {settings?.org_name || 'PT Domus Somnia'}.</p>
+                      {uploadedFileName && (
+                        <span className="inline-flex items-center gap-1 mt-2 px-2.5 py-1 rounded-full bg-blue-950/60 border border-blue-500/30 text-[10px] font-mono text-blue-300">
+                          <FileText size={11} className="text-blue-400" /> File: {uploadedFileName}
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -435,16 +541,21 @@ export default function PublicVerificationPortal() {
               {/* UPLOAD FILE MODE */}
               {activeMode === 'upload' && (
                 <div className="flex flex-col gap-4">
-                  <div className="w-full border-2 border-dashed border-slate-800 rounded-2xl p-8 hover:bg-slate-900/10 hover:border-blue-500/50 transition-all flex flex-col items-center justify-center gap-2 cursor-pointer relative text-center">
+                  <div className="w-full border-2 border-dashed border-slate-800 rounded-2xl p-8 hover:bg-slate-900/40 hover:border-blue-500/50 transition-all flex flex-col items-center justify-center gap-2 cursor-pointer relative text-center">
                     <input 
                       type="file" 
-                      accept="image/*" 
+                      accept="image/*,application/pdf,.pdf" 
                       onChange={handleFileUpload}
                       className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
                     />
-                    <Upload size={32} className="text-slate-500" />
-                    <span className="text-xs text-slate-300 font-bold">Unggah Gambar QR Code</span>
-                    <p className="text-[10px] text-slate-500">Klik atau seret file gambar hasil foto/screenshot QR Code dokumen ke sini.</p>
+                    <div className="flex items-center gap-2 text-slate-400">
+                      <FileText size={28} className="text-red-400" />
+                      <Upload size={24} className="text-blue-400" />
+                    </div>
+                    <span className="text-xs text-slate-200 font-bold mt-1">Unggah PDF Dokumen / Foto QR</span>
+                    <p className="text-[10px] text-slate-400 leading-relaxed max-w-[260px]">
+                      Pilih atau seret berkas <strong className="text-slate-300">PDF (.pdf)</strong> asli atau <strong className="text-slate-300">foto/screenshot QR Code (.png, .jpg)</strong> untuk diverifikasi keabsahannya.
+                    </p>
                   </div>
                   
                   {/* Dummy reader target for file scan */}

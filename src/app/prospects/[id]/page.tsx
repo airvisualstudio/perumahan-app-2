@@ -3,6 +3,7 @@
 import React, { useEffect, useState, use } from 'react';
 import AppShell from '@/components/AppShell';
 import { useAuth } from '@/context/AuthContext';
+import { useCrudModal } from '@/context/CrudModalContext';
 import { 
   User, 
   Phone, 
@@ -151,7 +152,8 @@ const pipelineStages = [
 export default function ProspectDetailPage({ params }: Props) {
   const unwrappedParams = use(params);
   const prospectId = unwrappedParams.id;
-  const { user } = useAuth();
+  const { user, availableUsers } = useAuth();
+  const { showSuccess, showError, showConfirm } = useCrudModal();
   const router = useRouter();
 
   const [prospect, setProspect] = useState<Prospect | null>(null);
@@ -274,14 +276,14 @@ export default function ProspectDetailPage({ params }: Props) {
       });
       const result = await res.json();
       if (result.success) {
+        showSuccess('Berkas Dihapus', 'Dokumen prospek telah berhasil dihapus.', 'DELETE');
         setAttachmentToDelete(null);
         fetchDetails();
       } else {
-        alert(result.error || 'Gagal menghapus berkas.');
+        showError('Gagal Hapus', result.error || 'Gagal menghapus berkas.');
       }
-    } catch (err) {
-      console.error(err);
-      alert('Terjadi kesalahan koneksi saat menghapus berkas.');
+    } catch (err: any) {
+      showError('Gagal Hapus', err?.message || 'Terjadi kesalahan koneksi saat menghapus berkas.');
     } finally {
       setIsDeletingAtt(false);
     }
@@ -429,14 +431,17 @@ export default function ProspectDetailPage({ params }: Props) {
           detail: { timestamp: new Date().toLocaleTimeString('id-ID'), channel: 'marketing-notif', message }
         }));
 
+        showSuccess('Aktivitas Follow-Up Dicatat', `Follow-up (${fuType}) berhasil ditambahkan ke histori prospek!`, 'CREATE');
         setFuNotes('');
         setFuNextDate('');
         setFuNextNote('');
         setUploadedImages([]);
         fetchDetails();
+      } else {
+        showError('Gagal Mencatat', result.error || 'Gagal mencatat follow-up.');
       }
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      showError('Gagal Mencatat', err?.message || 'Terjadi kesalahan sistem.');
     }
   };
 
@@ -467,10 +472,13 @@ export default function ProspectDetailPage({ params }: Props) {
           window.dispatchEvent(new CustomEvent('simulated-slack-webhook', {
             detail: { timestamp: new Date().toLocaleTimeString('id-ID'), channel: 'marketing-notif', message }
           }));
+          showSuccess('Dokumen Berhasil Diunggah', `Berkas "${file.name}" berhasil diunggah ke berkas konsumen.`, 'DOCUMENT');
           fetchDetails();
+        } else {
+          showError('Gagal Unggah', result.error || 'Gagal mengunggah dokumen.');
         }
-      } catch (err) {
-        console.error(err);
+      } catch (err: any) {
+        showError('Gagal Unggah', err?.message || 'Terjadi kesalahan sistem.');
       }
     };
     reader.readAsDataURL(file);
@@ -481,7 +489,7 @@ export default function ProspectDetailPage({ params }: Props) {
     
     const canComment = user.role === 'manager' || user.role === 'admin' || prospect.assigned_to === user.id;
     if (!canComment) {
-      alert("Anda tidak memiliki izin untuk memberikan komentar pada prospek ini.");
+      showError("Izin Terbatas", "Anda tidak memiliki izin untuk memberikan komentar pada prospek ini.");
       return;
     }
 

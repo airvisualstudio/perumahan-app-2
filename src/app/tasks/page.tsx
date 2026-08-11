@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import AppShell from '@/components/AppShell';
 import { useAuth } from '@/context/AuthContext';
+import { useCrudModal } from '@/context/CrudModalContext';
 import { 
   CheckSquare, 
   Plus, 
@@ -49,6 +50,7 @@ const priorityConfig = {
 
 export default function TaskBoardPage() {
   const { user } = useAuth();
+  const { showSuccess, showError } = useCrudModal();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -115,14 +117,17 @@ export default function TaskBoardPage() {
           detail: { timestamp: new Date().toLocaleTimeString('id-ID'), channel: 'task-notif', message }
         }));
 
+        showSuccess('Tugas Berhasil Dibuat', `Tugas baru "${newTitle}" berhasil dibuat dan ditugaskan!`, 'CREATE');
         setIsAddOpen(false);
         setNewTitle('');
         setNewDesc('');
         setNewDue('');
         fetchTasksData();
+      } else {
+        showError('Gagal Membuat Tugas', json.error || 'Gagal membuat tugas.');
       }
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      showError('Gagal Membuat Tugas', err?.message || 'Terjadi kesalahan sistem.');
     }
   };
 
@@ -147,14 +152,17 @@ export default function TaskBoardPage() {
           detail: { timestamp: new Date().toLocaleTimeString('id-ID'), channel: 'task-notif', message }
         }));
         
+        showSuccess('Status Tugas Diperbarui', `Status tugas "${task?.title || ''}" telah diubah menjadi ${status.toUpperCase()}.`, 'UPDATE');
         fetchTasksData();
         // If selected task is currently being viewed, update details in selected state
         if (selectedTask && selectedTask.id === taskId) {
           setSelectedTask(prev => prev ? { ...prev, status } : null);
         }
+      } else {
+        showError('Gagal Update Status', json.error || 'Gagal mengubah status tugas.');
       }
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      showError('Gagal Update Status', err?.message || 'Terjadi kesalahan sistem.');
     }
   };
 
