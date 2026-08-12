@@ -137,13 +137,26 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Subscribe to virtual Slack webhooks event
+  // Subscribe to virtual Slack & Telegram webhooks event
   useEffect(() => {
     const handleSlackEvent = (e: Event) => {
       const customEvent = e as CustomEvent<SlackLog>;
       setSlackLogs(prev => [customEvent.detail, ...prev].slice(0, 10)); // Keep last 10 logs
       setIsSlackDrawerOpen(true); // Auto expand to notify user
       
+      // Dispatch real-time log to Telegram Bot API
+      if (customEvent.detail?.message) {
+        fetch('/api/telegram', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'send_log',
+            message: customEvent.detail.message,
+            channel: customEvent.detail.channel
+          })
+        }).catch(err => console.error('Telegram dispatch error:', err));
+      }
+
       // Instantly refresh when a system webhook triggers
       fetchNotifications();
     };

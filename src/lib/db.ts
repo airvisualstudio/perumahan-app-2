@@ -361,6 +361,9 @@ export interface SystemSettings {
   work_hours_end: string;
   permission_types?: PermissionType[];
   holidays?: Holiday[];
+  telegram_bot_token?: string;
+  telegram_chat_id?: string;
+  telegram_enabled?: boolean;
 }
 
 // Full Database Schema

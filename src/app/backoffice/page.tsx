@@ -33,6 +33,8 @@ import {
   LayoutTemplate,
   Home,
   Building2,
+  Send,
+  RefreshCw,
 } from 'lucide-react';
 
 import { DocumentTemplate, DocumentTemplateBlock, TemplateBlockType, Employee } from '@/lib/db';
@@ -573,7 +575,7 @@ export default function BackofficePage() {
   const { user } = useAuth();
   const { showSuccess, showError, showConfirm } = useCrudModal();
   
-  const [activeTab, setActiveTab] = useState<'company' | 'users' | 'gps' | 'audit' | 'templates' | 'properties'>('company');
+  const [activeTab, setActiveTab] = useState<'company' | 'users' | 'gps' | 'audit' | 'templates' | 'properties' | 'telegram'>('company');
 
   // Company Profile States
   const [orgName, setOrgName] = useState('');
@@ -617,6 +619,13 @@ export default function BackofficePage() {
   const [permissionTypes, setPermissionTypes] = useState<any[]>([]);
   const [newPermissionName, setNewPermissionName] = useState('');
   const [newPermissionRequiresAttachment, setNewPermissionRequiresAttachment] = useState(false);
+
+  // Telegram Config fields
+  const [telegramToken, setTelegramToken] = useState('');
+  const [telegramChatId, setTelegramChatId] = useState('');
+  const [telegramEnabled, setTelegramEnabled] = useState(true);
+  const [isTestingTelegram, setIsTestingTelegram] = useState(false);
+  const [telegramStatus, setTelegramStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   const [isLoading, setIsLoading] = useState(true);
   const [saveSuccess, setSaveSuccess] = useState('');
@@ -704,6 +713,10 @@ export default function BackofficePage() {
           setOrgEmail(settings.org_email ?? 'info@domus.com');
           setOrgPhone(settings.org_phone ?? '(022) 1234567');
           setOrgBankAccount(settings.org_bank_account ?? '131-00-1234567-8 a/n PT Domus Somnia Properti');
+
+          setTelegramToken(settings.telegram_bot_token ?? '');
+          setTelegramChatId(settings.telegram_chat_id ?? '');
+          setTelegramEnabled(settings.telegram_enabled ?? true);
           
           const office = settings.office_locations?.[0];
           setOfficeSettings(office);
@@ -838,6 +851,61 @@ export default function BackofficePage() {
       showError('Gagal Menyimpan', err?.message || 'Terjadi kesalahan koneksi.');
     } finally {
       setIsSavingCompany(false);
+    }
+  };
+
+  const handleSaveTelegramSettings = async () => {
+    try {
+      setIsTestingTelegram(true);
+      const res = await fetch('/api/telegram', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'save_settings',
+          botToken: telegramToken,
+          chatId: telegramChatId,
+          enabled: telegramEnabled
+        })
+      });
+      const json = await res.json();
+      if (json.success) {
+        showSuccess('Pengaturan Telegram Disimpan', 'Konfigurasi Telegram Bot berhasil diperbarui.', 'UPDATE');
+      } else {
+        showError('Gagal Menyimpan', json.error || 'Gagal menyimpan konfigurasi Telegram.');
+      }
+    } catch (err: any) {
+      showError('Gagal Menyimpan', err?.message || 'Terjadi kesalahan sistem.');
+    } finally {
+      setIsTestingTelegram(false);
+    }
+  };
+
+  const handleTestTelegramMessage = async () => {
+    try {
+      setIsTestingTelegram(true);
+      setTelegramStatus(null);
+      const res = await fetch('/api/telegram', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'send_test',
+          botToken: telegramToken,
+          chatId: telegramChatId
+        })
+      });
+      const json = await res.json();
+      if (json.success) {
+        showSuccess('Pesan Terkirim!', 'Pesan uji coba berhasil terkirim ke Grup/Channel Telegram.', 'CREATE');
+        setTelegramStatus({ type: 'success', message: 'Pesan uji coba berhasil terkirim ke Telegram!' });
+      } else {
+        showError('Gagal Kirim Pesan', json.error || 'Gagal mengirim pesan uji coba.');
+        setTelegramStatus({ type: 'error', message: json.error || 'Gagal mengirim pesan ke Telegram.' });
+      }
+    } catch (err: any) {
+      showError('Gagal Kirim Pesan', err?.message || 'Terjadi kesalahan sistem.');
+      setTelegramStatus({ type: 'error', message: err?.message || 'Kesalahan jaringan.' });
+    } finally {
+      setIsTestingTelegram(false);
     }
   };
 
@@ -1400,11 +1468,12 @@ export default function BackofficePage() {
         {/* Tabs */}
         <div className="flex border-b border-gray-200 gap-2 overflow-x-auto no-scrollbar whitespace-nowrap">
           {([
-            ['company', 'Profil Perusahaan', <Building2 size={14} />],
-            ['users', 'User Management', <Users size={14} />],
-            ['gps', 'GPS & Lokasi', <MapPin size={14} />],
-            ['audit', 'Audit Logs', <Settings size={14} />],
-            ['templates', 'Template Dokumen', <LayoutTemplate size={14} />],
+            ['company', 'Profil Perusahaan', <Building2 key="co" size={14} />],
+            ['users', 'User Management', <Users key="usr" size={14} />],
+            ['gps', 'GPS & Lokasi', <MapPin key="gps" size={14} />],
+            ['audit', 'Audit Logs', <Settings key="aud" size={14} />],
+            ['templates', 'Template Dokumen', <LayoutTemplate key="tpl" size={14} />],
+            ['telegram', 'Bot Telegram', <Send key="tg" size={14} />],
           ] as const).map(([tab, label, icon]) => (
             <button
               key={tab}
@@ -2074,6 +2143,115 @@ export default function BackofficePage() {
                 </button>
               </div>
             )}
+          </div>
+        )}
+
+        {/* ── TELEGRAM BOT INTEGRATION ── */}
+        {activeTab === 'telegram' && (
+          <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm flex flex-col gap-6">
+            <div className="border-b border-gray-100 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-extrabold text-gray-900 font-sans tracking-tight">Integrasi Telegram Bot Log</h2>
+                <p className="text-xs text-gray-500 mt-0.5">Hubungkan Bot Telegram untuk menerima notifikasi real-time aktivitas Absensi, Lead CRM, Booking Unit, Approval Dokumen, & Tasks.</p>
+              </div>
+              <div className="flex items-center gap-2 self-start sm:self-auto">
+                <span className="text-xs font-bold text-gray-600">Status Notifikasi:</span>
+                <button
+                  type="button"
+                  onClick={() => setTelegramEnabled(!telegramEnabled)}
+                  className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${
+                    telegramEnabled ? 'bg-emerald-100 text-emerald-700 border border-emerald-300' : 'bg-gray-100 text-gray-600 border border-gray-300'
+                  }`}
+                >
+                  {telegramEnabled ? '✓ AKTIF' : 'NONAKTIF'}
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 text-xs font-semibold">
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-gray-500 uppercase tracking-wider text-[9px] font-bold">Telegram Bot Token *</label>
+                  <input
+                    type="password"
+                    value={telegramToken}
+                    onChange={e => setTelegramToken(e.target.value)}
+                    placeholder="Contoh: 7123456789:AAE-xxx..."
+                    className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 font-mono text-sm"
+                  />
+                  <span className="text-[10px] text-gray-400 font-normal">Dapatkan token dari <a href="https://t.me/BotFather" target="_blank" rel="noreferrer" className="text-indigo-600 underline font-bold">@BotFather</a> di Telegram.</span>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-gray-500 uppercase tracking-wider text-[9px] font-bold">Telegram Group / Channel Chat ID *</label>
+                  <input
+                    type="text"
+                    value={telegramChatId}
+                    onChange={e => setTelegramChatId(e.target.value)}
+                    placeholder="Contoh: -1001234567890 atau @channel_kami"
+                    className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 font-mono text-sm"
+                  />
+                  <span className="text-[10px] text-gray-400 font-normal">Masukkan ID Grup (contoh: <code>-100...</code>) atau username channel (contoh: <code>@channel_notif</code>). Pastikan Bot sudah diundang & dijadikan Admin.</span>
+                </div>
+
+                {telegramStatus && (
+                  <div className={`p-3 rounded-xl text-xs font-medium border ${
+                    telegramStatus.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-rose-50 border-rose-200 text-rose-700'
+                  }`}>
+                    {telegramStatus.message}
+                  </div>
+                )}
+
+                <div className="flex flex-wrap items-center gap-3 pt-2">
+                  <button
+                    type="button"
+                    disabled={isTestingTelegram}
+                    onClick={handleSaveTelegramSettings}
+                    className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow transition-all disabled:opacity-50"
+                  >
+                    Simpan Pengaturan Telegram
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isTestingTelegram || !telegramToken || !telegramChatId}
+                    onClick={handleTestTelegramMessage}
+                    className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow transition-all disabled:opacity-50 flex items-center gap-1.5"
+                  >
+                    {isTestingTelegram && <RefreshCw size={12} className="animate-spin" />}
+                    Kirim Pesan Uji Coba Telegram
+                  </button>
+                </div>
+              </div>
+
+              {/* Telegram Preview & Quick Guide */}
+              <div className="bg-slate-900 rounded-2xl p-5 text-slate-200 flex flex-col justify-between border border-slate-800">
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
+                    <div className="w-8 h-8 rounded-full bg-sky-500 flex items-center justify-center text-white font-bold">
+                      🤖
+                    </div>
+                    <div>
+                      <span className="font-bold text-xs block text-white">Domus CRM Bot</span>
+                      <span className="text-[9px] text-slate-400">Telegram Real-Time Webhook Log</span>
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-950 rounded-xl p-3.5 text-[11px] font-sans border border-slate-800/80 leading-relaxed">
+                    <p className="font-bold text-sky-400">🤖 DOMUS NOTIF [#hr-notif] - <span className="font-normal text-slate-400">16:05</span></p>
+                    <p className="mt-2 text-slate-300">Karyawan <b>Budi Santoso</b> melakukan Clock-In (onsite) pada pukul 08:55. Status: <b>TEPAT WAKTU</b></p>
+                  </div>
+
+                  <div className="bg-slate-950 rounded-xl p-3.5 text-[11px] font-sans border border-slate-800/80 leading-relaxed">
+                    <p className="font-bold text-sky-400">🤖 DOMUS NOTIF [#marketing-notif] - <span className="font-normal text-slate-400">16:04</span></p>
+                    <p className="mt-2 text-slate-300">Sales Agent <b>Rina Wijaya</b> menambahkan prospek baru: <b>Dedi Kurniawan</b> via lead source <b>Instagram Ads</b></p>
+                  </div>
+                </div>
+
+                <div className="text-[10px] text-slate-400 border-t border-slate-800/80 pt-3 mt-4">
+                  💡 Setiap log aktivitas di aplikasi akan disinkronkan secara otomatis ke Grup/Channel Telegram yang dikonfigurasi.
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
