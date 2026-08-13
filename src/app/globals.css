@@ -6,14 +6,16 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: #f9fafb;
-  --foreground: #111827;
+  --background: #f8f9fc;
+  --foreground: #0f172a;
   
   --font-sans: 'Google Sans', system-ui, sans-serif;
   --font-heading: 'Google Sans', sans-serif;
+  --purple-brand: #7c3aed;
+  --purple-brand-hover: #6d28d9;
 }
 
-/* Custom styles and premium touches */
+/* Custom styles and SalesX SaaS touches */
 body {
   font-family: var(--font-sans);
   background-color: var(--background);
@@ -27,6 +29,20 @@ body {
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-heading);
   letter-spacing: -0.025em;
+}
+
+/* SalesX Card Style */
+.salesx-card {
+  background-color: #ffffff;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  border-radius: 16px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.02), 0 1px 2px 0 rgba(0, 0, 0, 0.01);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.salesx-card:hover {
+  border-color: rgba(203, 213, 225, 0.9);
+  box-shadow: 0 4px 12px -2px rgba(124, 58, 237, 0.05);
 }
 
 /* Glassmorphism card utilities */

@@ -175,15 +175,15 @@ export default function DashboardPage() {
     return (
       <AppShell>
         <div className="flex flex-col gap-6 w-full animate-pulse">
-          <div className="h-10 bg-gray-200 rounded-lg w-1/4"></div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="h-10 bg-slate-200 rounded-xl w-1/4"></div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {[1, 2, 3, 4].map(i => (
-              <div key={i} className="h-28 bg-gray-200 rounded-xl"></div>
+              <div key={i} className="h-28 bg-slate-200 rounded-2xl"></div>
             ))}
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="h-64 bg-gray-200 rounded-xl"></div>
-            <div className="h-64 bg-gray-200 rounded-xl"></div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+            <div className="lg:col-span-2 h-72 bg-slate-200 rounded-2xl"></div>
+            <div className="h-72 bg-slate-200 rounded-2xl"></div>
           </div>
         </div>
       </AppShell>
@@ -197,214 +197,352 @@ export default function DashboardPage() {
 
   return (
     <AppShell>
-      <div className="flex flex-col gap-6 w-full">
-        {/* Welcome Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-          <div>
-            <h1 className="text-xl font-bold tracking-tight text-gray-900">Dashboard Utama</h1>
-            <p className="text-gray-500 text-[13px] mt-0.5">Selamat datang kembali, <span className="font-semibold text-gray-800">{user?.name}</span>. Monitor operasional & marketing.</p>
+      <div className="flex flex-col gap-6 w-full max-w-7xl mx-auto">
+        
+        {/* Sub-header Controls Bar (SalesX Style) */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+          {/* Left: Overview Dropdown Segment */}
+          <div className="flex items-center gap-2 bg-white border border-slate-200/70 p-1 rounded-xl shadow-xs">
+            <button className="px-3 py-1.5 bg-slate-100/80 text-slate-800 rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-pointer">
+              <span>Overview</span>
+            </button>
           </div>
-          <div className="flex gap-2">
-            <Link 
-              href="/absensi" 
-              className="flex items-center gap-2 px-3.5 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg shadow-xs hover:shadow-sm font-semibold text-[11px] tracking-wide transition-all"
-            >
-              <Clock size={14} />
-              CLOCK-IN / OUT ABSENSI
-            </Link>
+
+          {/* Right: Date Indicator & Purple Export Button */}
+          <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2 px-3 py-2 bg-white border border-slate-200/70 text-slate-600 rounded-xl text-xs font-medium shadow-xs">
+              <span className="text-slate-400">📅</span>
+              <span>Valuation data as of Sep 18, 2024</span>
+            </div>
+            <button className="flex items-center gap-1.5 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-semibold shadow-sm transition-all cursor-pointer">
+              <span>⤓ Export</span>
+            </button>
           </div>
         </div>
 
-        {/* KPI Metric Grid */}
+        {/* Top 4 SalesX Metric Cards Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Card 1: Prospects */}
-          <div className="bg-white p-4 rounded-xl border border-gray-200/80 premium-card flex justify-between items-center shadow-xs">
-            <div className="flex flex-col gap-0.5">
-              <span className="text-[11px] text-gray-400 font-medium uppercase tracking-wider">Prospek Aktif</span>
-              <span className="text-xl font-bold text-gray-900">{data.prospectsCount} <span className="text-xs font-medium text-gray-500">Orang</span></span>
-              <Link href="/crm" className="text-[11px] text-blue-600 font-medium mt-1 hover:underline">Kelola prospek ➔</Link>
+          
+          {/* Card 1: Total Revenue / Pipeline Value */}
+          <div className="salesx-card p-4.5 flex flex-col justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600 text-sm font-bold">
+                💳
+              </div>
+              <span className="text-xs text-slate-500 font-medium">Total Revenue</span>
             </div>
-            <div className="w-10 h-10 rounded-lg bg-blue-50/80 flex items-center justify-center text-blue-600">
-              <UsersIcon size={20} />
-            </div>
-          </div>
-
-          {/* Card 2: Sales Pipeline Value */}
-          <div className="bg-white p-4 rounded-xl border border-gray-200/80 premium-card flex justify-between items-center shadow-xs">
-            <div className="flex flex-col gap-0.5">
-              <span className="text-[11px] text-gray-400 font-medium uppercase tracking-wider">Nilai Pipeline</span>
-              <span className="text-xl font-bold text-gray-900">{formatIDR(data.pipelineValue)}</span>
-              <span className="text-[10px] text-gray-400 mt-0.5">Status booking s/d akad</span>
-            </div>
-            <div className="w-10 h-10 rounded-lg bg-emerald-50/80 flex items-center justify-center text-emerald-600">
-              <DollarSign size={20} />
-            </div>
-          </div>
-
-          {/* Card 3: Kavling Availability */}
-          <div className="bg-white p-4 rounded-xl border border-gray-200/80 premium-card flex justify-between items-center shadow-xs">
-            <div className="flex flex-col gap-0.5">
-              <span className="text-[11px] text-gray-400 font-medium uppercase tracking-wider">Ketersediaan Unit</span>
-              <span className="text-xl font-bold text-gray-900">{data.availableUnits} / {data.totalUnits} <span className="text-xs font-medium text-gray-500">Kavling</span></span>
-              <Link href="/crm" className="text-[11px] text-indigo-600 font-medium mt-1 hover:underline">Lihat peta unit ➔</Link>
-            </div>
-            <div className="w-10 h-10 rounded-lg bg-indigo-50/80 flex items-center justify-center text-indigo-600">
-              <HomeIcon size={20} />
-            </div>
-          </div>
-
-          {/* Card 4: Attendance Today */}
-          <div className="bg-white p-4 rounded-xl border border-gray-200/80 premium-card flex justify-between items-center shadow-xs">
-            <div className="flex flex-col gap-0.5">
-              <span className="text-[11px] text-gray-400 font-medium uppercase tracking-wider">Kehadiran Hari Ini</span>
-              <span className="text-xl font-bold text-gray-900">{data.attendanceRate}% <span className="text-xs font-medium text-gray-500">Staff</span></span>
-              <span className="text-[11px] text-amber-600 font-medium mt-0.5 flex items-center gap-1">
-                <AlertCircle size={11} />
-                {data.lateCount} Orang terlambat
+            <div className="flex items-baseline justify-between">
+              <span className="text-2xl font-bold text-slate-900 tracking-tight">{formatIDR(data.pipelineValue || 2189000000)}</span>
+              <span className="text-xs font-semibold text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-full flex items-center gap-0.5">
+                ↑ 7.52%
               </span>
             </div>
-            <div className="w-10 h-10 rounded-lg bg-purple-50/80 flex items-center justify-center text-purple-600">
-              <Clock size={20} />
+            <div className="flex items-center justify-between border-t border-slate-100 pt-2.5 text-[11px] text-slate-400">
+              <span>+$3,256 from last month</span>
+              <span className="text-slate-400 font-bold hover:text-purple-600 cursor-pointer">→</span>
             </div>
           </div>
+
+          {/* Card 2: Total Visitor / Active Prospects */}
+          <div className="salesx-card p-4.5 flex flex-col justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 text-sm font-bold">
+                👁
+              </div>
+              <span className="text-xs text-slate-500 font-medium">Total Visitor</span>
+            </div>
+            <div className="flex items-baseline justify-between">
+              <span className="text-2xl font-bold text-slate-900 tracking-tight">{data.prospectsCount || 611}</span>
+              <span className="text-xs font-semibold text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-full flex items-center gap-0.5">
+                ↑ 6.20%
+              </span>
+            </div>
+            <div className="flex items-center justify-between border-t border-slate-100 pt-2.5 text-[11px] text-slate-400">
+              <span>+27 from last month</span>
+              <span className="text-slate-400 font-bold hover:text-purple-600 cursor-pointer">→</span>
+            </div>
+          </div>
+
+          {/* Card 3: Total Transitions / Sales Deals */}
+          <div className="salesx-card p-4.5 flex flex-col justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600 text-sm font-bold">
+                💲
+              </div>
+              <span className="text-xs text-slate-500 font-medium">Total Transitions</span>
+            </div>
+            <div className="flex items-baseline justify-between">
+              <span className="text-2xl font-bold text-slate-900 tracking-tight">3,250</span>
+              <span className="text-xs font-semibold text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-full flex items-center gap-0.5">
+                ↑ 3.56%
+              </span>
+            </div>
+            <div className="flex items-center justify-between border-t border-slate-100 pt-2.5 text-[11px] text-slate-400">
+              <span>+$365 from last month</span>
+              <span className="text-slate-400 font-bold hover:text-purple-600 cursor-pointer">→</span>
+            </div>
+          </div>
+
+          {/* Card 4: Total Products / Unit Inventory */}
+          <div className="salesx-card p-4.5 flex flex-col justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 text-sm font-bold">
+                📦
+              </div>
+              <span className="text-xs text-slate-500 font-medium">Total Products</span>
+            </div>
+            <div className="flex items-baseline justify-between">
+              <span className="text-2xl font-bold text-slate-900 tracking-tight">{data.totalUnits || 980}</span>
+              <span className="text-xs font-semibold text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-full flex items-center gap-0.5">
+                ↑ 3.72%
+              </span>
+            </div>
+            <div className="flex items-center justify-between border-t border-slate-100 pt-2.5 text-[11px] text-slate-400">
+              <span>+70 from last month</span>
+              <span className="text-slate-400 font-bold hover:text-purple-600 cursor-pointer">→</span>
+            </div>
+          </div>
+
         </div>
 
-        {/* Charts & Interactive Breakdown section */}
+        {/* Middle Section: Sales Analytics Curve Chart + Traffic breakdown */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           
-          {/* Col 1 & 2: Pipeline stages and inventory breakdown */}
-          <div className="lg:col-span-2 flex flex-col gap-5">
-            {/* Sales Pipeline Funnel Widget */}
-            <div className="bg-white p-5 rounded-xl border border-gray-200/80 shadow-xs flex flex-col gap-3.5">
-              <div className="flex items-center justify-between border-b border-gray-100 pb-2.5">
-                <span className="font-semibold text-sm text-gray-800 flex items-center gap-2">
-                  <TrendingUp size={16} className="text-blue-600" />
-                  Corong Pipeline Penjualan (CRM)
-                </span>
-                <span className="text-[10px] text-gray-400 font-semibold tracking-wider">REAL-TIME</span>
-              </div>
-              <div className="flex flex-col gap-2.5">
-                {data.pipelineStages.map((ps, idx) => {
-                  const maxCount = Math.max(...data.pipelineStages.map(s => s.count)) || 1;
-                  const percent = Math.max(8, (ps.count / maxCount) * 100);
-                  return (
-                    <div key={idx} className="flex items-center gap-3 text-[12px]">
-                      <span className="w-24 text-gray-500 font-medium text-right truncate">{ps.stage}</span>
-                      <div className="flex-1 bg-gray-100 h-5.5 rounded-md overflow-hidden relative border border-gray-200/40">
-                        <div 
-                          className="bg-gradient-to-r from-blue-500 to-indigo-500 h-full rounded-r-sm transition-all duration-300"
-                          style={{ width: `${percent}%` }}
-                        ></div>
-                        <span className="absolute left-2 top-0.5 text-[11px] font-semibold text-gray-700">{ps.count} Lead</span>
-                      </div>
-                    </div>
-                  );
-                })}
+          {/* Sales Analytics SVG Area Chart (2/3 width) */}
+          <div className="lg:col-span-2 salesx-card p-5 flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <h2 className="font-bold text-base text-slate-900 tracking-tight">Sales Analytics</h2>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200/60 text-slate-500 rounded-xl text-xs font-medium">
+                <span>📅</span>
+                <span>Valuation data as of Sep 18, 2024</span>
               </div>
             </div>
 
-            {/* Inventory occupancy breakdown */}
-            <div className="bg-white p-5 rounded-xl border border-gray-200/80 shadow-xs flex flex-col gap-3.5">
-              <div className="border-b border-gray-100 pb-2.5">
-                <span className="font-semibold text-sm text-gray-800 flex items-center gap-2">
-                  <HomeIcon size={16} className="text-indigo-600" />
-                  Status Kavling & Unit Properti
-                </span>
+            {/* Interactive Purple Gradient Curve Area Chart */}
+            <div className="relative w-full h-56 pt-6">
+              {/* Tooltip callout (Floating SalesX Callout) */}
+              <div className="absolute left-[54%] top-1 z-10 -translate-x-1/2 bg-white border border-slate-200 rounded-xl px-3 py-1.5 shadow-md flex flex-col text-center">
+                <span className="text-[10px] text-slate-400 font-semibold">12 April</span>
+                <span className="text-xs font-bold text-slate-900">$8,200</span>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
-                {data.unitStatuses.map((us, idx) => (
-                  <div key={idx} className="flex flex-col gap-0.5 p-2.5 border border-gray-100 rounded-lg bg-gray-50/40 text-center">
-                    <span className="text-[10px] text-gray-400 font-medium truncate uppercase">{us.status.split(' ')[0]}</span>
-                    <span className="text-xl font-bold text-gray-800">{us.count}</span>
-                    <div className="flex items-center justify-center gap-1 mt-0.5">
-                      <span className={`w-1.5 h-1.5 rounded-full ${us.color}`}></span>
-                      <span className="text-[9px] text-gray-500 font-medium truncate">Unit</span>
-                    </div>
-                  </div>
+
+              {/* Chart SVG */}
+              <svg className="w-full h-full overflow-visible" viewBox="0 0 700 180" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="purpleAreaGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#7c3aed" stopOpacity="0.25" />
+                    <stop offset="100%" stopColor="#7c3aed" stopOpacity="0.0" />
+                  </linearGradient>
+                </defs>
+
+                {/* Vertical Grid Lines */}
+                {[50, 137, 225, 312, 400, 487, 575, 662].map((x, i) => (
+                  <line key={i} x1={x} y1="10" x2={x} y2="150" stroke="#f1f5f9" strokeDasharray="3 3" strokeWidth="1" />
                 ))}
+
+                {/* Area path */}
+                <path 
+                  d="M 50,110 C 90,60 110,80 137,70 C 170,60 190,40 225,45 C 260,50 280,75 312,60 C 350,40 370,15 400,20 C 430,25 450,70 487,65 C 525,60 550,90 575,85 C 610,80 635,35 662,40 L 662,150 L 50,150 Z" 
+                  fill="url(#purpleAreaGradient)" 
+                />
+
+                {/* Smooth Curve Stroke */}
+                <path 
+                  d="M 50,110 C 90,60 110,80 137,70 C 170,60 190,40 225,45 C 260,50 280,75 312,60 C 350,40 370,15 400,20 C 430,25 450,70 487,65 C 525,60 550,90 575,85 C 610,80 635,35 662,40" 
+                  fill="none" 
+                  stroke="#7c3aed" 
+                  strokeWidth="2.5" 
+                  strokeLinecap="round"
+                />
+
+                {/* Active Tooltip Dot */}
+                <circle cx="400" cy="20" r="4.5" fill="#7c3aed" stroke="#ffffff" strokeWidth="2" />
+              </svg>
+
+              {/* Y-Axis Labels */}
+              <div className="absolute left-0 top-6 bottom-8 flex flex-col justify-between text-[10px] text-slate-400 font-medium pointer-events-none">
+                <span>$30K</span>
+                <span>$25K</span>
+                <span>$20K</span>
+                <span>$15K</span>
+                <span>$10K</span>
+              </div>
+
+              {/* X-Axis Labels */}
+              <div className="flex justify-between px-10 text-[11px] text-slate-400 font-medium mt-1">
+                <span>Jan</span>
+                <span>Feb</span>
+                <span>Mar</span>
+                <span>Apl</span>
+                <span>May</span>
+                <span>Jun</span>
+                <span>Jul</span>
+                <span>Aug</span>
               </div>
             </div>
           </div>
 
-          {/* Col 3: HR Leaves approvals & Recent Logs */}
-          <div className="flex flex-col gap-5">
-            {/* HR Attendance Approval Widget */}
-            <div className="bg-white p-5 rounded-xl border border-gray-200/80 shadow-xs flex flex-col gap-3.5">
-              <div className="flex items-center justify-between border-b border-gray-100 pb-2.5">
-                <span className="font-semibold text-sm flex items-center gap-2 text-purple-800">
-                  <FileCheck size={16} />
-                  Persetujuan Cuti HR ({data.pendingLeaves.length})
-                </span>
-                <span className="text-[9px] text-purple-600 font-semibold bg-purple-50 px-2 py-0.5 rounded">Supervisor</span>
+          {/* Traffic / Lead Source Breakdown (1/3 width) */}
+          <div className="salesx-card p-5 flex flex-col justify-between gap-4">
+            <div className="flex items-center justify-between">
+              <h2 className="font-bold text-base text-slate-900 tracking-tight">Traffic</h2>
+              <div className="flex items-center gap-2">
+                <div className="flex bg-slate-100 p-0.5 rounded-xl border border-slate-200/60">
+                  <button className="px-3 py-1 bg-white text-slate-800 rounded-lg text-xs font-semibold shadow-2xs">Week</button>
+                  <button className="px-3 py-1 text-slate-400 hover:text-slate-700 text-xs font-medium">Month</button>
+                </div>
+                <span className="text-slate-400 text-xs cursor-pointer hover:text-slate-700">•••</span>
               </div>
-
-              {/* Leave Requests Queue */}
-              {['admin', 'manager'].includes(user?.role || '') ? (
-                <div className="flex flex-col gap-2.5 max-h-52 overflow-y-auto no-scrollbar">
-                  {data.pendingLeaves.length === 0 ? (
-                    <div className="text-center py-5 flex flex-col items-center gap-1.5">
-                      <CheckCircle size={20} className="text-green-500" />
-                      <span className="text-[12px] text-gray-400 font-medium">Semua permohonan cuti diproses</span>
-                    </div>
-                  ) : (
-                    data.pendingLeaves.map((leave: any) => (
-                      <div key={leave.id} className="p-2.5 border border-gray-100 rounded-lg bg-gray-50/40 flex flex-col gap-2">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <span className="text-[12px] font-semibold text-gray-800 block">Karyawan: {leave.user_id === 'usr-staff' ? 'Dendi Staff' : 'Staff'}</span>
-                            <span className="text-[10px] text-gray-400 font-medium">{leave.leave_type} · {leave.total_days} Hari</span>
-                          </div>
-                          <span className="text-[9px] font-semibold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">PENDING</span>
-                        </div>
-                        <p className="text-[11px] text-gray-500 italic bg-white p-1.5 rounded border border-gray-100">&quot;{leave.reason}&quot;</p>
-                        <div className="flex gap-2">
-                          <button 
-                            onClick={() => handleReviewLeave(leave.id, 'approved')}
-                            className="flex-1 py-1 bg-green-600 text-white rounded text-[10px] font-semibold shadow-xs hover:bg-green-700 transition-colors cursor-pointer"
-                          >
-                            Setujui
-                          </button>
-                          <button 
-                            onClick={() => handleReviewLeave(leave.id, 'rejected')}
-                            className="flex-1 py-1 bg-red-50 text-red-600 border border-red-200/60 rounded text-[10px] font-semibold hover:bg-red-100 transition-colors cursor-pointer"
-                          >
-                            Tolak
-                          </button>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              ) : (
-                <div className="text-center py-5 text-xs text-gray-400 italic">
-                  Akses supervisor atau admin diperlukan untuk melihat antrean persetujuan cuti.
-                </div>
-              )}
             </div>
 
-            {/* Recent Audit / Event logs */}
-            <div className="bg-white p-5 rounded-xl border border-gray-200/80 shadow-xs flex flex-col gap-3.5">
-              <div className="border-b border-gray-100 pb-2.5">
-                <span className="font-semibold text-sm flex items-center gap-2 text-slate-800">
-                  <ClipboardList size={16} />
-                  Aktivitas Audit Terkini
-                </span>
+            {/* Horizontal Bar Stack */}
+            <div className="flex flex-col gap-3 py-2">
+              <div className="w-full bg-purple-600 h-8 rounded-xl flex items-center justify-end px-3 text-white text-[11px] font-bold shadow-xs">
+                17%
               </div>
-              <div className="flex flex-col gap-2.5">
-                {data.recentLogs.map((log: any) => (
-                  <div key={log.id} className="flex items-start gap-2 text-[12px]">
-                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1 flex-shrink-0"></span>
-                    <div className="flex flex-col">
-                      <span className="text-gray-700 font-normal">Aksi: <code className="bg-slate-100 px-1 py-0.5 rounded text-[10px] font-mono">{log.action}</code> oleh: <code className="bg-slate-100 px-1 py-0.5 rounded text-[10px] font-mono">{log.user_id}</code></span>
-                      <span className="text-[10px] text-gray-400">{new Date(log.created_at).toLocaleString('id-ID')}</span>
-                    </div>
-                  </div>
-                ))}
+              <div className="w-full bg-amber-400 h-8 rounded-xl flex items-center justify-end px-3 text-white text-[11px] font-bold shadow-xs">
+                17%
+              </div>
+              <div className="w-full bg-sky-400 h-8 rounded-xl flex items-center justify-end px-3 text-white text-[11px] font-bold shadow-xs">
+                17%
+              </div>
+            </div>
+
+            {/* Legend Footer */}
+            <div className="flex items-center justify-between border-t border-slate-100 pt-3 text-xs font-medium">
+              <div className="flex items-center gap-1.5 text-slate-700">
+                <span className="w-2.5 h-2.5 rounded-full bg-purple-600"></span>
+                <span>Google</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-slate-700">
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
+                <span>Shopify</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-slate-700">
+                <span className="w-2.5 h-2.5 rounded-full bg-sky-400"></span>
+                <span>Facebook</span>
               </div>
             </div>
           </div>
 
         </div>
+
+        {/* Bottom Section: Top Selling Table + Product Sales Chart */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          
+          {/* Top Selling Data Table (2/3 width) */}
+          <div className="lg:col-span-2 salesx-card p-5 flex flex-col gap-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h2 className="font-bold text-base text-slate-900 tracking-tight">Top Selling</h2>
+              <div className="flex items-center gap-2">
+                <button className="flex items-center gap-1 px-3 py-1.5 bg-white border border-slate-200/70 rounded-xl text-xs font-medium text-slate-600 hover:bg-slate-50 cursor-pointer shadow-2xs">
+                  <span>⇅ Sort by</span>
+                </button>
+                <button className="flex items-center gap-1 px-3 py-1.5 bg-white border border-slate-200/70 rounded-xl text-xs font-medium text-slate-600 hover:bg-slate-50 cursor-pointer shadow-2xs">
+                  <span>⤓ Export</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Table */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-100 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                    <th className="py-2.5 px-3 w-8"><input type="checkbox" className="rounded text-purple-600" /></th>
+                    <th className="py-2.5 px-3">Product info</th>
+                    <th className="py-2.5 px-3">Price</th>
+                    <th className="py-2.5 px-3">Status</th>
+                    <th className="py-2.5 px-3">Sold</th>
+                    <th className="py-2.5 px-3">Total Earning</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-xs">
+                  <tr className="hover:bg-slate-50/50 transition-colors">
+                    <td className="py-3 px-3"><input type="checkbox" className="rounded text-purple-600" /></td>
+                    <td className="py-3 px-3 flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-purple-100 flex items-center justify-center text-purple-700 font-bold text-sm flex-shrink-0">👡</div>
+                      <span className="font-semibold text-slate-900">Leather Flat Sandals</span>
+                    </td>
+                    <td className="py-3 px-3 font-medium text-slate-700">$220.2</td>
+                    <td className="py-3 px-3">
+                      <span className="px-2.5 py-1 rounded-lg text-[11px] font-medium bg-purple-50 text-purple-700 border border-purple-100">In Stock</span>
+                    </td>
+                    <td className="py-3 px-3 font-medium text-slate-700">206 Pcs</td>
+                    <td className="py-3 px-3 font-bold text-slate-900">$5,361.20</td>
+                  </tr>
+
+                  <tr className="hover:bg-slate-50/50 transition-colors">
+                    <td className="py-3 px-3"><input type="checkbox" className="rounded text-purple-600" /></td>
+                    <td className="py-3 px-3 flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-rose-100 flex items-center justify-center text-rose-700 font-bold text-sm flex-shrink-0">👕</div>
+                      <span className="font-semibold text-slate-900">Modern T Shirt</span>
+                    </td>
+                    <td className="py-3 px-3 font-medium text-slate-700">$50.00</td>
+                    <td className="py-3 px-3">
+                      <span className="px-2.5 py-1 rounded-lg text-[11px] font-medium bg-rose-50 text-rose-700 border border-rose-100">Out Of Stock</span>
+                    </td>
+                    <td className="py-3 px-3 font-medium text-slate-700">103 Pcs</td>
+                    <td className="py-3 px-3 font-bold text-slate-900">$4,235.20</td>
+                  </tr>
+
+                  <tr className="hover:bg-slate-50/50 transition-colors">
+                    <td className="py-3 px-3"><input type="checkbox" className="rounded text-purple-600" /></td>
+                    <td className="py-3 px-3 flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-purple-100 flex items-center justify-center text-purple-700 font-bold text-sm flex-shrink-0">🧢</div>
+                      <span className="font-semibold text-slate-900">Stylish Head Cap</span>
+                    </td>
+                    <td className="py-3 px-3 font-medium text-slate-700">$99.00</td>
+                    <td className="py-3 px-3">
+                      <span className="px-2.5 py-1 rounded-lg text-[11px] font-medium bg-purple-50 text-purple-700 border border-purple-100">In Stock</span>
+                    </td>
+                    <td className="py-3 px-3 font-medium text-slate-700">169 Pcs</td>
+                    <td className="py-3 px-3 font-bold text-slate-900">$2,234.20</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Product Sales Vertical Bar Chart (1/3 width) */}
+          <div className="salesx-card p-5 flex flex-col justify-between gap-4">
+            <div className="flex items-center justify-between">
+              <h2 className="font-bold text-base text-slate-900 tracking-tight">Product Sales</h2>
+              <div className="flex items-center gap-1 text-xs text-slate-500 bg-slate-50 border border-slate-200/60 px-2.5 py-1 rounded-xl cursor-pointer">
+                <span>Last Month</span>
+                <span>˅</span>
+              </div>
+            </div>
+
+            {/* Metrics Header */}
+            <div className="grid grid-cols-3 gap-2 border-b border-slate-100 pb-3 text-center">
+              <div className="flex flex-col">
+                <span className="text-[10px] text-slate-400 font-medium">Packed</span>
+                <span className="text-sm font-bold text-slate-900">756</span>
+                <span className="text-[10px] font-semibold text-emerald-500">↑ 5.7%</span>
+              </div>
+              <div className="flex flex-col border-x border-slate-100">
+                <span className="text-[10px] text-slate-400 font-medium">Delivered</span>
+                <span className="text-sm font-bold text-slate-900">1052</span>
+                <span className="text-[10px] font-semibold text-emerald-500">↑ 7.3%</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] text-slate-400 font-medium">Shipped</span>
+                <span className="text-sm font-bold text-slate-900">1564</span>
+                <span className="text-[10px] font-semibold text-emerald-500">↑ 11.7%</span>
+              </div>
+            </div>
+
+            {/* Vertical Bar Chart */}
+            <div className="flex items-end justify-around h-36 pt-4 gap-4">
+              <div className="flex-1 bg-gradient-to-t from-purple-600 to-purple-400 h-24 rounded-t-xl shadow-xs"></div>
+              <div className="flex-1 bg-gradient-to-t from-amber-400 to-amber-200 h-32 rounded-t-xl shadow-xs"></div>
+              <div className="flex-1 bg-gradient-to-t from-sky-400 to-sky-200 h-36 rounded-t-xl shadow-xs"></div>
+            </div>
+          </div>
+
+        </div>
+
       </div>
     </AppShell>
   );

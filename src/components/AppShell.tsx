@@ -18,7 +18,8 @@ import {
   ChevronUp,
   ChevronDown,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Search
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -198,55 +199,69 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50 text-gray-900">
+    <div className="flex h-screen overflow-hidden bg-[#f8f9fc] text-slate-900">
       {/* Sidebar - Desktop */}
-      <aside className={`hidden md:flex flex-col bg-white border-r border-gray-200/60 h-full flex-shrink-0 z-30 transition-all duration-300 ${
-        isSidebarCollapsed ? 'w-20' : 'w-64 lg:w-72'
+      <aside className={`hidden md:flex flex-col bg-white border-r border-slate-200/70 h-full flex-shrink-0 z-30 transition-all duration-300 ${
+        isSidebarCollapsed ? 'w-20' : 'w-64 lg:w-68'
       }`}>
-        {/* Sidebar Header */}
-        <div className={`flex items-center px-4 py-5 border-b border-gray-200/40 flex-shrink-0 transition-all duration-300 ${
-          isSidebarCollapsed ? 'flex-col gap-3 justify-center' : 'justify-between gap-3'
+        {/* Sidebar Header - Logo Brand */}
+        <div className={`flex items-center px-4 py-4.5 border-b border-slate-100 flex-shrink-0 transition-all duration-300 ${
+          isSidebarCollapsed ? 'flex-col gap-2 justify-center' : 'justify-between gap-3'
         }`}>
           {!isSidebarCollapsed ? (
-            <div className="flex items-center gap-3 min-w-0 transition-opacity duration-300">
-              {settings?.org_logo ? (
-                <img src={settings.org_logo} alt="Logo" className="w-8 h-8 object-cover rounded-full border border-gray-150 shadow-sm" />
-              ) : (
-                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold text-lg">
-                  {settings?.org_name ? settings.org_name.charAt(0) : 'D'}
-                </div>
-              )}
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-xl bg-purple-600 flex items-center justify-center text-white font-black text-sm shadow-sm shadow-purple-200">
+                X
+              </div>
               <div className="flex flex-col min-w-0">
-                <span className="font-bold text-sm bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent truncate">
-                  {settings?.org_name || 'Domus Somnia'}
+                <span className="font-bold text-base text-slate-900 tracking-tight truncate">
+                  {settings?.org_name || 'SalesX'}
                 </span>
-                <span className="text-[10px] text-gray-400 font-bold mt-0.5 tracking-wider">DEV SYSTEM</span>
               </div>
             </div>
           ) : (
-            <div className="transition-opacity duration-300">
-              {settings?.org_logo ? (
-                <img src={settings.org_logo} alt="Logo" className="w-8 h-8 object-cover rounded-full border border-gray-150 shadow-sm" />
-              ) : (
-                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold text-sm">
-                  {settings?.org_name ? settings.org_name.charAt(0) : 'D'}
-                </div>
-              )}
+            <div className="w-8 h-8 rounded-xl bg-purple-600 flex items-center justify-center text-white font-black text-sm shadow-sm shadow-purple-200">
+              X
             </div>
           )}
 
           {/* Minimize/Maximize button */}
           <button 
             onClick={toggleSidebar}
-            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-gray-800 transition-colors cursor-pointer"
+            className="p-1 rounded-md hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition-colors cursor-pointer border border-slate-200/60"
             title={isSidebarCollapsed ? "Expand Menu" : "Collapse Menu"}
           >
-            {isSidebarCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+            {isSidebarCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
           </button>
         </div>
 
+        {/* Search Bar (SalesX Style) */}
+        {!isSidebarCollapsed && (
+          <div className="px-3.5 pt-4 pb-2">
+            <div className="relative flex items-center bg-slate-50 border border-slate-200/70 rounded-xl px-3 py-2 text-slate-400 group focus-within:border-purple-500 focus-within:bg-white transition-all">
+              <span className="mr-2 text-slate-400"><Search size={15} /></span>
+              <input 
+                type="text" 
+                placeholder="Search..." 
+                className="w-full bg-transparent text-xs text-slate-800 placeholder-slate-400 outline-none font-medium"
+              />
+              <div className="flex items-center gap-0.5 text-[9px] font-semibold text-slate-400 bg-white border border-slate-200 px-1.5 py-0.5 rounded-md shadow-xs">
+                <span>⌘</span>
+                <span>K</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Menu Section Header */}
+        {!isSidebarCollapsed && (
+          <div className="px-4 pt-3 pb-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Main Menu</span>
+          </div>
+        )}
+
         {/* Sidebar Menu - Scrollable */}
-        <nav className="flex-1 overflow-y-auto px-2 py-4 space-y-1 no-scrollbar">
+        <nav className="flex-1 overflow-y-auto px-3 py-1 space-y-1 no-scrollbar">
           {filteredNavItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
@@ -254,111 +269,113 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               <Link
                 key={item.name}
                 href={item.href}
-                className={`flex items-center rounded-lg text-[13px] font-medium transition-all group ${
-                  isSidebarCollapsed ? 'justify-center p-2.5 mx-1' : 'gap-2.5 px-3 py-2 mx-1'
+                className={`flex items-center rounded-xl text-[13px] font-medium transition-all group ${
+                  isSidebarCollapsed ? 'justify-center p-2.5 mx-0.5' : 'gap-3 px-3.5 py-2.5'
                 } ${
                   isActive 
-                    ? 'bg-blue-50/80 text-blue-600 font-semibold shadow-xs shadow-blue-100/50' 
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                    ? 'bg-purple-50 text-purple-700 font-semibold shadow-xs shadow-purple-100/50' 
+                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                 }`}
                 title={isSidebarCollapsed ? item.name : undefined}
               >
-                <Icon size={16} className={isActive ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-600'} />
+                <Icon size={17} className={isActive ? 'text-purple-600' : 'text-slate-400 group-hover:text-slate-600'} />
                 {!isSidebarCollapsed && <span className="truncate">{item.name}</span>}
               </Link>
             );
           })}
         </nav>
 
-        {/* Sidebar Footer */}
-        <div className="p-3 border-t border-gray-200/40 bg-gray-50/40 flex-shrink-0 space-y-2">
-          <div className={`flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-2.5 px-1 py-0.5'}`}>
-            <div className="w-7 h-7 rounded-full bg-indigo-50 border border-indigo-200 flex items-center justify-center text-indigo-700 font-bold text-xs flex-shrink-0">
-              {user ? getInitials(user.name) : '..'}
+        {/* Sidebar Footer Menu Items (Settings & Help) */}
+        <div className="p-3 border-t border-slate-100 flex-shrink-0 space-y-1 bg-white">
+          <Link
+            href="/backoffice"
+            className={`flex items-center gap-3 px-3 py-2 rounded-xl text-[12px] font-medium text-slate-600 hover:bg-slate-50 transition-all ${
+              isSidebarCollapsed ? 'justify-center p-2' : ''
+            }`}
+          >
+            <Settings size={16} className="text-slate-400" />
+            {!isSidebarCollapsed && <span>Settings</span>}
+          </Link>
+
+          <div className={`flex items-center ${isSidebarCollapsed ? 'justify-center py-1' : 'justify-between px-3 py-2'} border-t border-slate-100 mt-2 pt-2`}>
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-7 h-7 rounded-full bg-purple-100 text-purple-700 font-bold text-xs flex items-center justify-center flex-shrink-0">
+                {user ? getInitials(user.name) : '..'}
+              </div>
+              {!isSidebarCollapsed && (
+                <div className="flex flex-col text-left min-w-0">
+                  <span className="font-semibold text-xs truncate text-slate-800">{user?.name || 'User'}</span>
+                  <span className="text-[10px] text-slate-400 truncate capitalize">{user?.role}</span>
+                </div>
+              )}
             </div>
             {!isSidebarCollapsed && (
-              <div className="flex flex-col text-left min-w-0 transition-opacity duration-300">
-                <span className="font-semibold text-xs leading-none truncate text-gray-800">{user?.name || 'Loading...'}</span>
-                <span className="text-[10px] text-gray-400 truncate mt-0.5 capitalize">{user?.role}</span>
-              </div>
+              <button 
+                onClick={logout}
+                className="p-1 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                title="Keluar"
+              >
+                <LogOut size={15} />
+              </button>
             )}
           </div>
-          <button 
-            onClick={logout}
-            className={`flex items-center w-full rounded-lg text-[12px] font-medium text-red-600 hover:bg-red-50 hover:text-red-700 transition-all border border-transparent hover:border-red-150 cursor-pointer ${
-              isSidebarCollapsed ? 'justify-center p-2' : 'gap-2 px-3 py-1.5'
-            }`}
-            title={isSidebarCollapsed ? "Keluar Sistem" : undefined}
-          >
-            <LogOut size={14} />
-            {!isSidebarCollapsed && <span className="transition-opacity duration-300">Keluar Sistem</span>}
-          </button>
         </div>
       </aside>
 
       {/* Main Wrapper */}
-      <div className="flex-1 flex flex-col h-full min-w-0 overflow-hidden bg-gray-50/50">
+      <div className="flex-1 flex flex-col h-full min-w-0 overflow-hidden bg-[#f8f9fc]">
         {/* Header - Desktop & Mobile */}
-        <header className="sticky top-0 z-20 w-full bg-white/80 backdrop-blur-md border-b border-gray-200/40 px-4 md:px-6 py-3 flex items-center justify-between transition-all">
+        <header className="sticky top-0 z-20 w-full bg-white/90 backdrop-blur-md border-b border-slate-200/60 px-4 md:px-8 py-3.5 flex items-center justify-between transition-all">
           <div className="flex items-center gap-3">
             {/* Hamburger button for mobile */}
             <button 
               onClick={() => setIsMobileMenuOpen(true)}
-              className="p-1.5 -ml-1 text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-lg md:hidden transition-colors cursor-pointer"
+              className="p-1.5 -ml-1 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg md:hidden transition-colors cursor-pointer"
             >
               <Menu size={18} />
             </button>
 
-            {/* Mobile logo branding */}
-            <div className="flex md:hidden items-center gap-2">
-              {settings?.org_logo ? (
-                <img src={settings.org_logo} alt="Logo" className="w-6 h-6 object-cover rounded-full border border-gray-150 shadow-xs" />
-              ) : (
-                <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-xs">
-                  {settings?.org_name ? settings.org_name.charAt(0) : 'D'}
-                </div>
-              )}
-              <span className="font-bold text-sm bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                {settings?.org_name ? settings.org_name.split(' ')[0] : 'Domus'}
-              </span>
-            </div>
-
             {/* Desktop Page Title */}
-            <h1 className="hidden md:block font-bold text-base text-gray-800 tracking-tight">
+            <h1 className="font-bold text-xl text-slate-900 tracking-tight">
               {getPageTitle()}
             </h1>
           </div>
 
-          {/* Right Header Operations */}
-          <div className="flex items-center gap-3">
-            {/* Notifications Trigger */}
+          {/* Right Header Operations (SalesX Style Header Icons) */}
+          <div className="flex items-center gap-2">
+            {/* Search Button (Mobile) */}
+            <button className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl md:hidden">
+              <Search size={18} />
+            </button>
+
+            {/* Notifications Bell Trigger */}
             <div className="relative">
               <button 
                 onClick={() => setShowNotifications(!showNotifications)}
-                className="p-1.5 text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-full relative transition-colors cursor-pointer"
+                className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl border border-slate-200/70 relative transition-colors cursor-pointer bg-white"
               >
-                <Bell size={18} />
+                <Bell size={17} />
                 {notifications.some(n => !n.read) && (
-                  <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-purple-600 rounded-full animate-pulse"></span>
                 )}
               </button>
 
               {showNotifications && (
-                <div className="absolute right-0 mt-2 w-76 bg-white border border-gray-200 rounded-xl py-1.5 z-50 shadow-lg overflow-hidden">
-                  <div className="px-3 py-1.5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-                    <span className="font-bold text-[10px] text-gray-500 tracking-wider uppercase">Notifikasi In-App</span>
+                <div className="absolute right-0 mt-2 w-76 bg-white border border-slate-200 rounded-2xl py-2 z-50 shadow-xl overflow-hidden">
+                  <div className="px-3.5 py-2 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                    <span className="font-bold text-[10px] text-slate-500 tracking-wider uppercase">Notifikasi In-App</span>
                     {notifications.some(n => !n.read) && (
                       <button 
                         onClick={markAllAsRead}
-                        className="text-[10px] text-blue-600 hover:underline font-semibold cursor-pointer"
+                        className="text-[10px] text-purple-600 hover:underline font-semibold cursor-pointer"
                       >
                         Tandai semua dibaca
                       </button>
                     )}
                   </div>
-                  <div className="max-h-[300px] overflow-y-auto divide-y divide-gray-100">
+                  <div className="max-h-[300px] overflow-y-auto divide-y divide-slate-100">
                     {notifications.length === 0 ? (
-                      <div className="px-4 py-6 text-center text-xs text-gray-400">
+                      <div className="px-4 py-6 text-center text-xs text-slate-400">
                         Tidak ada notifikasi aktif.
                       </div>
                     ) : (
@@ -367,16 +384,16 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                           key={notif.id} 
                           href={notif.link || '#'}
                           onClick={() => handleNotificationClick(notif.id)}
-                          className={`px-3 py-2 text-left block transition-all duration-150 hover:bg-blue-50/40 ${notif.read ? '' : 'bg-blue-50/20'}`}
+                          className={`px-3.5 py-2.5 text-left block transition-all duration-150 hover:bg-purple-50/30 ${notif.read ? '' : 'bg-purple-50/20'}`}
                         >
                           <div className="flex flex-col gap-0.5">
-                            <span className={`text-[10px] font-semibold uppercase tracking-wider ${notif.read ? 'text-gray-400' : 'text-blue-600'}`}>
+                            <span className={`text-[10px] font-semibold uppercase tracking-wider ${notif.read ? 'text-slate-400' : 'text-purple-600'}`}>
                               {notif.title}
                             </span>
-                            <p className={`text-[12px] text-gray-700 leading-snug ${notif.read ? '' : 'font-medium'}`}>
+                            <p className={`text-[12px] text-slate-700 leading-snug ${notif.read ? '' : 'font-medium'}`}>
                               {notif.description}
                             </p>
-                            <span className="text-[9px] text-gray-400 font-medium mt-0.5">
+                            <span className="text-[9px] text-slate-400 font-medium mt-0.5">
                               {formatTimeAgo(notif.time)}
                             </span>
                           </div>
@@ -388,21 +405,18 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               )}
             </div>
 
-            {/* User Profile Card (Desktop Only) */}
-            <div className="hidden md:flex items-center gap-2.5 border-l border-gray-200/80 pl-3">
-              <div className="w-7 h-7 rounded-full bg-indigo-50 border border-indigo-200 flex items-center justify-center text-indigo-700 font-bold text-xs">
-                {user ? getInitials(user.name) : '..'}
+            {/* SalesX Avatar Profile Button */}
+            <div className="flex items-center gap-2 border border-slate-200/70 p-1 pl-1.5 pr-2.5 rounded-full bg-white hover:border-slate-300 transition-all cursor-pointer">
+              <div className="w-7 h-7 rounded-full bg-purple-600 text-white font-bold text-xs flex items-center justify-center">
+                {user ? getInitials(user.name) : 'U'}
               </div>
-              <div className="flex flex-col text-left">
-                <span className="font-semibold text-xs leading-none text-gray-800">{user?.name || 'Loading...'}</span>
-                <span className="text-[10px] text-gray-400 capitalize mt-0.5">{user?.role}</span>
-              </div>
+              <ChevronDown size={14} className="text-slate-400" />
             </div>
           </div>
         </header>
 
         {/* Scrollable Content Area */}
-        <main className="flex-1 w-full overflow-y-auto px-4 md:px-6 py-5 md:py-6 pb-20 md:pb-6">
+        <main className="flex-1 w-full overflow-y-auto px-4 md:px-8 py-6 md:py-8 pb-20 md:pb-8">
           {children}
         </main>
       </div>
