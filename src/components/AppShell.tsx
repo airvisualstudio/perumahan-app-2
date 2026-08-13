@@ -76,17 +76,20 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     if (!user) return;
     try {
       const res = await fetch(`/api/notifications?userId=${user.id}&role=${user.role}`);
-      const json = await res.json();
-      if (json.success) {
-        // Match against readIds from localStorage
-        const items = json.notifications.map((notif: any) => ({
-          ...notif,
-          read: readIds.includes(notif.id)
-        }));
-        setNotifications(items);
+      const contentType = res.headers.get('content-type');
+      if (res.ok && contentType && contentType.includes('application/json')) {
+        const json = await res.json();
+        if (json.success && Array.isArray(json.notifications)) {
+          // Match against readIds from localStorage
+          const items = json.notifications.map((notif: any) => ({
+            ...notif,
+            read: readIds.includes(notif.id)
+          }));
+          setNotifications(items);
+        }
       }
     } catch (error) {
-      console.error('Failed to fetch notifications:', error);
+      // Ignore network abort/JSON parse error silently
     }
   };
 

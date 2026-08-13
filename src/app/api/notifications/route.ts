@@ -11,7 +11,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: false, error: 'userId and role are required' }, { status: 400 });
     }
 
-    const data = db.get();
+    const data = db.get() || {};
     const notifications = [];
 
     // Helper: Map user ID to user Name
