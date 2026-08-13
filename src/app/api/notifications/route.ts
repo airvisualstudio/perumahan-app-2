@@ -21,9 +21,9 @@ export async function GET(request: Request) {
     };
 
     // 1. DOCUMENTS IN NEED OF APPROVAL
-    const pendingDocs = data.documents.filter(d => d.status === 'pending_approval');
+    const pendingDocs = (data.documents || []).filter(d => d.status === 'pending_approval');
     for (const doc of pendingDocs) {
-      const activeStep = doc.approval_chain.find(c => c.status === 'pending');
+      const activeStep = (doc.approval_chain || []).find(c => c.status === 'pending');
       if (activeStep) {
         let canApprove = false;
         
@@ -53,9 +53,9 @@ export async function GET(request: Request) {
     }
 
     // 2. DOCUMENT STATUS UPDATES FOR REQUESTERS
-    const finishedDocs = data.documents.filter(d => d.requester_id === userId && ['approved', 'rejected'].includes(d.status));
+    const finishedDocs = (data.documents || []).filter(d => d.requester_id === userId && ['approved', 'rejected'].includes(d.status));
     for (const doc of finishedDocs) {
-      const lastApproverStep = [...doc.approval_chain].reverse().find(c => c.status === 'approved' || c.status === 'rejected');
+      const lastApproverStep = [...(doc.approval_chain || [])].reverse().find(c => c.status === 'approved' || c.status === 'rejected');
       const decider = lastApproverStep?.decided_by || 'Sistem';
       const statusIndo = doc.status === 'approved' ? 'DISETUJUI' : 'DITOLAK';
       const notesStr = lastApproverStep?.remarks ? ` Catatan: "${lastApproverStep.remarks}"` : '';
@@ -71,12 +71,12 @@ export async function GET(request: Request) {
     }
 
     // 3. TASKS ASSIGNED TO USER
-    const userTasks = data.tasks.filter(t => t.assignee_id === userId && t.status !== 'done');
+    const userTasks = (data.tasks || []).filter(t => t.assignee_id === userId && t.status !== 'done');
     for (const task of userTasks) {
       notifications.push({
         id: `task-assigned-${task.id}`,
         title: `Tugas Baru Ditugaskan`,
-        description: `Tugas: "${task.title}" (Prioritas: ${task.priority.toUpperCase()}).`,
+        description: `Tugas: "${task.title}" (Prioritas: ${(task.priority || '').toUpperCase()}).`,
         time: task.updated_at || task.created_at || new Date().toISOString(),
         type: 'task',
         link: '/tasks'
@@ -85,7 +85,7 @@ export async function GET(request: Request) {
 
     // 4. LEAVE REQUESTS PENDING (For manager / admin to review)
     if (['admin', 'manager'].includes(role)) {
-      const pendingLeaves = data.leaves.filter(l => l.status === 'pending');
+      const pendingLeaves = (data.leaves || []).filter(l => l.status === 'pending');
       for (const leave of pendingLeaves) {
         const requesterName = getUserName(leave.user_id);
         notifications.push({
@@ -100,7 +100,7 @@ export async function GET(request: Request) {
     }
 
     // 5. LEAVE REQUESTS STATUS FOR EMPLOYEES
-    const userLeaves = data.leaves.filter(l => l.user_id === userId && ['approved', 'rejected'].includes(l.status));
+    const userLeaves = (data.leaves || []).filter(l => l.user_id === userId && ['approved', 'rejected'].includes(l.status));
     for (const leave of userLeaves) {
       const reviewerName = leave.reviewed_by ? getUserName(leave.reviewed_by) : 'Atasan';
       const statusIndo = leave.status === 'approved' ? 'DISETUJUI' : 'DITOLAK';

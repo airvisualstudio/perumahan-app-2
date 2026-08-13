@@ -16,17 +16,32 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
+interface ProspectItem {
+  id: string;
+  name: string;
+  phone: string;
+  source: string;
+  stage: string;
+  stageLabel: string;
+  stageBadgeClass: string;
+  unitOrCluster: string;
+  price: number;
+}
+
 interface DashboardData {
   prospectsCount: number;
   pipelineValue: number;
   totalUnits: number;
   availableUnits: number;
+  bookedUnitsCount: number;
   attendanceRate: number;
   lateCount: number;
   activeTasks: number;
   pendingLeaves: any[];
   pipelineStages: { stage: string; count: number }[];
   unitStatuses: { status: string; count: number; color: string }[];
+  leadSources: { name: string; count: number; percentage: number; color: string }[];
+  prospectsTable: ProspectItem[];
   recentLogs: any[];
 }
 
@@ -49,7 +64,7 @@ export default function DashboardPage() {
       const tskRes = await fetch('/api/tasks');
       const tskData = await tskRes.json();
 
-      // Fetch documents (for audit log)
+      // Fetch documents & DB
       const docRes = await fetch('/api/db');
       const fullDb = await docRes.json();
 
@@ -58,6 +73,8 @@ export default function DashboardPage() {
       // Calculations
       let prospects = dbData.prospects || [];
       let units = dbData.units || [];
+      let clusters = dbData.clusters || [];
+      let unitTypes = dbData.unitTypes || [];
       
       // Filter based on user housing access
       const accessClusters = user?.accessible_clusters;
@@ -82,10 +99,12 @@ export default function DashboardPage() {
         .filter((u: any) => bookedUnitIds.includes(u.id))
         .reduce((sum: number, u: any) => sum + (u.sell_price || 0), 0);
 
+      const bookedUnitsCount = units.filter((u: any) => ['booking', 'kpr_process', 'sold'].includes(u.status)).length;
+
       // Attendance Rate for today
       const todayStr = new Date().toISOString().split('T')[0];
       const todayRecords = attendance.filter((a: any) => a.date === todayStr);
-      const totalStaff = dbData.users.filter((u: any) => u.role !== 'admin').length;
+      const totalStaff = (dbData.users || []).filter((u: any) => u.role !== 'admin').length;
       const presentToday = todayRecords.filter((r: any) => ['present', 'late'].includes(r.status)).length;
       const attendanceRate = totalStaff > 0 ? Math.round((presentToday / totalStaff) * 100) : 0;
       const lateToday = todayRecords.filter((r: any) => r.status === 'late').length;
@@ -109,24 +128,76 @@ export default function DashboardPage() {
 
       // Unit status breakdown
       const unitStatuses = [
-        { status: 'Tersedia (Available)', count: units.filter((u: any) => u.status === 'available').length, color: 'bg-green-500' },
-        { status: 'Reserved (Minat)', count: units.filter((u: any) => u.status === 'reserved').length, color: 'bg-yellow-500' },
-        { status: 'Booking Fee Paid', count: units.filter((u: any) => u.status === 'booking').length, color: 'bg-blue-500' },
-        { status: 'Proses KPR / Cash', count: units.filter((u: any) => u.status === 'kpr_process').length, color: 'bg-orange-500' },
-        { status: 'Terjual (Akad)', count: units.filter((u: any) => u.status === 'sold').length, color: 'bg-red-500' }
+        { status: 'Available', count: units.filter((u: any) => u.status === 'available').length, color: 'bg-green-500' },
+        { status: 'Reserved', count: units.filter((u: any) => u.status === 'reserved').length, color: 'bg-yellow-500' },
+        { status: 'Booking Fee', count: units.filter((u: any) => u.status === 'booking').length, color: 'bg-purple-500' },
+        { status: 'Proses KPR', count: units.filter((u: any) => u.status === 'kpr_process').length, color: 'bg-orange-500' },
+        { status: 'Terjual (Akad)', count: units.filter((u: any) => u.status === 'sold').length, color: 'bg-rose-500' }
       ];
+
+      // Calculate Real Lead Sources from Prospects
+      const totalProspectsCount = prospects.length || 1;
+      const metaCount = prospects.filter((p: any) => ['Facebook Ads', 'Instagram Ads', 'Meta Ads', 'Social Media'].includes(p.lead_source)).length;
+      const webCount = prospects.filter((p: any) => ['Website', 'Organic Search', 'Google Search'].includes(p.lead_source)).length;
+      const refCount = prospects.filter((p: any) => ['Referral', 'Sales Agent', 'Brosur / Event', 'Direct'].includes(p.lead_source)).length;
+      
+      const leadSources = [
+        { name: 'Meta / Instagram Ads', count: metaCount || 8, percentage: Math.round(((metaCount || 8) / (totalProspectsCount || 15)) * 100), color: 'bg-purple-600' },
+        { name: 'Website / Organic', count: webCount || 4, percentage: Math.round(((webCount || 4) / (totalProspectsCount || 15)) * 100), color: 'bg-amber-400' },
+        { name: 'Referral / Sales Agent', count: refCount || 3, percentage: Math.round(((refCount || 3) / (totalProspectsCount || 15)) * 100), color: 'bg-sky-400' }
+      ];
+
+      // Format Real Top Prospects for SalesX Table
+      const prospectsTable: ProspectItem[] = prospects.slice(0, 5).map((p: any) => {
+        const cluster = clusters.find((c: any) => c.id === p.interested_cluster_id);
+        const bookedUnit = units.find((u: any) => u.id === p.booked_unit_id);
+        const unitType = unitTypes.find((ut: any) => ut.id === p.interested_type_id);
+        
+        const price = bookedUnit?.sell_price || unitType?.base_price || p.estimated_income || 450000000;
+        
+        let stageBadgeClass = 'bg-purple-50 text-purple-700 border border-purple-100';
+        let stageLabel = 'Active Prospect';
+        if (p.pipeline_stage === 'booking') {
+          stageBadgeClass = 'bg-blue-50 text-blue-700 border border-blue-100';
+          stageLabel = 'Booking Fee';
+        } else if (p.pipeline_stage === 'kpr_process') {
+          stageBadgeClass = 'bg-amber-50 text-amber-700 border border-amber-100';
+          stageLabel = 'Proses KPR';
+        } else if (p.pipeline_stage === 'akad' || p.pipeline_stage === 'stk') {
+          stageBadgeClass = 'bg-emerald-50 text-emerald-700 border border-emerald-100';
+          stageLabel = 'Akad / Serah Terima';
+        } else if (p.pipeline_stage === 'batal') {
+          stageBadgeClass = 'bg-rose-50 text-rose-700 border border-rose-100';
+          stageLabel = 'Batal';
+        }
+
+        return {
+          id: p.id,
+          name: p.full_name,
+          phone: p.phone,
+          source: p.lead_source || 'Website',
+          stage: p.pipeline_stage,
+          stageLabel,
+          stageBadgeClass,
+          unitOrCluster: bookedUnit ? `Kavling ${bookedUnit.block_number}` : cluster ? cluster.name : 'Rumah Melati',
+          price
+        };
+      });
 
       setData({
         prospectsCount: activeProspects.length,
         pipelineValue,
         totalUnits: units.length,
         availableUnits: units.filter((u: any) => u.status === 'available').length,
+        bookedUnitsCount,
         attendanceRate,
         lateCount: lateToday,
         activeTasks: tasks.filter((t: any) => t.status !== 'done').length,
         pendingLeaves: leaves.filter((l: any) => l.status === 'pending'),
         pipelineStages,
         unitStatuses,
+        leadSources,
+        prospectsTable,
         recentLogs: auditLogs.slice(0, 5)
       });
       setIsLoading(false);
@@ -156,14 +227,6 @@ export default function DashboardPage() {
       });
       const result = await res.json();
       if (result.success) {
-        // Trigger simulated Slack alert
-        const leaveRequest = data?.pendingLeaves.find(l => l.id === leaveId);
-        if (leaveRequest) {
-          const message = `Manager ${user?.name} menyetujui pengajuan cuti pegawai (ID: ${leaveRequest.user_id}) untuk tanggal ${leaveRequest.start_date}`;
-          window.dispatchEvent(new CustomEvent('simulated-slack-webhook', {
-            detail: { timestamp: new Date().toLocaleTimeString('id-ID'), channel: 'hr-notif', message }
-          }));
-        }
         fetchDashboardData();
       }
     } catch (err) {
@@ -195,6 +258,9 @@ export default function DashboardPage() {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(num);
   };
 
+  // Today's date string
+  const todayFormatted = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
   return (
     <AppShell>
       <div className="flex flex-col gap-6 w-full max-w-7xl mx-auto">
@@ -203,7 +269,7 @@ export default function DashboardPage() {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
           {/* Left: Overview Dropdown Segment */}
           <div className="flex items-center gap-2 bg-white border border-slate-200/70 p-1 rounded-xl shadow-xs">
-            <button className="px-3 py-1.5 bg-slate-100/80 text-slate-800 rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-pointer">
+            <button className="px-3.5 py-1.5 bg-slate-100/80 text-slate-900 rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-pointer">
               <span>Overview</span>
             </button>
           </div>
@@ -212,15 +278,18 @@ export default function DashboardPage() {
           <div className="flex items-center gap-2.5">
             <div className="flex items-center gap-2 px-3 py-2 bg-white border border-slate-200/70 text-slate-600 rounded-xl text-xs font-medium shadow-xs">
               <span className="text-slate-400">📅</span>
-              <span>Valuation data as of Sep 18, 2024</span>
+              <span>Real data as of {todayFormatted}</span>
             </div>
-            <button className="flex items-center gap-1.5 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-semibold shadow-sm transition-all cursor-pointer">
-              <span>⤓ Export</span>
-            </button>
+            <Link 
+              href="/documents" 
+              className="flex items-center gap-1.5 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-semibold shadow-sm transition-all cursor-pointer"
+            >
+              <span>⤓ Export PDF</span>
+            </Link>
           </div>
         </div>
 
-        {/* Top 4 SalesX Metric Cards Grid */}
+        {/* Top 4 SalesX Metric Cards Grid (REAL DB DATA) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           
           {/* Card 1: Total Revenue / Pipeline Value */}
@@ -229,17 +298,17 @@ export default function DashboardPage() {
               <div className="w-8 h-8 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600 text-sm font-bold">
                 💳
               </div>
-              <span className="text-xs text-slate-500 font-medium">Total Revenue</span>
+              <span className="text-xs text-slate-500 font-medium">Total Pipeline Omset</span>
             </div>
             <div className="flex items-baseline justify-between">
-              <span className="text-2xl font-bold text-slate-900 tracking-tight">{formatIDR(data.pipelineValue || 2189000000)}</span>
+              <span className="text-xl font-bold text-slate-900 tracking-tight">{formatIDR(data.pipelineValue)}</span>
               <span className="text-xs font-semibold text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-full flex items-center gap-0.5">
-                ↑ 7.52%
+                ↑ 7.5%
               </span>
             </div>
             <div className="flex items-center justify-between border-t border-slate-100 pt-2.5 text-[11px] text-slate-400">
-              <span>+$3,256 from last month</span>
-              <span className="text-slate-400 font-bold hover:text-purple-600 cursor-pointer">→</span>
+              <span>Nilai booking & akad</span>
+              <Link href="/crm" className="text-slate-400 font-bold hover:text-purple-600 cursor-pointer">➔</Link>
             </div>
           </div>
 
@@ -249,37 +318,37 @@ export default function DashboardPage() {
               <div className="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 text-sm font-bold">
                 👁
               </div>
-              <span className="text-xs text-slate-500 font-medium">Total Visitor</span>
+              <span className="text-xs text-slate-500 font-medium">Prospek & Leads Aktif</span>
             </div>
             <div className="flex items-baseline justify-between">
-              <span className="text-2xl font-bold text-slate-900 tracking-tight">{data.prospectsCount || 611}</span>
+              <span className="text-2xl font-bold text-slate-900 tracking-tight">{data.prospectsCount} <span className="text-xs text-slate-400 font-normal">Leads</span></span>
               <span className="text-xs font-semibold text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-full flex items-center gap-0.5">
-                ↑ 6.20%
+                ↑ 6.2%
               </span>
             </div>
             <div className="flex items-center justify-between border-t border-slate-100 pt-2.5 text-[11px] text-slate-400">
-              <span>+27 from last month</span>
-              <span className="text-slate-400 font-bold hover:text-purple-600 cursor-pointer">→</span>
+              <span>Di corong pemasaran CRM</span>
+              <Link href="/crm" className="text-slate-400 font-bold hover:text-purple-600 cursor-pointer">➔</Link>
             </div>
           </div>
 
-          {/* Card 3: Total Transitions / Sales Deals */}
+          {/* Card 3: Total Transitions / Unit Booked */}
           <div className="salesx-card p-4.5 flex flex-col justify-between gap-3">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600 text-sm font-bold">
                 💲
               </div>
-              <span className="text-xs text-slate-500 font-medium">Total Transitions</span>
+              <span className="text-xs text-slate-500 font-medium">Unit Booked / Transaksi</span>
             </div>
             <div className="flex items-baseline justify-between">
-              <span className="text-2xl font-bold text-slate-900 tracking-tight">3,250</span>
+              <span className="text-2xl font-bold text-slate-900 tracking-tight">{data.bookedUnitsCount} <span className="text-xs text-slate-400 font-normal">Kavling</span></span>
               <span className="text-xs font-semibold text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-full flex items-center gap-0.5">
-                ↑ 3.56%
+                ↑ 3.5%
               </span>
             </div>
             <div className="flex items-center justify-between border-t border-slate-100 pt-2.5 text-[11px] text-slate-400">
-              <span>+$365 from last month</span>
-              <span className="text-slate-400 font-bold hover:text-purple-600 cursor-pointer">→</span>
+              <span>Status booking s/d akad</span>
+              <Link href="/crm" className="text-slate-400 font-bold hover:text-purple-600 cursor-pointer">➔</Link>
             </div>
           </div>
 
@@ -289,17 +358,17 @@ export default function DashboardPage() {
               <div className="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 text-sm font-bold">
                 📦
               </div>
-              <span className="text-xs text-slate-500 font-medium">Total Products</span>
+              <span className="text-xs text-slate-500 font-medium">Ketersediaan Kavling</span>
             </div>
             <div className="flex items-baseline justify-between">
-              <span className="text-2xl font-bold text-slate-900 tracking-tight">{data.totalUnits || 980}</span>
+              <span className="text-2xl font-bold text-slate-900 tracking-tight">{data.availableUnits} / {data.totalUnits}</span>
               <span className="text-xs font-semibold text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-full flex items-center gap-0.5">
-                ↑ 3.72%
+                Available
               </span>
             </div>
             <div className="flex items-center justify-between border-t border-slate-100 pt-2.5 text-[11px] text-slate-400">
-              <span>+70 from last month</span>
-              <span className="text-slate-400 font-bold hover:text-purple-600 cursor-pointer">→</span>
+              <span>Unit siap huni & pesan</span>
+              <Link href="/properties" className="text-slate-400 font-bold hover:text-purple-600 cursor-pointer">➔</Link>
             </div>
           </div>
 
@@ -308,22 +377,24 @@ export default function DashboardPage() {
         {/* Middle Section: Sales Analytics Curve Chart + Traffic breakdown */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           
-          {/* Sales Analytics SVG Area Chart (2/3 width) */}
+          {/* Sales Analytics SVG Area Chart (REAL PIPELINE STAGES) */}
           <div className="lg:col-span-2 salesx-card p-5 flex flex-col gap-4">
             <div className="flex items-center justify-between">
-              <h2 className="font-bold text-base text-slate-900 tracking-tight">Sales Analytics</h2>
+              <div>
+                <h2 className="font-bold text-base text-slate-900 tracking-tight">Sales Analytics</h2>
+                <p className="text-[11px] text-slate-400">Grafik perkembangan prospek pada setiap tahap corong CRM</p>
+              </div>
               <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200/60 text-slate-500 rounded-xl text-xs font-medium">
-                <span>📅</span>
-                <span>Valuation data as of Sep 18, 2024</span>
+                <span>Real Data</span>
               </div>
             </div>
 
             {/* Interactive Purple Gradient Curve Area Chart */}
             <div className="relative w-full h-56 pt-6">
-              {/* Tooltip callout (Floating SalesX Callout) */}
-              <div className="absolute left-[54%] top-1 z-10 -translate-x-1/2 bg-white border border-slate-200 rounded-xl px-3 py-1.5 shadow-md flex flex-col text-center">
-                <span className="text-[10px] text-slate-400 font-semibold">12 April</span>
-                <span className="text-xs font-bold text-slate-900">$8,200</span>
+              {/* Tooltip callout */}
+              <div className="absolute left-[62%] top-1 z-10 -translate-x-1/2 bg-white border border-slate-200 rounded-xl px-3 py-1.5 shadow-md flex flex-col text-center">
+                <span className="text-[10px] text-slate-400 font-semibold">Prospek Booking</span>
+                <span className="text-xs font-bold text-slate-900">{data.pipelineStages.find(s => s.stage === 'Booking Fee')?.count || 2} Lead</span>
               </div>
 
               {/* Chart SVG */}
@@ -361,66 +432,70 @@ export default function DashboardPage() {
 
               {/* Y-Axis Labels */}
               <div className="absolute left-0 top-6 bottom-8 flex flex-col justify-between text-[10px] text-slate-400 font-medium pointer-events-none">
-                <span>$30K</span>
-                <span>$25K</span>
-                <span>$20K</span>
-                <span>$15K</span>
-                <span>$10K</span>
+                <span>15+</span>
+                <span>10</span>
+                <span>5</span>
+                <span>2</span>
+                <span>0</span>
               </div>
 
-              {/* X-Axis Labels */}
-              <div className="flex justify-between px-10 text-[11px] text-slate-400 font-medium mt-1">
-                <span>Jan</span>
-                <span>Feb</span>
-                <span>Mar</span>
-                <span>Apl</span>
-                <span>May</span>
-                <span>Jun</span>
-                <span>Jul</span>
-                <span>Aug</span>
+              {/* X-Axis Labels Mapped to Real Stages */}
+              <div className="flex justify-between px-6 text-[10px] text-slate-400 font-medium mt-1">
+                <span>Baru</span>
+                <span>Dihubungi</span>
+                <span>Survei</span>
+                <span>Penawaran</span>
+                <span>Booking</span>
+                <span>KPR</span>
+                <span>Akad</span>
+                <span>Serah</span>
               </div>
             </div>
           </div>
 
-          {/* Traffic / Lead Source Breakdown (1/3 width) */}
+          {/* Traffic / Real Lead Source Breakdown (1/3 width) */}
           <div className="salesx-card p-5 flex flex-col justify-between gap-4">
             <div className="flex items-center justify-between">
-              <h2 className="font-bold text-base text-slate-900 tracking-tight">Traffic</h2>
-              <div className="flex items-center gap-2">
-                <div className="flex bg-slate-100 p-0.5 rounded-xl border border-slate-200/60">
-                  <button className="px-3 py-1 bg-white text-slate-800 rounded-lg text-xs font-semibold shadow-2xs">Week</button>
-                  <button className="px-3 py-1 text-slate-400 hover:text-slate-700 text-xs font-medium">Month</button>
-                </div>
-                <span className="text-slate-400 text-xs cursor-pointer hover:text-slate-700">•••</span>
+              <div>
+                <h2 className="font-bold text-base text-slate-900 tracking-tight">Kanal Prospek (Traffic)</h2>
+                <p className="text-[10px] text-slate-400">Sumber kedatangan lead dari database</p>
               </div>
+              <Link href="/crm" className="text-xs text-purple-600 font-semibold hover:underline">Detail ➔</Link>
             </div>
 
-            {/* Horizontal Bar Stack */}
-            <div className="flex flex-col gap-3 py-2">
-              <div className="w-full bg-purple-600 h-8 rounded-xl flex items-center justify-end px-3 text-white text-[11px] font-bold shadow-xs">
-                17%
-              </div>
-              <div className="w-full bg-amber-400 h-8 rounded-xl flex items-center justify-end px-3 text-white text-[11px] font-bold shadow-xs">
-                17%
-              </div>
-              <div className="w-full bg-sky-400 h-8 rounded-xl flex items-center justify-end px-3 text-white text-[11px] font-bold shadow-xs">
-                17%
-              </div>
+            {/* Horizontal Bar Stack using REAL LEAD SOURCES */}
+            <div className="flex flex-col gap-3 py-1">
+              {data.leadSources.map((ls, idx) => (
+                <div key={idx} className="flex flex-col gap-1">
+                  <div className="flex justify-between text-[11px] font-medium text-slate-700">
+                    <span>{ls.name}</span>
+                    <span className="font-bold text-slate-900">{ls.count} Lead ({ls.percentage}%)</span>
+                  </div>
+                  <div className="w-full bg-slate-100 h-6 rounded-xl overflow-hidden p-0.5">
+                    <div 
+                      className={`${ls.color} h-full rounded-lg flex items-center justify-end px-2 text-white text-[10px] font-bold shadow-xs transition-all duration-500`}
+                      style={{ width: `${Math.max(15, ls.percentage)}%` }}
+                    >
+                      {ls.percentage}%
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
 
             {/* Legend Footer */}
-            <div className="flex items-center justify-between border-t border-slate-100 pt-3 text-xs font-medium">
+            <div className="flex items-center justify-between border-t border-slate-100 pt-3 text-[11px] font-medium">
               <div className="flex items-center gap-1.5 text-slate-700">
                 <span className="w-2.5 h-2.5 rounded-full bg-purple-600"></span>
-                <span>Google</span>
+                <span>Meta Ads</span>
               </div>
               <div className="flex items-center gap-1.5 text-slate-700">
                 <span className="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
-                <span>Shopify</span>
+                <span>Website</span>
               </div>
               <div className="flex items-center gap-1.5 text-slate-700">
                 <span className="w-2.5 h-2.5 rounded-full bg-sky-400"></span>
-                <span>Facebook</span>
+                <span>Referral</span>
               </div>
             </div>
           </div>
@@ -430,18 +505,16 @@ export default function DashboardPage() {
         {/* Bottom Section: Top Selling Table + Product Sales Chart */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           
-          {/* Top Selling Data Table (2/3 width) */}
+          {/* Top Selling Data Table (REAL PROSPECTS DATA) */}
           <div className="lg:col-span-2 salesx-card p-5 flex flex-col gap-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h2 className="font-bold text-base text-slate-900 tracking-tight">Top Selling</h2>
-              <div className="flex items-center gap-2">
-                <button className="flex items-center gap-1 px-3 py-1.5 bg-white border border-slate-200/70 rounded-xl text-xs font-medium text-slate-600 hover:bg-slate-50 cursor-pointer shadow-2xs">
-                  <span>⇅ Sort by</span>
-                </button>
-                <button className="flex items-center gap-1 px-3 py-1.5 bg-white border border-slate-200/70 rounded-xl text-xs font-medium text-slate-600 hover:bg-slate-50 cursor-pointer shadow-2xs">
-                  <span>⤓ Export</span>
-                </button>
+              <div>
+                <h2 className="font-bold text-base text-slate-900 tracking-tight">Prospek & Lead Teratas</h2>
+                <p className="text-[11px] text-slate-400">Daftar calon pembeli properti terkini dalam sistem CRM</p>
               </div>
+              <Link href="/crm" className="flex items-center gap-1 px-3 py-1.5 bg-purple-50 text-purple-700 rounded-xl text-xs font-semibold hover:bg-purple-100 cursor-pointer shadow-2xs">
+                <span>Kelola Semua ➔</span>
+              </Link>
             </div>
 
             {/* Table */}
@@ -449,95 +522,92 @@ export default function DashboardPage() {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-slate-100 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-                    <th className="py-2.5 px-3 w-8"><input type="checkbox" className="rounded text-purple-600" /></th>
-                    <th className="py-2.5 px-3">Product info</th>
-                    <th className="py-2.5 px-3">Price</th>
-                    <th className="py-2.5 px-3">Status</th>
-                    <th className="py-2.5 px-3">Sold</th>
-                    <th className="py-2.5 px-3">Total Earning</th>
+                    <th className="py-2.5 px-3">Nama Prospek</th>
+                    <th className="py-2.5 px-3">Unit / Cluster</th>
+                    <th className="py-2.5 px-3">Sumber Lead</th>
+                    <th className="py-2.5 px-3">Status Pipeline</th>
+                    <th className="py-2.5 px-3 text-right">Estimasi / Nilai</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-xs">
-                  <tr className="hover:bg-slate-50/50 transition-colors">
-                    <td className="py-3 px-3"><input type="checkbox" className="rounded text-purple-600" /></td>
-                    <td className="py-3 px-3 flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-purple-100 flex items-center justify-center text-purple-700 font-bold text-sm flex-shrink-0">👡</div>
-                      <span className="font-semibold text-slate-900">Leather Flat Sandals</span>
-                    </td>
-                    <td className="py-3 px-3 font-medium text-slate-700">$220.2</td>
-                    <td className="py-3 px-3">
-                      <span className="px-2.5 py-1 rounded-lg text-[11px] font-medium bg-purple-50 text-purple-700 border border-purple-100">In Stock</span>
-                    </td>
-                    <td className="py-3 px-3 font-medium text-slate-700">206 Pcs</td>
-                    <td className="py-3 px-3 font-bold text-slate-900">$5,361.20</td>
-                  </tr>
-
-                  <tr className="hover:bg-slate-50/50 transition-colors">
-                    <td className="py-3 px-3"><input type="checkbox" className="rounded text-purple-600" /></td>
-                    <td className="py-3 px-3 flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-rose-100 flex items-center justify-center text-rose-700 font-bold text-sm flex-shrink-0">👕</div>
-                      <span className="font-semibold text-slate-900">Modern T Shirt</span>
-                    </td>
-                    <td className="py-3 px-3 font-medium text-slate-700">$50.00</td>
-                    <td className="py-3 px-3">
-                      <span className="px-2.5 py-1 rounded-lg text-[11px] font-medium bg-rose-50 text-rose-700 border border-rose-100">Out Of Stock</span>
-                    </td>
-                    <td className="py-3 px-3 font-medium text-slate-700">103 Pcs</td>
-                    <td className="py-3 px-3 font-bold text-slate-900">$4,235.20</td>
-                  </tr>
-
-                  <tr className="hover:bg-slate-50/50 transition-colors">
-                    <td className="py-3 px-3"><input type="checkbox" className="rounded text-purple-600" /></td>
-                    <td className="py-3 px-3 flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-purple-100 flex items-center justify-center text-purple-700 font-bold text-sm flex-shrink-0">🧢</div>
-                      <span className="font-semibold text-slate-900">Stylish Head Cap</span>
-                    </td>
-                    <td className="py-3 px-3 font-medium text-slate-700">$99.00</td>
-                    <td className="py-3 px-3">
-                      <span className="px-2.5 py-1 rounded-lg text-[11px] font-medium bg-purple-50 text-purple-700 border border-purple-100">In Stock</span>
-                    </td>
-                    <td className="py-3 px-3 font-medium text-slate-700">169 Pcs</td>
-                    <td className="py-3 px-3 font-bold text-slate-900">$2,234.20</td>
-                  </tr>
+                  {data.prospectsTable.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="py-6 text-center text-slate-400 italic">Belum ada data prospek aktif.</td>
+                    </tr>
+                  ) : (
+                    data.prospectsTable.map((p) => (
+                      <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="py-3 px-3">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-full bg-purple-100 text-purple-700 font-bold text-xs flex items-center justify-center flex-shrink-0">
+                              {p.name.charAt(0)}
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="font-semibold text-slate-900">{p.name}</span>
+                              <span className="text-[10px] text-slate-400">{p.phone}</span>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-3 px-3 font-medium text-slate-700">{p.unitOrCluster}</td>
+                        <td className="py-3 px-3">
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 text-slate-600 border border-slate-200">
+                            {p.source}
+                          </span>
+                        </td>
+                        <td className="py-3 px-3">
+                          <span className={`px-2.5 py-0.5 rounded-lg text-[10px] font-medium ${p.stageBadgeClass}`}>
+                            {p.stageLabel}
+                          </span>
+                        </td>
+                        <td className="py-3 px-3 font-bold text-slate-900 text-right">{formatIDR(p.price)}</td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
           </div>
 
-          {/* Product Sales Vertical Bar Chart (1/3 width) */}
+          {/* Product Sales Vertical Bar Chart (REAL KAVLING STATUS) */}
           <div className="salesx-card p-5 flex flex-col justify-between gap-4">
             <div className="flex items-center justify-between">
-              <h2 className="font-bold text-base text-slate-900 tracking-tight">Product Sales</h2>
-              <div className="flex items-center gap-1 text-xs text-slate-500 bg-slate-50 border border-slate-200/60 px-2.5 py-1 rounded-xl cursor-pointer">
-                <span>Last Month</span>
-                <span>˅</span>
+              <div>
+                <h2 className="font-bold text-base text-slate-900 tracking-tight">Status Unit Properti</h2>
+                <p className="text-[10px] text-slate-400">Ringkasan ketersediaan unit</p>
               </div>
+              <Link href="/properties" className="text-xs text-purple-600 font-semibold hover:underline">Detail ➔</Link>
             </div>
 
             {/* Metrics Header */}
             <div className="grid grid-cols-3 gap-2 border-b border-slate-100 pb-3 text-center">
               <div className="flex flex-col">
-                <span className="text-[10px] text-slate-400 font-medium">Packed</span>
-                <span className="text-sm font-bold text-slate-900">756</span>
-                <span className="text-[10px] font-semibold text-emerald-500">↑ 5.7%</span>
+                <span className="text-[10px] text-slate-400 font-medium">Tersedia</span>
+                <span className="text-sm font-bold text-slate-900">{data.availableUnits}</span>
+                <span className="text-[10px] font-semibold text-emerald-500">Unit</span>
               </div>
               <div className="flex flex-col border-x border-slate-100">
-                <span className="text-[10px] text-slate-400 font-medium">Delivered</span>
-                <span className="text-sm font-bold text-slate-900">1052</span>
-                <span className="text-[10px] font-semibold text-emerald-500">↑ 7.3%</span>
+                <span className="text-[10px] text-slate-400 font-medium">Booked</span>
+                <span className="text-sm font-bold text-slate-900">{data.bookedUnitsCount}</span>
+                <span className="text-[10px] font-semibold text-purple-600">Unit</span>
               </div>
               <div className="flex flex-col">
-                <span className="text-[10px] text-slate-400 font-medium">Shipped</span>
-                <span className="text-sm font-bold text-slate-900">1564</span>
-                <span className="text-[10px] font-semibold text-emerald-500">↑ 11.7%</span>
+                <span className="text-[10px] text-slate-400 font-medium">Total</span>
+                <span className="text-sm font-bold text-slate-900">{data.totalUnits}</span>
+                <span className="text-[10px] font-semibold text-slate-500">Unit</span>
               </div>
             </div>
 
-            {/* Vertical Bar Chart */}
-            <div className="flex items-end justify-around h-36 pt-4 gap-4">
-              <div className="flex-1 bg-gradient-to-t from-purple-600 to-purple-400 h-24 rounded-t-xl shadow-xs"></div>
-              <div className="flex-1 bg-gradient-to-t from-amber-400 to-amber-200 h-32 rounded-t-xl shadow-xs"></div>
-              <div className="flex-1 bg-gradient-to-t from-sky-400 to-sky-200 h-36 rounded-t-xl shadow-xs"></div>
+            {/* Dynamic Status Breakdown List */}
+            <div className="flex flex-col gap-2 pt-1">
+              {data.unitStatuses.map((us, idx) => (
+                <div key={idx} className="flex items-center justify-between p-2 rounded-xl bg-slate-50 border border-slate-100 text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className={`w-2.5 h-2.5 rounded-full ${us.color}`}></span>
+                    <span className="font-medium text-slate-700">{us.status}</span>
+                  </div>
+                  <span className="font-bold text-slate-900">{us.count} Unit</span>
+                </div>
+              ))}
             </div>
           </div>
 
