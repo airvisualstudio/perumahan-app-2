@@ -19,35 +19,75 @@ body {
   background-color: var(--background);
   color: var(--foreground);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-heading);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
 }
 
 /* Glassmorphism card utilities */
 .glass-panel {
-  background: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.75);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.4);
+  border: 1px solid rgba(229, 231, 235, 0.8);
 }
 
 .dark .glass-panel {
-  background: rgba(17, 24, 39, 0.7);
+  background: rgba(17, 24, 39, 0.75);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-/* Interactive hover shadow */
+/* Interactive hover shadow & smooth transition */
 .premium-card {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(229, 231, 235, 0.7);
 }
 .premium-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 20px -10px rgba(37, 99, 235, 0.15);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 16px -6px rgba(15, 23, 42, 0.06);
+}
+
+/* High-density typography SaaS classes */
+.text-subtle {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #9ca3af;
+}
+
+.badge-pill {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  padding: 2px 8px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Table fine-tuning */
+.table-compact th {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6b7280;
+  padding: 10px 14px;
+}
+
+.table-compact td {
+  font-size: 13px;
+  padding: 10px 14px;
+  color: #374151;
 }
 
 /* Hide scrollbars for neat custom scrolls */

@@ -917,16 +917,16 @@ export default function AttendancePage() {
       <div className={`flex flex-col gap-6 w-full ${activeTab === 'team' ? 'max-w-6xl' : 'max-w-2xl'} mx-auto transition-all duration-300`}>
         {/* Mobile Header Title */}
         <div className="text-center">
-          <h1 className="text-3xl font-extrabold tracking-tight">Presensi Kehadiran</h1>
-          <p className="text-gray-500 text-sm mt-1">Lakukan clock-in dan clock-out harian berbasis GPS verifikasi dari HP Anda.</p>
+          <h1 className="text-xl font-bold tracking-tight text-gray-900">Presensi Kehadiran</h1>
+          <p className="text-gray-500 text-[13px] mt-0.5">Lakukan clock-in dan clock-out harian berbasis verifikasi lokasi GPS.</p>
         </div>
 
         {/* Tab switcher for Manager & Admin */}
         {['admin', 'manager'].includes(user?.role || '') && (
-          <div className="flex border-b border-gray-200 gap-2 mb-2 no-print">
+          <div className="flex border-b border-gray-200/80 gap-2 mb-1 no-print">
             <button
               onClick={() => setActiveTab('personal')}
-              className={`pb-3.5 px-4 font-bold text-sm border-b-2 transition-all ${
+              className={`pb-2.5 px-3 font-semibold text-[13px] border-b-2 transition-all cursor-pointer ${
                 activeTab === 'personal' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-900'
               }`}
             >
@@ -940,13 +940,13 @@ export default function AttendancePage() {
                   if (firstEmp) setSelectedEmployeeId(firstEmp.id);
                 }
               }}
-              className={`pb-3.5 px-4 font-bold text-sm border-b-2 transition-all flex items-center gap-1.5 ${
+              className={`pb-2.5 px-3 font-semibold text-[13px] border-b-2 transition-all flex items-center gap-1.5 cursor-pointer ${
                 activeTab === 'team' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-900'
               }`}
             >
               Dashboard Tim / Approval Cuti
               {allLeaves.filter(l => l.status === 'pending').length > 0 && (
-                <span className="bg-red-500 text-white text-[9px] px-1.5 py-0.5 rounded-full animate-pulse font-black">
+                <span className="bg-red-500 text-white text-[9px] px-1.5 py-0.5 rounded-full animate-pulse font-bold">
                   {allLeaves.filter(l => l.status === 'pending').length}
                 </span>
               )}

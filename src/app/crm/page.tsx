@@ -465,29 +465,29 @@ export default function CRMModulePage() {
 
   return (
     <AppShell>
-      <div className="flex flex-col gap-6 w-full">
+      <div className="flex flex-col gap-5 w-full">
         {/* Module Title */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
           <div>
-            <h1 className="text-3xl font-extrabold tracking-tight">CRM Properti & Prospek</h1>
-            <p className="text-gray-500 text-sm mt-1">Kelola data unit kavling perumahan, pipeline prospek, dan status follow-up marketing.</p>
+            <h1 className="text-xl font-bold tracking-tight text-gray-900">CRM Properti & Prospek</h1>
+            <p className="text-gray-500 text-[13px] mt-0.5">Kelola data unit kavling perumahan, pipeline prospek, dan status follow-up marketing.</p>
           </div>
-          <div className="flex gap-2.5">
+          <div className="flex gap-2">
             <button
               onClick={() => setIsAddProspectOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl shadow-md hover:shadow-lg font-bold text-xs transition-all"
+              className="flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg shadow-xs hover:shadow-sm font-semibold text-[11px] tracking-wide transition-all cursor-pointer"
             >
-              <Plus size={16} />
+              <Plus size={14} />
               PROSPEK BARU
             </button>
           </div>
         </div>
 
         {/* CRM Module Navigation Tabs */}
-        <div className="flex border-b border-gray-200 gap-2 overflow-x-auto no-scrollbar whitespace-nowrap">
+        <div className="flex border-b border-gray-200/80 gap-2 overflow-x-auto no-scrollbar whitespace-nowrap">
           <button
             onClick={() => setActiveTab('units')}
-            className={`pb-3.5 px-4 font-bold text-sm border-b-2 transition-all whitespace-nowrap flex-shrink-0 ${
+            className={`pb-2.5 px-3 font-semibold text-[13px] border-b-2 transition-all whitespace-nowrap flex-shrink-0 cursor-pointer ${
               activeTab === 'units' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-900'
             }`}
           >
@@ -495,7 +495,7 @@ export default function CRMModulePage() {
           </button>
           <button
             onClick={() => setActiveTab('pipeline')}
-            className={`pb-3.5 px-4 font-bold text-sm border-b-2 transition-all whitespace-nowrap flex-shrink-0 ${
+            className={`pb-2.5 px-3 font-semibold text-[13px] border-b-2 transition-all whitespace-nowrap flex-shrink-0 cursor-pointer ${
               activeTab === 'pipeline' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-900'
             }`}
           >
@@ -503,7 +503,7 @@ export default function CRMModulePage() {
           </button>
           <button
             onClick={() => setActiveTab('prospects')}
-            className={`pb-3.5 px-4 font-bold text-sm border-b-2 transition-all whitespace-nowrap flex-shrink-0 ${
+            className={`pb-2.5 px-3 font-semibold text-[13px] border-b-2 transition-all whitespace-nowrap flex-shrink-0 cursor-pointer ${
               activeTab === 'prospects' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-900'
             }`}
           >

@@ -197,105 +197,105 @@ export default function DashboardPage() {
 
   return (
     <AppShell>
-      <div className="flex flex-col gap-8 w-full">
+      <div className="flex flex-col gap-6 w-full">
         {/* Welcome Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-gray-900">Dashboard Utama</h1>
-            <p className="text-gray-500 text-sm mt-1">Selamat datang kembali, <span className="font-semibold text-gray-800">{user?.name}</span>. Monitor operasional dan marketing di sini.</p>
+            <h1 className="text-xl font-bold tracking-tight text-gray-900">Dashboard Utama</h1>
+            <p className="text-gray-500 text-[13px] mt-0.5">Selamat datang kembali, <span className="font-semibold text-gray-800">{user?.name}</span>. Monitor operasional & marketing.</p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-2">
             <Link 
               href="/absensi" 
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl shadow-md hover:shadow-lg font-bold text-xs transition-all"
+              className="flex items-center gap-2 px-3.5 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg shadow-xs hover:shadow-sm font-semibold text-[11px] tracking-wide transition-all"
             >
-              <Clock size={16} />
-              CLOCK-IN/OUT ABSENSI
+              <Clock size={14} />
+              CLOCK-IN / OUT ABSENSI
             </Link>
           </div>
         </div>
 
         {/* KPI Metric Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Card 1: Prospects */}
-          <div className="bg-white p-5 rounded-2xl border border-gray-200 premium-card flex justify-between items-center">
-            <div className="flex flex-col gap-1">
-              <span className="text-xs text-gray-400 font-bold uppercase tracking-wider">Prospek Aktif</span>
-              <span className="text-2xl font-extrabold text-gray-900">{data.prospectsCount} Orang</span>
-              <Link href="/crm" className="text-xs text-blue-600 font-semibold mt-1 hover:underline">Kelola prospek ➔</Link>
+          <div className="bg-white p-4 rounded-xl border border-gray-200/80 premium-card flex justify-between items-center shadow-xs">
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[11px] text-gray-400 font-medium uppercase tracking-wider">Prospek Aktif</span>
+              <span className="text-xl font-bold text-gray-900">{data.prospectsCount} <span className="text-xs font-medium text-gray-500">Orang</span></span>
+              <Link href="/crm" className="text-[11px] text-blue-600 font-medium mt-1 hover:underline">Kelola prospek ➔</Link>
             </div>
-            <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
-              <UsersIcon size={24} />
+            <div className="w-10 h-10 rounded-lg bg-blue-50/80 flex items-center justify-center text-blue-600">
+              <UsersIcon size={20} />
             </div>
           </div>
 
           {/* Card 2: Sales Pipeline Value */}
-          <div className="bg-white p-5 rounded-2xl border border-gray-200 premium-card flex justify-between items-center">
-            <div className="flex flex-col gap-1">
-              <span className="text-xs text-gray-400 font-bold uppercase tracking-wider">Nilai Pipeline</span>
-              <span className="text-2xl font-extrabold text-gray-900">{formatIDR(data.pipelineValue)}</span>
-              <span className="text-[10px] text-gray-500 mt-1">Status booking s/d akad</span>
+          <div className="bg-white p-4 rounded-xl border border-gray-200/80 premium-card flex justify-between items-center shadow-xs">
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[11px] text-gray-400 font-medium uppercase tracking-wider">Nilai Pipeline</span>
+              <span className="text-xl font-bold text-gray-900">{formatIDR(data.pipelineValue)}</span>
+              <span className="text-[10px] text-gray-400 mt-0.5">Status booking s/d akad</span>
             </div>
-            <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
-              <DollarSign size={24} />
+            <div className="w-10 h-10 rounded-lg bg-emerald-50/80 flex items-center justify-center text-emerald-600">
+              <DollarSign size={20} />
             </div>
           </div>
 
           {/* Card 3: Kavling Availability */}
-          <div className="bg-white p-5 rounded-2xl border border-gray-200 premium-card flex justify-between items-center">
-            <div className="flex flex-col gap-1">
-              <span className="text-xs text-gray-400 font-bold uppercase tracking-wider">Ketersediaan Unit</span>
-              <span className="text-2xl font-extrabold text-gray-900">{data.availableUnits} / {data.totalUnits} Kavling</span>
-              <Link href="/crm" className="text-xs text-indigo-600 font-semibold mt-1 hover:underline">Lihat peta unit ➔</Link>
+          <div className="bg-white p-4 rounded-xl border border-gray-200/80 premium-card flex justify-between items-center shadow-xs">
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[11px] text-gray-400 font-medium uppercase tracking-wider">Ketersediaan Unit</span>
+              <span className="text-xl font-bold text-gray-900">{data.availableUnits} / {data.totalUnits} <span className="text-xs font-medium text-gray-500">Kavling</span></span>
+              <Link href="/crm" className="text-[11px] text-indigo-600 font-medium mt-1 hover:underline">Lihat peta unit ➔</Link>
             </div>
-            <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
-              <HomeIcon size={24} />
+            <div className="w-10 h-10 rounded-lg bg-indigo-50/80 flex items-center justify-center text-indigo-600">
+              <HomeIcon size={20} />
             </div>
           </div>
 
           {/* Card 4: Attendance Today */}
-          <div className="bg-white p-5 rounded-2xl border border-gray-200 premium-card flex justify-between items-center">
-            <div className="flex flex-col gap-1">
-              <span className="text-xs text-gray-400 font-bold uppercase tracking-wider">Kehadiran Hari Ini</span>
-              <span className="text-2xl font-extrabold text-gray-900">{data.attendanceRate}% Staff</span>
-              <span className="text-xs text-amber-600 font-semibold mt-1 flex items-center gap-1">
-                <AlertCircle size={12} />
+          <div className="bg-white p-4 rounded-xl border border-gray-200/80 premium-card flex justify-between items-center shadow-xs">
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[11px] text-gray-400 font-medium uppercase tracking-wider">Kehadiran Hari Ini</span>
+              <span className="text-xl font-bold text-gray-900">{data.attendanceRate}% <span className="text-xs font-medium text-gray-500">Staff</span></span>
+              <span className="text-[11px] text-amber-600 font-medium mt-0.5 flex items-center gap-1">
+                <AlertCircle size={11} />
                 {data.lateCount} Orang terlambat
               </span>
             </div>
-            <div className="w-12 h-12 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600">
-              <Clock size={24} />
+            <div className="w-10 h-10 rounded-lg bg-purple-50/80 flex items-center justify-center text-purple-600">
+              <Clock size={20} />
             </div>
           </div>
         </div>
 
         {/* Charts & Interactive Breakdown section */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           
           {/* Col 1 & 2: Pipeline stages and inventory breakdown */}
-          <div className="lg:col-span-2 flex flex-col gap-6">
+          <div className="lg:col-span-2 flex flex-col gap-5">
             {/* Sales Pipeline Funnel Widget */}
-            <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex flex-col gap-4">
-              <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-                <span className="font-extrabold text-base flex items-center gap-2">
-                  <TrendingUp size={18} className="text-blue-600" />
+            <div className="bg-white p-5 rounded-xl border border-gray-200/80 shadow-xs flex flex-col gap-3.5">
+              <div className="flex items-center justify-between border-b border-gray-100 pb-2.5">
+                <span className="font-semibold text-sm text-gray-800 flex items-center gap-2">
+                  <TrendingUp size={16} className="text-blue-600" />
                   Corong Pipeline Penjualan (CRM)
                 </span>
-                <span className="text-[11px] text-gray-400 font-bold">REAL-TIME</span>
+                <span className="text-[10px] text-gray-400 font-semibold tracking-wider">REAL-TIME</span>
               </div>
-              <div className="flex flex-col gap-3.5">
+              <div className="flex flex-col gap-2.5">
                 {data.pipelineStages.map((ps, idx) => {
                   const maxCount = Math.max(...data.pipelineStages.map(s => s.count)) || 1;
                   const percent = Math.max(8, (ps.count / maxCount) * 100);
                   return (
-                    <div key={idx} className="flex items-center gap-4 text-xs">
-                      <span className="w-24 text-gray-500 font-semibold text-right truncate">{ps.stage}</span>
-                      <div className="flex-1 bg-gray-100 h-6 rounded-lg overflow-hidden relative border border-gray-200/50">
+                    <div key={idx} className="flex items-center gap-3 text-[12px]">
+                      <span className="w-24 text-gray-500 font-medium text-right truncate">{ps.stage}</span>
+                      <div className="flex-1 bg-gray-100 h-5.5 rounded-md overflow-hidden relative border border-gray-200/40">
                         <div 
-                          className="bg-gradient-to-r from-blue-500 to-indigo-500 h-full rounded-r-md transition-all duration-500"
+                          className="bg-gradient-to-r from-blue-500 to-indigo-500 h-full rounded-r-sm transition-all duration-300"
                           style={{ width: `${percent}%` }}
                         ></div>
-                        <span className="absolute left-2.5 top-1 font-bold text-gray-700">{ps.count} Lead</span>
+                        <span className="absolute left-2 top-0.5 text-[11px] font-semibold text-gray-700">{ps.count} Lead</span>
                       </div>
                     </div>
                   );
@@ -304,21 +304,21 @@ export default function DashboardPage() {
             </div>
 
             {/* Inventory occupancy breakdown */}
-            <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex flex-col gap-4">
-              <div className="border-b border-gray-100 pb-3">
-                <span className="font-extrabold text-base flex items-center gap-2">
-                  <HomeIcon size={18} className="text-indigo-600" />
+            <div className="bg-white p-5 rounded-xl border border-gray-200/80 shadow-xs flex flex-col gap-3.5">
+              <div className="border-b border-gray-100 pb-2.5">
+                <span className="font-semibold text-sm text-gray-800 flex items-center gap-2">
+                  <HomeIcon size={16} className="text-indigo-600" />
                   Status Kavling & Unit Properti
                 </span>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-5 gap-3.5">
+              <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
                 {data.unitStatuses.map((us, idx) => (
-                  <div key={idx} className="flex flex-col gap-1 p-3 border border-gray-100 rounded-xl bg-gray-50/50 text-center">
-                    <span className="text-[10px] text-gray-400 font-bold truncate uppercase">{us.status.split(' ')[0]}</span>
-                    <span className="text-2xl font-black text-gray-800">{us.count}</span>
-                    <div className="flex items-center justify-center gap-1.5 mt-1">
-                      <span className={`w-2 h-2 rounded-full ${us.color}`}></span>
-                      <span className="text-[9px] text-gray-500 font-semibold truncate">Unit</span>
+                  <div key={idx} className="flex flex-col gap-0.5 p-2.5 border border-gray-100 rounded-lg bg-gray-50/40 text-center">
+                    <span className="text-[10px] text-gray-400 font-medium truncate uppercase">{us.status.split(' ')[0]}</span>
+                    <span className="text-xl font-bold text-gray-800">{us.count}</span>
+                    <div className="flex items-center justify-center gap-1 mt-0.5">
+                      <span className={`w-1.5 h-1.5 rounded-full ${us.color}`}></span>
+                      <span className="text-[9px] text-gray-500 font-medium truncate">Unit</span>
                     </div>
                   </div>
                 ))}
@@ -327,46 +327,46 @@ export default function DashboardPage() {
           </div>
 
           {/* Col 3: HR Leaves approvals & Recent Logs */}
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-5">
             {/* HR Attendance Approval Widget */}
-            <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex flex-col gap-4">
-              <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-                <span className="font-extrabold text-base flex items-center gap-2 text-purple-700">
-                  <FileCheck size={18} />
+            <div className="bg-white p-5 rounded-xl border border-gray-200/80 shadow-xs flex flex-col gap-3.5">
+              <div className="flex items-center justify-between border-b border-gray-100 pb-2.5">
+                <span className="font-semibold text-sm flex items-center gap-2 text-purple-800">
+                  <FileCheck size={16} />
                   Persetujuan Cuti HR ({data.pendingLeaves.length})
                 </span>
-                <span className="text-[10px] text-purple-600 font-bold bg-purple-50 px-2 py-0.5 rounded-full">Supervisor/Admin</span>
+                <span className="text-[9px] text-purple-600 font-semibold bg-purple-50 px-2 py-0.5 rounded">Supervisor</span>
               </div>
 
               {/* Leave Requests Queue */}
               {['admin', 'manager'].includes(user?.role || '') ? (
-                <div className="flex flex-col gap-3 max-h-56 overflow-y-auto no-scrollbar">
+                <div className="flex flex-col gap-2.5 max-h-52 overflow-y-auto no-scrollbar">
                   {data.pendingLeaves.length === 0 ? (
-                    <div className="text-center py-6 flex flex-col items-center gap-2">
-                      <CheckCircle size={24} className="text-green-500" />
-                      <span className="text-xs text-gray-400 font-medium">Semua permohonan cuti diproses</span>
+                    <div className="text-center py-5 flex flex-col items-center gap-1.5">
+                      <CheckCircle size={20} className="text-green-500" />
+                      <span className="text-[12px] text-gray-400 font-medium">Semua permohonan cuti diproses</span>
                     </div>
                   ) : (
                     data.pendingLeaves.map((leave: any) => (
-                      <div key={leave.id} className="p-3 border border-gray-100 rounded-xl bg-gray-50/50 flex flex-col gap-2.5">
+                      <div key={leave.id} className="p-2.5 border border-gray-100 rounded-lg bg-gray-50/40 flex flex-col gap-2">
                         <div className="flex justify-between items-start">
                           <div>
-                            <span className="text-xs font-bold text-gray-800 block">Karyawan: {leave.user_id === 'usr-staff' ? 'Dendi Staff' : 'Staff'}</span>
+                            <span className="text-[12px] font-semibold text-gray-800 block">Karyawan: {leave.user_id === 'usr-staff' ? 'Dendi Staff' : 'Staff'}</span>
                             <span className="text-[10px] text-gray-400 font-medium">{leave.leave_type} · {leave.total_days} Hari</span>
                           </div>
-                          <span className="text-[9px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">PENDING</span>
+                          <span className="text-[9px] font-semibold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">PENDING</span>
                         </div>
-                        <p className="text-[11px] text-gray-500 italic bg-white p-2 rounded border border-gray-100">&quot;{leave.reason}&quot;</p>
+                        <p className="text-[11px] text-gray-500 italic bg-white p-1.5 rounded border border-gray-100">&quot;{leave.reason}&quot;</p>
                         <div className="flex gap-2">
                           <button 
                             onClick={() => handleReviewLeave(leave.id, 'approved')}
-                            className="flex-1 py-1.5 bg-green-600 text-white rounded-lg text-[10px] font-bold shadow-sm hover:bg-green-700 transition-colors"
+                            className="flex-1 py-1 bg-green-600 text-white rounded text-[10px] font-semibold shadow-xs hover:bg-green-700 transition-colors cursor-pointer"
                           >
                             Setujui
                           </button>
                           <button 
                             onClick={() => handleReviewLeave(leave.id, 'rejected')}
-                            className="flex-1 py-1.5 bg-red-50 text-red-600 border border-red-200 rounded-lg text-[10px] font-bold hover:bg-red-100 transition-colors"
+                            className="flex-1 py-1 bg-red-50 text-red-600 border border-red-200/60 rounded text-[10px] font-semibold hover:bg-red-100 transition-colors cursor-pointer"
                           >
                             Tolak
                           </button>
@@ -376,26 +376,26 @@ export default function DashboardPage() {
                   )}
                 </div>
               ) : (
-                <div className="text-center py-6 text-xs text-gray-400 italic">
+                <div className="text-center py-5 text-xs text-gray-400 italic">
                   Akses supervisor atau admin diperlukan untuk melihat antrean persetujuan cuti.
                 </div>
               )}
             </div>
 
             {/* Recent Audit / Event logs */}
-            <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex flex-col gap-4">
-              <div className="border-b border-gray-100 pb-3">
-                <span className="font-extrabold text-base flex items-center gap-2 text-slate-800">
-                  <ClipboardList size={18} />
+            <div className="bg-white p-5 rounded-xl border border-gray-200/80 shadow-xs flex flex-col gap-3.5">
+              <div className="border-b border-gray-100 pb-2.5">
+                <span className="font-semibold text-sm flex items-center gap-2 text-slate-800">
+                  <ClipboardList size={16} />
                   Aktivitas Audit Terkini
                 </span>
               </div>
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-2.5">
                 {data.recentLogs.map((log: any) => (
-                  <div key={log.id} className="flex items-start gap-2.5 text-xs">
-                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 flex-shrink-0"></span>
+                  <div key={log.id} className="flex items-start gap-2 text-[12px]">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1 flex-shrink-0"></span>
                     <div className="flex flex-col">
-                      <span className="text-gray-800 font-medium">Aksi: <code className="bg-slate-100 px-1 py-0.5 rounded text-[10px]">{log.action}</code> oleh user: <code className="bg-slate-100 px-1 py-0.5 rounded text-[10px]">{log.user_id}</code></span>
+                      <span className="text-gray-700 font-normal">Aksi: <code className="bg-slate-100 px-1 py-0.5 rounded text-[10px] font-mono">{log.action}</code> oleh: <code className="bg-slate-100 px-1 py-0.5 rounded text-[10px] font-mono">{log.user_id}</code></span>
                       <span className="text-[10px] text-gray-400">{new Date(log.created_at).toLocaleString('id-ID')}</span>
                     </div>
                   </div>
