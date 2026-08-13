@@ -379,40 +379,40 @@ export default function DashboardPage() {
         {/* Middle Section: Sales Analytics Curve Chart + Traffic breakdown */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           
-          {/* Sales Analytics SVG Area Chart (REAL PIPELINE STAGES WITH FRAMER MOTION ANIMATION) */}
-          <div className="lg:col-span-2 salesx-card p-5 flex flex-col gap-4">
-            <div className="flex items-center justify-between">
+          {/* Sales Analytics SVG Area Chart (REAL PIPELINE STAGES WITH OPTIMIZED POSITIONING) */}
+          <div className="lg:col-span-2 salesx-card p-6 flex flex-col justify-between gap-5">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
                 <h2 className="font-bold text-base text-slate-900 tracking-tight">Sales Analytics</h2>
-                <p className="text-[11px] text-slate-400">Grafik perkembangan prospek pada setiap tahap corong CRM (Arahkan kursor untuk melihat rincian)</p>
+                <p className="text-[11px] text-slate-400">Grafik perkembangan prospek pada setiap tahap corong CRM</p>
               </div>
-              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200/60 text-slate-500 rounded-xl text-xs font-medium">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 border border-purple-100 text-purple-700 rounded-xl text-xs font-semibold">
+                <span className="w-2 h-2 rounded-full bg-purple-600 animate-pulse"></span>
                 <span>Real Data</span>
               </div>
             </div>
 
-            {/* Interactive Purple Gradient Curve Area Chart */}
-            <div className="relative w-full h-56 pt-6 select-none">
+            {/* Interactive Purple Gradient Curve Area Chart Container */}
+            <div className="relative w-full h-64 pt-10 pb-2 pl-9 pr-3 select-none">
               
-              {/* Dynamic Floating Tooltip Callout */}
+              {/* Dynamic Floating Tooltip Callout with Ample Clearance */}
               {(() => {
                 const stagePoints = [
-                  { label: 'Prospect Baru', key: 'Prospect Baru', xPct: '7%', cx: 50, cy: 110 },
-                  { label: 'Dihubungi', key: 'Dihubungi', xPct: '19.5%', cx: 137, cy: 70 },
-                  { label: 'Survei Lokasi', key: 'Survei Lokasi', xPct: '32%', cx: 225, cy: 45 },
-                  { label: 'Penawaran', key: 'Penawaran', xPct: '44.5%', cx: 312, cy: 60 },
-                  { label: 'Booking Fee', key: 'Booking Fee', xPct: '57%', cx: 400, cy: 20 },
-                  { label: 'KPR/Cash', key: 'KPR/Cash', xPct: '69.5%', cx: 487, cy: 65 },
-                  { label: 'Akad', key: 'Akad', xPct: '82%', cx: 575, cy: 85 },
-                  { label: 'Serah Terima', key: 'Serah Terima', xPct: '94.5%', cx: 662, cy: 40 },
+                  { label: 'Prospect Baru', key: 'Prospect Baru', xPct: '7.5%', cx: 50, cy: 110 },
+                  { label: 'Dihubungi', key: 'Dihubungi', xPct: '20%', cx: 137, cy: 75 },
+                  { label: 'Survei Lokasi', key: 'Survei Lokasi', xPct: '32.5%', cx: 225, cy: 50 },
+                  { label: 'Penawaran', key: 'Penawaran', xPct: '45%', cx: 312, cy: 65 },
+                  { label: 'Booking Fee', key: 'Booking Fee', xPct: '57.5%', cx: 400, cy: 28 },
+                  { label: 'KPR/Cash', key: 'KPR/Cash', xPct: '70%', cx: 487, cy: 70 },
+                  { label: 'Akad', key: 'Akad', xPct: '82.5%', cx: 575, cy: 90 },
+                  { label: 'Serah Terima', key: 'Serah Terima', xPct: '95%', cx: 662, cy: 45 },
                 ];
                 const activePt = stagePoints[activeStageIndex] || stagePoints[4];
                 const stageCount = data.pipelineStages.find(s => s.stage === activePt.key)?.count ?? 0;
 
                 return (
                   <motion.div 
-                    className="absolute top-0 z-20 -translate-x-1/2 bg-white border border-purple-200/80 rounded-xl px-3 py-1.5 shadow-lg flex flex-col text-center pointer-events-none"
+                    className="absolute -top-3 z-20 -translate-x-1/2 bg-slate-900 text-white border border-slate-800 rounded-xl px-3.5 py-1.5 shadow-xl flex flex-col text-center pointer-events-none"
                     initial={{ scale: 0.9, opacity: 0 }}
                     animate={{ 
                       left: activePt.xPct, 
@@ -421,63 +421,77 @@ export default function DashboardPage() {
                       y: [0, -3, 0]
                     }}
                     transition={{ 
-                      left: { type: 'spring', stiffness: 300, damping: 25 },
-                      y: { repeat: Infinity, duration: 2, ease: 'easeInOut' }
+                      left: { type: 'spring', stiffness: 350, damping: 28 },
+                      y: { repeat: Infinity, duration: 2.2, ease: 'easeInOut' }
                     }}
                   >
-                    <span className="text-[10px] text-purple-600 font-semibold">{activePt.label}</span>
-                    <span className="text-xs font-bold text-slate-900">{stageCount} Lead</span>
+                    <span className="text-[10px] text-purple-300 font-medium">{activePt.label}</span>
+                    <span className="text-xs font-bold text-white">{stageCount} Lead</span>
                     {/* Arrow Pointer */}
-                    <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-2 h-2 bg-white border-r border-b border-purple-200/80 rotate-45"></div>
+                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-slate-900 rotate-45"></div>
                   </motion.div>
                 );
               })()}
 
+              {/* Y-Axis Labels (Left Positioned Outside Plot Area) */}
+              <div className="absolute left-0 top-10 bottom-10 flex flex-col justify-between text-[10px] text-slate-400 font-semibold pointer-events-none">
+                <span>15+</span>
+                <span>10</span>
+                <span>5</span>
+                <span>2</span>
+                <span>0</span>
+              </div>
+
               {/* Chart SVG */}
-              <svg className="w-full h-full overflow-visible" viewBox="0 0 700 180" preserveAspectRatio="none">
+              <svg className="w-full h-44 overflow-visible" viewBox="0 0 700 170" preserveAspectRatio="none">
                 <defs>
                   <linearGradient id="purpleAreaGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#7c3aed" stopOpacity="0.3" />
+                    <stop offset="0%" stopColor="#7c3aed" stopOpacity="0.28" />
                     <stop offset="100%" stopColor="#7c3aed" stopOpacity="0.0" />
                   </linearGradient>
                 </defs>
 
+                {/* Horizontal Grid Lines */}
+                {[25, 60, 95, 130].map((y, i) => (
+                  <line key={i} x1="30" y1={y} x2={680} y2={y} stroke="#f1f5f9" strokeDasharray="4 4" strokeWidth="1" />
+                ))}
+
                 {/* Vertical Grid Lines */}
                 {[50, 137, 225, 312, 400, 487, 575, 662].map((x, i) => (
-                  <line key={i} x1={x} y1="10" x2={x} y2="150" stroke="#f1f5f9" strokeDasharray="3 3" strokeWidth="1" />
+                  <line key={i} x1={x} y1="15" x2={x} y2="145" stroke="#f1f5f9" strokeDasharray="3 3" strokeWidth="1" />
                 ))}
 
                 {/* Animated Area Fill */}
                 <motion.path 
-                  d="M 50,110 C 90,60 110,80 137,70 C 170,60 190,40 225,45 C 260,50 280,75 312,60 C 350,40 370,15 400,20 C 430,25 450,70 487,65 C 525,60 550,90 575,85 C 610,80 635,35 662,40 L 662,150 L 50,150 Z" 
+                  d="M 50,110 C 90,65 110,85 137,75 C 170,65 190,45 225,50 C 260,55 280,78 312,65 C 350,45 370,22 400,28 C 430,32 450,75 487,70 C 525,65 550,95 575,90 C 610,85 635,40 662,45 L 662,145 L 50,145 Z" 
                   fill="url(#purpleAreaGradient)" 
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ duration: 1.2, delay: 0.3 }}
+                  transition={{ duration: 1.2, delay: 0.2 }}
                 />
 
                 {/* Animated Smooth Curve Stroke */}
                 <motion.path 
-                  d="M 50,110 C 90,60 110,80 137,70 C 170,60 190,40 225,45 C 260,50 280,75 312,60 C 350,40 370,15 400,20 C 430,25 450,70 487,65 C 525,60 550,90 575,85 C 610,80 635,35 662,40" 
+                  d="M 50,110 C 90,65 110,85 137,75 C 170,65 190,45 225,50 C 260,55 280,78 312,65 C 350,45 370,22 400,28 C 430,32 450,75 487,70 C 525,65 550,95 575,90 C 610,85 635,40 662,45" 
                   fill="none" 
                   stroke="#7c3aed" 
-                  strokeWidth="3" 
+                  strokeWidth="3.5" 
                   strokeLinecap="round"
                   initial={{ pathLength: 0 }}
                   animate={{ pathLength: 1 }}
-                  transition={{ duration: 1.6, ease: "easeInOut" }}
+                  transition={{ duration: 1.5, ease: "easeInOut" }}
                 />
 
                 {/* Interactive Stage Dots */}
                 {[
                   { cx: 50, cy: 110 },
-                  { cx: 137, cy: 70 },
-                  { cx: 225, cy: 45 },
-                  { cx: 312, cy: 60 },
-                  { cx: 400, cy: 20 },
-                  { cx: 487, cy: 65 },
-                  { cx: 575, cy: 85 },
-                  { cx: 662, cy: 40 },
+                  { cx: 137, cy: 75 },
+                  { cx: 225, cy: 50 },
+                  { cx: 312, cy: 65 },
+                  { cx: 400, cy: 28 },
+                  { cx: 487, cy: 70 },
+                  { cx: 575, cy: 90 },
+                  { cx: 662, cy: 45 },
                 ].map((pt, i) => {
                   const isActive = activeStageIndex === i;
                   return (
@@ -490,17 +504,17 @@ export default function DashboardPage() {
                           fill="#7c3aed" 
                           fillOpacity="0.25"
                           initial={{ r: 4 }}
-                          animate={{ r: [6, 12, 6], opacity: [0.6, 0.1, 0.6] }}
-                          transition={{ repeat: Infinity, duration: 1.5 }}
+                          animate={{ r: [6, 13, 6], opacity: [0.7, 0.1, 0.7] }}
+                          transition={{ repeat: Infinity, duration: 1.6 }}
                         />
                       )}
                       <motion.circle 
                         cx={pt.cx} 
                         cy={pt.cy} 
-                        r={isActive ? 6 : 4} 
+                        r={isActive ? 6.5 : 4} 
                         fill={isActive ? '#7c3aed' : '#ffffff'} 
                         stroke="#7c3aed" 
-                        strokeWidth={isActive ? 3 : 2} 
+                        strokeWidth={isActive ? 3.5 : 2} 
                         whileHover={{ scale: 1.4 }}
                         transition={{ type: 'spring', stiffness: 400 }}
                       />
@@ -509,35 +523,26 @@ export default function DashboardPage() {
                 })}
               </svg>
 
-              {/* Y-Axis Labels */}
-              <div className="absolute left-0 top-6 bottom-8 flex flex-col justify-between text-[10px] text-slate-400 font-medium pointer-events-none">
-                <span>15+</span>
-                <span>10</span>
-                <span>5</span>
-                <span>2</span>
-                <span>0</span>
-              </div>
-
               {/* X-Axis Interactive Stage Labels */}
-              <div className="flex justify-between px-6 text-[10px] font-medium mt-1">
+              <div className="flex justify-between px-2 text-[11px] font-medium mt-2 pt-1 border-t border-slate-100">
                 {[
-                  { name: 'Baru', full: 'Prospect Baru' },
-                  { name: 'Dihubungi', full: 'Dihubungi' },
-                  { name: 'Survei', full: 'Survei Lokasi' },
-                  { name: 'Penawaran', full: 'Penawaran' },
-                  { name: 'Booking', full: 'Booking Fee' },
-                  { name: 'KPR', full: 'KPR/Cash' },
-                  { name: 'Akad', full: 'Akad' },
-                  { name: 'Serah', full: 'Serah Terima' },
+                  { name: 'Baru' },
+                  { name: 'Dihubungi' },
+                  { name: 'Survei' },
+                  { name: 'Penawaran' },
+                  { name: 'Booking' },
+                  { name: 'KPR' },
+                  { name: 'Akad' },
+                  { name: 'Serah' },
                 ].map((st, i) => (
                   <button 
                     key={i} 
                     onMouseEnter={() => setActiveStageIndex(i)}
                     onClick={() => setActiveStageIndex(i)}
-                    className={`transition-colors cursor-pointer px-1 py-0.5 rounded-md ${
+                    className={`transition-all cursor-pointer px-2 py-1 rounded-lg text-[11px] ${
                       activeStageIndex === i 
-                        ? 'text-purple-700 font-bold bg-purple-50' 
-                        : 'text-slate-400 hover:text-slate-700'
+                        ? 'text-purple-700 font-bold bg-purple-100/70 shadow-2xs' 
+                        : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100/60'
                     }`}
                   >
                     {st.name}
