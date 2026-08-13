@@ -15,6 +15,7 @@ import {
   DollarSign
 } from 'lucide-react';
 import Link from 'next/link';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface ProspectItem {
   id: string;
@@ -49,6 +50,7 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const [data, setData] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeStageIndex, setActiveStageIndex] = useState<number>(4);
 
   const fetchDashboardData = async () => {
     try {
@@ -377,31 +379,65 @@ export default function DashboardPage() {
         {/* Middle Section: Sales Analytics Curve Chart + Traffic breakdown */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           
-          {/* Sales Analytics SVG Area Chart (REAL PIPELINE STAGES) */}
+          {/* Sales Analytics SVG Area Chart (REAL PIPELINE STAGES WITH FRAMER MOTION ANIMATION) */}
           <div className="lg:col-span-2 salesx-card p-5 flex flex-col gap-4">
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="font-bold text-base text-slate-900 tracking-tight">Sales Analytics</h2>
-                <p className="text-[11px] text-slate-400">Grafik perkembangan prospek pada setiap tahap corong CRM</p>
+                <p className="text-[11px] text-slate-400">Grafik perkembangan prospek pada setiap tahap corong CRM (Arahkan kursor untuk melihat rincian)</p>
               </div>
               <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200/60 text-slate-500 rounded-xl text-xs font-medium">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                 <span>Real Data</span>
               </div>
             </div>
 
             {/* Interactive Purple Gradient Curve Area Chart */}
-            <div className="relative w-full h-56 pt-6">
-              {/* Tooltip callout */}
-              <div className="absolute left-[62%] top-1 z-10 -translate-x-1/2 bg-white border border-slate-200 rounded-xl px-3 py-1.5 shadow-md flex flex-col text-center">
-                <span className="text-[10px] text-slate-400 font-semibold">Prospek Booking</span>
-                <span className="text-xs font-bold text-slate-900">{data.pipelineStages.find(s => s.stage === 'Booking Fee')?.count || 2} Lead</span>
-              </div>
+            <div className="relative w-full h-56 pt-6 select-none">
+              
+              {/* Dynamic Floating Tooltip Callout */}
+              {(() => {
+                const stagePoints = [
+                  { label: 'Prospect Baru', key: 'Prospect Baru', xPct: '7%', cx: 50, cy: 110 },
+                  { label: 'Dihubungi', key: 'Dihubungi', xPct: '19.5%', cx: 137, cy: 70 },
+                  { label: 'Survei Lokasi', key: 'Survei Lokasi', xPct: '32%', cx: 225, cy: 45 },
+                  { label: 'Penawaran', key: 'Penawaran', xPct: '44.5%', cx: 312, cy: 60 },
+                  { label: 'Booking Fee', key: 'Booking Fee', xPct: '57%', cx: 400, cy: 20 },
+                  { label: 'KPR/Cash', key: 'KPR/Cash', xPct: '69.5%', cx: 487, cy: 65 },
+                  { label: 'Akad', key: 'Akad', xPct: '82%', cx: 575, cy: 85 },
+                  { label: 'Serah Terima', key: 'Serah Terima', xPct: '94.5%', cx: 662, cy: 40 },
+                ];
+                const activePt = stagePoints[activeStageIndex] || stagePoints[4];
+                const stageCount = data.pipelineStages.find(s => s.stage === activePt.key)?.count ?? 0;
+
+                return (
+                  <motion.div 
+                    className="absolute top-0 z-20 -translate-x-1/2 bg-white border border-purple-200/80 rounded-xl px-3 py-1.5 shadow-lg flex flex-col text-center pointer-events-none"
+                    initial={{ scale: 0.9, opacity: 0 }}
+                    animate={{ 
+                      left: activePt.xPct, 
+                      scale: 1, 
+                      opacity: 1,
+                      y: [0, -3, 0]
+                    }}
+                    transition={{ 
+                      left: { type: 'spring', stiffness: 300, damping: 25 },
+                      y: { repeat: Infinity, duration: 2, ease: 'easeInOut' }
+                    }}
+                  >
+                    <span className="text-[10px] text-purple-600 font-semibold">{activePt.label}</span>
+                    <span className="text-xs font-bold text-slate-900">{stageCount} Lead</span>
+                    {/* Arrow Pointer */}
+                    <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-2 h-2 bg-white border-r border-b border-purple-200/80 rotate-45"></div>
+                  </motion.div>
+                );
+              })()}
 
               {/* Chart SVG */}
               <svg className="w-full h-full overflow-visible" viewBox="0 0 700 180" preserveAspectRatio="none">
                 <defs>
                   <linearGradient id="purpleAreaGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#7c3aed" stopOpacity="0.25" />
+                    <stop offset="0%" stopColor="#7c3aed" stopOpacity="0.3" />
                     <stop offset="100%" stopColor="#7c3aed" stopOpacity="0.0" />
                   </linearGradient>
                 </defs>
@@ -411,23 +447,66 @@ export default function DashboardPage() {
                   <line key={i} x1={x} y1="10" x2={x} y2="150" stroke="#f1f5f9" strokeDasharray="3 3" strokeWidth="1" />
                 ))}
 
-                {/* Area path */}
-                <path 
+                {/* Animated Area Fill */}
+                <motion.path 
                   d="M 50,110 C 90,60 110,80 137,70 C 170,60 190,40 225,45 C 260,50 280,75 312,60 C 350,40 370,15 400,20 C 430,25 450,70 487,65 C 525,60 550,90 575,85 C 610,80 635,35 662,40 L 662,150 L 50,150 Z" 
                   fill="url(#purpleAreaGradient)" 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 1.2, delay: 0.3 }}
                 />
 
-                {/* Smooth Curve Stroke */}
-                <path 
+                {/* Animated Smooth Curve Stroke */}
+                <motion.path 
                   d="M 50,110 C 90,60 110,80 137,70 C 170,60 190,40 225,45 C 260,50 280,75 312,60 C 350,40 370,15 400,20 C 430,25 450,70 487,65 C 525,60 550,90 575,85 C 610,80 635,35 662,40" 
                   fill="none" 
                   stroke="#7c3aed" 
-                  strokeWidth="2.5" 
+                  strokeWidth="3" 
                   strokeLinecap="round"
+                  initial={{ pathLength: 0 }}
+                  animate={{ pathLength: 1 }}
+                  transition={{ duration: 1.6, ease: "easeInOut" }}
                 />
 
-                {/* Active Tooltip Dot */}
-                <circle cx="400" cy="20" r="4.5" fill="#7c3aed" stroke="#ffffff" strokeWidth="2" />
+                {/* Interactive Stage Dots */}
+                {[
+                  { cx: 50, cy: 110 },
+                  { cx: 137, cy: 70 },
+                  { cx: 225, cy: 45 },
+                  { cx: 312, cy: 60 },
+                  { cx: 400, cy: 20 },
+                  { cx: 487, cy: 65 },
+                  { cx: 575, cy: 85 },
+                  { cx: 662, cy: 40 },
+                ].map((pt, i) => {
+                  const isActive = activeStageIndex === i;
+                  return (
+                    <g key={i} className="cursor-pointer" onClick={() => setActiveStageIndex(i)} onMouseEnter={() => setActiveStageIndex(i)}>
+                      {/* Outer pulse for active dot */}
+                      {isActive && (
+                        <motion.circle 
+                          cx={pt.cx} 
+                          cy={pt.cy} 
+                          fill="#7c3aed" 
+                          fillOpacity="0.25"
+                          initial={{ r: 4 }}
+                          animate={{ r: [6, 12, 6], opacity: [0.6, 0.1, 0.6] }}
+                          transition={{ repeat: Infinity, duration: 1.5 }}
+                        />
+                      )}
+                      <motion.circle 
+                        cx={pt.cx} 
+                        cy={pt.cy} 
+                        r={isActive ? 6 : 4} 
+                        fill={isActive ? '#7c3aed' : '#ffffff'} 
+                        stroke="#7c3aed" 
+                        strokeWidth={isActive ? 3 : 2} 
+                        whileHover={{ scale: 1.4 }}
+                        transition={{ type: 'spring', stiffness: 400 }}
+                      />
+                    </g>
+                  );
+                })}
               </svg>
 
               {/* Y-Axis Labels */}
@@ -439,16 +518,31 @@ export default function DashboardPage() {
                 <span>0</span>
               </div>
 
-              {/* X-Axis Labels Mapped to Real Stages */}
-              <div className="flex justify-between px-6 text-[10px] text-slate-400 font-medium mt-1">
-                <span>Baru</span>
-                <span>Dihubungi</span>
-                <span>Survei</span>
-                <span>Penawaran</span>
-                <span>Booking</span>
-                <span>KPR</span>
-                <span>Akad</span>
-                <span>Serah</span>
+              {/* X-Axis Interactive Stage Labels */}
+              <div className="flex justify-between px-6 text-[10px] font-medium mt-1">
+                {[
+                  { name: 'Baru', full: 'Prospect Baru' },
+                  { name: 'Dihubungi', full: 'Dihubungi' },
+                  { name: 'Survei', full: 'Survei Lokasi' },
+                  { name: 'Penawaran', full: 'Penawaran' },
+                  { name: 'Booking', full: 'Booking Fee' },
+                  { name: 'KPR', full: 'KPR/Cash' },
+                  { name: 'Akad', full: 'Akad' },
+                  { name: 'Serah', full: 'Serah Terima' },
+                ].map((st, i) => (
+                  <button 
+                    key={i} 
+                    onMouseEnter={() => setActiveStageIndex(i)}
+                    onClick={() => setActiveStageIndex(i)}
+                    className={`transition-colors cursor-pointer px-1 py-0.5 rounded-md ${
+                      activeStageIndex === i 
+                        ? 'text-purple-700 font-bold bg-purple-50' 
+                        : 'text-slate-400 hover:text-slate-700'
+                    }`}
+                  >
+                    {st.name}
+                  </button>
+                ))}
               </div>
             </div>
           </div>
