@@ -586,7 +586,7 @@ export default function ProspectDetailPage({ params }: Props) {
         {/* Prospect Banner Profile */}
         <div className="bg-white border border-gray-200 rounded-2xl p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-sm">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center text-white font-extrabold text-2xl">
+            <div className="w-14 h-14 bg-gradient-to-tr from-purple-600 to-indigo-600 rounded-2xl flex items-center justify-center text-white font-extrabold text-2xl shadow-sm">
               {prospect.full_name[0].toUpperCase()}
             </div>
             <div className="flex flex-col text-left">
@@ -1038,7 +1038,7 @@ export default function ProspectDetailPage({ params }: Props) {
 
                 <button
                   type="submit"
-                  className="py-3 mt-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-bold shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-1.5"
+                  className="py-3 mt-1 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-bold shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <Check size={16} />
                   SIMPAN RECORD FOLLOW-UP
@@ -1433,7 +1433,7 @@ export default function ProspectDetailPage({ params }: Props) {
                           <button
                             onClick={() => handleAddFollowupComment(selectedFollowupForModal.id)}
                             disabled={isCommentSubmitting || !newCommentText.trim()}
-                            className="px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-gray-300 disabled:to-gray-400 text-white rounded-xl font-bold transition-all flex items-center justify-center text-xs shadow-md"
+                            className="px-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 disabled:from-gray-300 disabled:to-gray-400 text-white rounded-xl font-bold transition-all flex items-center justify-center text-xs shadow-md cursor-pointer"
                           >
                             {isCommentSubmitting ? '...' : 'KIRIM'}
                           </button>

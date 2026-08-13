@@ -244,6 +244,21 @@ export default function PropertiesManagementPage() {
     }
   }, [user]);
 
+  // Read URL search params for tab and search query from global search
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get('tab');
+      const searchParam = params.get('search');
+      if (tabParam === 'clusters' || tabParam === 'companies') {
+        setActiveTab(tabParam);
+      }
+      if (searchParam) {
+        setSearchCompany(searchParam);
+      }
+    }
+  }, []);
+
   // Company Form Handlers
   const handleCompanyLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -1099,7 +1114,7 @@ export default function PropertiesManagementPage() {
                 <div className="flex gap-3 pt-4 border-t border-gray-100 mt-2">
                   <button
                     type="submit"
-                    className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-bold hover:shadow-lg transition-all text-xs"
+                    className="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-bold hover:shadow-lg transition-all text-xs"
                   >
                     {isEditingClusterId ? 'Simpan Perubahan Cluster' : 'Buat Cluster Perumahan'}
                   </button>
@@ -1129,7 +1144,7 @@ export default function PropertiesManagementPage() {
                       ) : orgLogo ? (
                         <img src={orgLogo} alt="Logo" className="w-10 h-10 object-cover rounded-lg border border-gray-150 shadow opacity-50" />
                       ) : (
-                        <div className="w-10 h-10 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-extrabold text-lg">
+                        <div className="w-10 h-10 rounded-lg bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center text-white font-extrabold text-lg">
                           {clName ? clName.charAt(0) : 'P'}
                         </div>
                       )}
@@ -1676,7 +1691,7 @@ export default function PropertiesManagementPage() {
                 {!isAddingCompany && isAllowedToMutate && (
                   <button
                     onClick={() => { resetCompanyForm(); setIsAddingCompany(true); }}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md hover:shadow-lg transition-all cursor-pointer whitespace-nowrap"
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md hover:shadow-lg transition-all cursor-pointer whitespace-nowrap"
                   >
                     <Plus size={15} /> Tambah Perusahaan
                   </button>
@@ -1854,7 +1869,7 @@ export default function PropertiesManagementPage() {
                         {/* Company Card Header */}
                         <div className="flex justify-between items-start gap-3 border-b border-gray-100 pb-3">
                           <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-extrabold text-lg flex-shrink-0 shadow-sm">
+                            <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center text-white font-extrabold text-lg flex-shrink-0 shadow-sm">
                               {comp.code ? comp.code.substring(0, 3) : comp.name.substring(0, 2).toUpperCase()}
                             </div>
                             <div className="flex flex-col min-w-0">
@@ -1991,7 +2006,7 @@ export default function PropertiesManagementPage() {
               {isAllowedToMutate && (
                 <button
                   onClick={() => setIsAddingCluster(true)}
-                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-bold bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md hover:shadow-lg transition-all cursor-pointer"
+                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-bold bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md hover:shadow-lg transition-all cursor-pointer"
                 >
                   <Plus size={16} /> Tambah Perumahan
                 </button>

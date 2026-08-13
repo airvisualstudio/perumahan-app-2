@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import GlobalSearchModal from '@/components/GlobalSearchModal';
 
 interface SlackLog {
   timestamp: string;
@@ -41,6 +42,19 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [showNotifications, setShowNotifications] = useState(false);
   const [settings, setSettings] = useState<any>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+  // Keyboard shortcut listener for Cmd+K / Ctrl+K
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsSearchOpen(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Load read notification IDs and company settings on mount
   useEffect(() => {
@@ -241,12 +255,16 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         {/* Search Bar (SalesX Style) */}
         {!isSidebarCollapsed && (
           <div className="px-3.5 pt-4 pb-2">
-            <div className="relative flex items-center bg-slate-50 border border-slate-200/70 rounded-xl px-3 py-2 text-slate-400 group focus-within:border-purple-500 focus-within:bg-white transition-all">
+            <div 
+              onClick={() => setIsSearchOpen(true)}
+              className="relative flex items-center bg-slate-50 border border-slate-200/70 rounded-xl px-3 py-2 text-slate-400 group hover:border-purple-400 focus-within:border-purple-500 focus-within:bg-white transition-all cursor-pointer"
+            >
               <span className="mr-2 text-slate-400"><Search size={15} /></span>
               <input 
                 type="text" 
+                readOnly
                 placeholder="Search..." 
-                className="w-full bg-transparent text-xs text-slate-800 placeholder-slate-400 outline-none font-medium"
+                className="w-full bg-transparent text-xs text-slate-800 placeholder-slate-400 outline-none font-medium cursor-pointer"
               />
               <div className="flex items-center gap-0.5 text-[9px] font-semibold text-slate-400 bg-white border border-slate-200 px-1.5 py-0.5 rounded-md shadow-xs">
                 <span>⌘</span>
@@ -347,7 +365,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           {/* Right Header Operations (SalesX Style Header Icons) */}
           <div className="flex items-center gap-2">
             {/* Search Button (Mobile) */}
-            <button className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl md:hidden">
+            <button 
+              onClick={() => setIsSearchOpen(true)}
+              className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl md:hidden cursor-pointer"
+            >
               <Search size={18} />
             </button>
 
@@ -567,6 +588,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </div>
+
+      {/* Global Search Modal */}
+      <GlobalSearchModal 
+        isOpen={isSearchOpen} 
+        onClose={() => setIsSearchOpen(false)} 
+      />
     </div>
   );
 }

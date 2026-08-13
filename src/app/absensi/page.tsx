@@ -1079,7 +1079,7 @@ export default function AttendancePage() {
             <button
               onClick={handleClockIn}
               disabled={(workMode === 'onsite' && !isWithinRadius && gpsDistance !== null) || (isLateToday && !notes.trim())}
-              className={`w-full h-20 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl font-black text-lg shadow-lg hover:shadow-xl hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed`}
+              className={`w-full h-20 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-2xl font-black text-lg shadow-lg hover:shadow-xl hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer`}
             >
               <Clock size={24} />
               MASUK (CLOCK-IN)
@@ -1126,7 +1126,7 @@ export default function AttendancePage() {
             </div>
             <button
               onClick={() => setIsCutiOpen(true)}
-              className="w-full py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-bold text-xs shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-1.5"
+              className="w-full py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-bold text-xs shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer"
             >
               <Plane size={14} /> AJUKAN CUTI TAHUNAN
             </button>
@@ -2197,7 +2197,7 @@ export default function AttendancePage() {
 
                 <button
                   type="submit"
-                  className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-bold text-xs shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-1.5"
+                  className="w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-bold text-xs shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <Check size={16} />
                   KIRIM PENGAJUAN CUTI

@@ -315,7 +315,7 @@ export default function PublicVerificationPortal() {
             {settings?.org_logo ? (
               <img src={settings.org_logo} alt="Logo" className="w-10 h-10 object-cover rounded-xl shadow-lg border border-slate-800" />
             ) : (
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-extrabold text-2xl shadow-lg">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center text-white font-extrabold text-2xl shadow-lg">
                 {settings?.org_name ? settings.org_name.charAt(0) : 'D'}
               </div>
             )}
@@ -495,7 +495,7 @@ export default function PublicVerificationPortal() {
                   <button
                     onClick={() => handleVerify(tokenInput)}
                     disabled={!tokenInput.trim()}
-                    className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-bold text-xs shadow-md hover:shadow-lg disabled:opacity-50 transition-all flex items-center justify-center gap-1.5"
+                    className="w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-bold text-xs shadow-md hover:shadow-lg disabled:opacity-50 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <CheckCircle size={15} /> VERIFIKASI SEKARANG
                   </button>

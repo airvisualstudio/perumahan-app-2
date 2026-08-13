@@ -475,7 +475,7 @@ export default function CRMModulePage() {
           <div className="flex gap-2">
             <button
               onClick={() => setIsAddProspectOpen(true)}
-              className="flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg shadow-xs hover:shadow-sm font-semibold text-[11px] tracking-wide transition-all cursor-pointer"
+              className="flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg shadow-xs hover:shadow-sm font-semibold text-[11px] tracking-wide transition-all cursor-pointer"
             >
               <Plus size={14} />
               PROSPEK BARU
@@ -1119,7 +1119,7 @@ export default function CRMModulePage() {
 
                 <button
                   type="submit"
-                  className="w-full py-3 mt-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-bold text-xs shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-1.5"
+                  className="w-full py-3 mt-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-bold text-xs shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <Check size={16} />
                   BUAT PROSPEK BARU

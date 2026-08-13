@@ -1588,7 +1588,7 @@ export default function BackofficePage() {
                   <button
                     onClick={handleSaveCompanySettings}
                     disabled={isSavingCompany}
-                    className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-bold shadow-md hover:shadow-lg transition-all flex items-center gap-1.5"
+                    className="px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-bold shadow-md hover:shadow-lg transition-all flex items-center gap-1.5 cursor-pointer"
                   >
                     <Save size={16} /> Simpan Perubahan Profil
                   </button>
@@ -1605,7 +1605,7 @@ export default function BackofficePage() {
                       {orgLogo ? (
                         <img src={orgLogo} alt="Logo" className="w-10 h-10 object-cover rounded-lg border border-gray-100" />
                       ) : (
-                        <div className="w-10 h-10 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-extrabold text-lg">
+                        <div className="w-10 h-10 rounded-lg bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center text-white font-extrabold text-lg">
                           {orgName ? orgName.charAt(0) : 'D'}
                         </div>
                       )}

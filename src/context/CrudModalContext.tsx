@@ -212,7 +212,7 @@ export function CrudModalProvider({ children }: { children: ReactNode }) {
         );
       default:
         return (
-          <div className="w-12 h-12 rounded-2xl bg-blue-100/80 flex items-center justify-center text-blue-600 shadow-inner">
+          <div className="w-12 h-12 rounded-2xl bg-purple-100/80 flex items-center justify-center text-purple-600 shadow-inner">
             <Info className="w-7 h-7" />
           </div>
         );
@@ -277,7 +277,7 @@ export function CrudModalProvider({ children }: { children: ReactNode }) {
                         ? "bg-amber-600 hover:bg-amber-700 shadow-amber-600/20"
                         : config.actionType === "DELETE"
                         ? "bg-rose-600 hover:bg-rose-700 shadow-rose-600/20"
-                        : "bg-blue-600 hover:bg-blue-700 shadow-blue-600/20"
+                        : "bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-purple-600/20"
                     } disabled:opacity-50`}
                   >
                     {loading && <RefreshCw className="w-4 h-4 animate-spin" />}
