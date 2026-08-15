@@ -208,6 +208,7 @@ export default function CRMModulePage() {
   // Search & Filters for Table
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStage, setFilterStage] = useState('');
+  const [quickActionFilter, setQuickActionFilter] = useState<'all' | 'hot' | 'today' | 'kpr'>('all');
 
   // Modals state
   const [isAddProspectOpen, setIsAddProspectOpen] = useState(false);
@@ -722,7 +723,20 @@ export default function CRMModulePage() {
     const matchesSearch = p.full_name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           p.phone.includes(searchQuery);
     const matchesStage = filterStage ? p.pipeline_stage === filterStage : true;
-    return matchesSearch && matchesStage;
+
+    let matchesQuick = true;
+    if (quickActionFilter === 'hot') {
+      matchesQuick = ['minat', 'booking', 'kpr_process', 'akad'].includes(p.pipeline_stage);
+    } else if (quickActionFilter === 'today') {
+      const todayStr = new Date().toISOString().split('T')[0];
+      matchesQuick = Boolean((p.last_followup_at && p.last_followup_at.startsWith(todayStr)) || (p.created_at && p.created_at.startsWith(todayStr)));
+    } else if (quickActionFilter === 'kpr') {
+      const isKPRStage = p.pipeline_stage === 'kpr_process';
+      const ageDays = Math.ceil(Math.abs(Date.now() - new Date(p.created_at || Date.now()).getTime()) / (1000 * 60 * 60 * 24));
+      matchesQuick = isKPRStage || ageDays >= 14;
+    }
+
+    return matchesSearch && matchesStage && matchesQuick;
   });
 
   if (isLoading) {
@@ -1021,54 +1035,101 @@ export default function CRMModulePage() {
         {/* ==================== TAB 3: PROSPECTS TABLE ==================== */}
         {activeTab === 'prospects' && (
           <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm flex flex-col">
-            {/* Table search controls */}
-            <div className="p-4 border-b border-gray-200 flex flex-col md:flex-row gap-4 justify-between items-center bg-white">
-              <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto items-stretch md:items-center">
-                <div className="relative w-full md:max-w-xs">
-                  <Search size={16} className="absolute left-3 top-3.5 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="Cari prospek (nama/telepon)..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-9 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-blue-500 font-semibold"
+              {/* Table search controls */}
+              <div className="p-4 border-b border-gray-200 flex flex-col md:flex-row gap-4 justify-between items-center bg-white">
+                <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto items-stretch md:items-center">
+                  <div className="relative w-full md:max-w-xs">
+                    <Search size={16} className="absolute left-3 top-3.5 text-gray-400" />
+                    <input
+                      type="text"
+                      placeholder="Cari prospek (nama/telepon)..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full pl-9 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-blue-500 font-semibold"
+                    />
+                  </div>
+
+                  <HeroSelect
+                    value={filterStage}
+                    onChange={(val) => setFilterStage(val)}
+                    placeholder="Semua Tahapan Pipeline"
+                    className="min-w-[180px]"
+                    options={[
+                      { value: '', label: 'Semua Tahapan Pipeline' },
+                      ...pipelineStages.map(s => ({ value: s.key, label: s.label }))
+                    ]}
                   />
                 </div>
 
-                <HeroSelect
-                  value={filterStage}
-                  onChange={(val) => setFilterStage(val)}
-                  placeholder="Semua Tahapan Pipeline"
-                  className="min-w-[180px]"
-                  options={[
-                    { value: '', label: 'Semua Tahapan Pipeline' },
-                    ...pipelineStages.map(s => ({ value: s.key, label: s.label }))
-                  ]}
-                />
+                {/* View Mode Switcher */}
+                <div className="flex bg-gray-100 p-1 rounded-xl self-stretch md:self-auto gap-1">
+                  <button
+                    onClick={() => setProspectViewMode('table')}
+                    className={`flex-1 md:flex-initial px-3.5 py-1.5 rounded-lg font-bold text-xs transition-all flex items-center justify-center gap-1.5 ${
+                      prospectViewMode === 'table' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-800'
+                    }`}
+                  >
+                    <List size={14} />
+                    Tabel
+                  </button>
+                  <button
+                    onClick={() => setProspectViewMode('card')}
+                    className={`flex-1 md:flex-initial px-3.5 py-1.5 rounded-lg font-bold text-xs transition-all flex items-center justify-center gap-1.5 ${
+                      prospectViewMode === 'card' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-800'
+                    }`}
+                  >
+                    <Grid size={14} />
+                    Kartu
+                  </button>
+                </div>
               </div>
 
-              {/* View Mode Switcher */}
-              <div className="flex bg-gray-100 p-1 rounded-xl self-stretch md:self-auto gap-1">
-                <button
-                  onClick={() => setProspectViewMode('table')}
-                  className={`flex-1 md:flex-initial px-3.5 py-1.5 rounded-lg font-bold text-xs transition-all flex items-center justify-center gap-1.5 ${
-                    prospectViewMode === 'table' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-800'
-                  }`}
-                >
-                  <List size={14} />
-                  Tabel
-                </button>
-                <button
-                  onClick={() => setProspectViewMode('card')}
-                  className={`flex-1 md:flex-initial px-3.5 py-1.5 rounded-lg font-bold text-xs transition-all flex items-center justify-center gap-1.5 ${
-                    prospectViewMode === 'card' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-800'
-                  }`}
-                >
-                  <Grid size={14} />
-                  Kartu
-                </button>
+              {/* Quick Action Pill Filters Bar */}
+              <div className="px-4 py-2.5 bg-slate-50/80 border-b border-gray-200 flex flex-wrap items-center justify-between gap-2 text-xs">
+                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+                  <span className="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mr-1">Filter Cepat:</span>
+                  <button
+                    type="button"
+                    onClick={() => setQuickActionFilter('all')}
+                    className={`px-3 py-1 rounded-full font-bold text-xs transition-all cursor-pointer ${
+                      quickActionFilter === 'all' ? 'bg-purple-600 text-white shadow-xs' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    Semua Prospek
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setQuickActionFilter('today')}
+                    className={`px-3 py-1 rounded-full font-bold text-xs transition-all cursor-pointer flex items-center gap-1 ${
+                      quickActionFilter === 'today' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100'
+                    }`}
+                  >
+                    <span>🔴 Butuh Follow-Up Hari Ini</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setQuickActionFilter('kpr')}
+                    className={`px-3 py-1 rounded-full font-bold text-xs transition-all cursor-pointer flex items-center gap-1 ${
+                      quickActionFilter === 'kpr' ? 'bg-amber-600 text-white shadow-xs' : 'bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100'
+                    }`}
+                  >
+                    <span>⚠️ KPR Overdue &gt; 14 Hari</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setQuickActionFilter('hot')}
+                    className={`px-3 py-1 rounded-full font-bold text-xs transition-all cursor-pointer flex items-center gap-1 ${
+                      quickActionFilter === 'hot' ? 'bg-rose-600 text-white shadow-xs' : 'bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100'
+                    }`}
+                  >
+                    <span>🔥 Prospek Hot Lead</span>
+                  </button>
+                </div>
+
+                <span className="text-[11px] font-semibold text-slate-400">
+                  Menampilkan <strong className="text-slate-700 font-extrabold">{filteredProspects.length}</strong> prospek
+                </span>
               </div>
-            </div>
 
             {/* Layout depending on view mode */}
             {prospectViewMode === 'table' ? (
@@ -2040,8 +2101,6 @@ export default function CRMModulePage() {
           </div>
         )}
 
-      </div>
-
         {/* MODAL: SETUP SKEMA PEMBAYARAN */}
         {isPaymentSetupOpen && selectedProspectForPayment && (
           <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4" onClick={() => setIsPaymentSetupOpen(false)}>
@@ -2368,6 +2427,7 @@ export default function CRMModulePage() {
             </div>
           </div>
         )}
+      </div>
     </AppShell>
   );
 }

@@ -210,6 +210,11 @@ export default function PropertiesManagementPage() {
   const [constructStage, setConstructStage] = useState<string>('pondasi');
   const [constructNote, setConstructNote] = useState<string>('');
 
+  // Siteplan Hover Tooltip & Filter States
+  const [hoveredUnit, setHoveredUnit] = useState<PropertyUnit | null>(null);
+  const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [siteplanFilter, setSiteplanFilter] = useState<'all' | 'available' | 'booking' | 'sold'>('all');
+
   const handleOpenConstructionModal = (unit: any) => {
     setSelectedUnitForConstruction(unit);
     setConstructPercent(unit.construction_progress_percent ?? 0);
@@ -1571,6 +1576,157 @@ export default function PropertiesManagementPage() {
                         </div>
                       </form>
                     ) : null}
+
+                    {/* Interactive Siteplan SVG Map Card with Live Tooltip & Color Filter */}
+                    <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm flex flex-col gap-4 relative">
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-gray-100 pb-3">
+                        <div>
+                          <h3 className="font-extrabold text-sm text-gray-950 flex items-center gap-2">
+                            <MapPin size={16} className="text-purple-600" /> Peta Siteplan Interactive Kavling
+                          </h3>
+                          <p className="text-xs text-gray-500 font-medium">Arahkan kursor ke kavling untuk melihat detail real-time & progres fisik.</p>
+                        </div>
+
+                        {/* Color Status Filter Pills */}
+                        <div className="flex items-center gap-1.5 bg-gray-100 p-1 rounded-xl text-[10px] font-bold">
+                          <button
+                            type="button"
+                            onClick={() => setSiteplanFilter('all')}
+                            className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                              siteplanFilter === 'all' ? 'bg-white text-gray-900 shadow-xs' : 'text-gray-500 hover:text-gray-800'
+                            }`}
+                          >
+                            Semua ({clusterUnits.length})
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setSiteplanFilter('available')}
+                            className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer flex items-center gap-1 ${
+                              siteplanFilter === 'available' ? 'bg-emerald-500 text-white shadow-xs' : 'text-emerald-700 hover:bg-emerald-50'
+                            }`}
+                          >
+                            <span className="w-2 h-2 rounded-full bg-emerald-300"></span>
+                            Tersedia ({clusterUnits.filter(u => u.status === 'available').length})
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setSiteplanFilter('booking')}
+                            className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer flex items-center gap-1 ${
+                              siteplanFilter === 'booking' ? 'bg-amber-500 text-white shadow-xs' : 'text-amber-700 hover:bg-amber-50'
+                            }`}
+                          >
+                            <span className="w-2 h-2 rounded-full bg-amber-300"></span>
+                            Booking/KPR ({clusterUnits.filter(u => ['booking', 'kpr_process', 'reserved'].includes(u.status)).length})
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setSiteplanFilter('sold')}
+                            className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer flex items-center gap-1 ${
+                              siteplanFilter === 'sold' ? 'bg-rose-500 text-white shadow-xs' : 'text-rose-700 hover:bg-rose-50'
+                            }`}
+                          >
+                            <span className="w-2 h-2 rounded-full bg-rose-300"></span>
+                            Terjual ({clusterUnits.filter(u => u.status === 'sold').length})
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* SVG Map Canvas Grid */}
+                      <div className="w-full bg-slate-950 rounded-2xl p-6 relative overflow-hidden min-h-[200px] flex items-center justify-center border border-slate-800 shadow-inner">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3 w-full">
+                          {clusterUnits.map(unit => {
+                            const type = clusterTypes.find(t => t.id === unit.unit_type_id);
+                            const isBooking = ['booking', 'kpr_process', 'reserved'].includes(unit.status);
+                            const isSold = unit.status === 'sold';
+                            const isAvailable = unit.status === 'available';
+
+                            let matchesFilter = true;
+                            if (siteplanFilter === 'available') matchesFilter = isAvailable;
+                            if (siteplanFilter === 'booking') matchesFilter = isBooking;
+                            if (siteplanFilter === 'sold') matchesFilter = isSold;
+
+                            return (
+                              <div
+                                key={unit.id}
+                                onMouseEnter={(e) => {
+                                  setHoveredUnit(unit);
+                                  const rect = e.currentTarget.getBoundingClientRect();
+                                  setTooltipPos({ x: rect.left + rect.width / 2, y: rect.top });
+                                }}
+                                onMouseLeave={() => setHoveredUnit(null)}
+                                className={`p-3 rounded-xl border flex flex-col items-center justify-between gap-2 cursor-pointer transition-all duration-200 ${
+                                  matchesFilter ? 'opacity-100 scale-100' : 'opacity-25 scale-95'
+                                } ${
+                                  isAvailable ? 'bg-emerald-950/60 border-emerald-500/40 text-emerald-300 hover:bg-emerald-900/80 hover:border-emerald-400 hover:shadow-lg hover:shadow-emerald-500/20' :
+                                  isSold ? 'bg-rose-950/60 border-rose-500/40 text-rose-300 hover:bg-rose-900/80 hover:border-rose-400 hover:shadow-lg hover:shadow-rose-500/20' :
+                                  'bg-amber-950/60 border-amber-500/40 text-amber-300 hover:bg-amber-900/80 hover:border-amber-400 hover:shadow-lg hover:shadow-amber-500/20'
+                                }`}
+                              >
+                                <span className="text-[10px] font-black tracking-wider uppercase bg-white/10 px-2 py-0.5 rounded-md text-white">
+                                  {unit.block_number}
+                                </span>
+                                <div className="flex flex-col items-center">
+                                  <span className="text-[11px] font-extrabold truncate text-white">{type?.name || 'Standard'}</span>
+                                  <span className="text-[9px] opacity-75">{formatIDR(unit.sell_price)}</span>
+                                </div>
+                                <div className="w-full bg-white/10 rounded-full h-1 overflow-hidden mt-1">
+                                  <div
+                                    className="bg-emerald-400 h-full rounded-full"
+                                    style={{ width: `${unit.construction_progress_percent || 0}%` }}
+                                  ></div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Floating Live Hover Tooltip */}
+                    {hoveredUnit && (
+                      <div
+                        className="fixed z-50 transform -translate-x-1/2 -translate-y-full mb-3 w-64 bg-slate-950/95 text-white backdrop-blur-xl border border-purple-500/40 rounded-2xl p-3.5 shadow-2xl shadow-purple-950/50 pointer-events-none animate-in fade-in zoom-in-95 duration-150 text-xs text-left"
+                        style={{ left: `${tooltipPos.x}px`, top: `${tooltipPos.y}px` }}
+                      >
+                        <div className="flex justify-between items-center border-b border-white/10 pb-2 mb-2">
+                          <span className="font-black text-sm text-purple-300 tracking-tight">Blok {hoveredUnit.block_number}</span>
+                          <span className={`px-2 py-0.5 rounded text-[9px] font-extrabold uppercase border ${
+                            hoveredUnit.status === 'available' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' :
+                            hoveredUnit.status === 'sold' ? 'bg-rose-500/20 text-rose-300 border-rose-500/30' :
+                            'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                          }`}>
+                            {hoveredUnit.status.replace('_', ' ')}
+                          </span>
+                        </div>
+
+                        <div className="space-y-1.5 text-[11px]">
+                          <div className="flex justify-between text-slate-300">
+                            <span>Harga Jual:</span>
+                            <strong className="text-white font-extrabold">{formatIDR(hoveredUnit.sell_price)}</strong>
+                          </div>
+                          <div className="flex justify-between text-slate-300">
+                            <span>Orientasi:</span>
+                            <span className="capitalize text-slate-200">{hoveredUnit.orientation}</span>
+                          </div>
+                          <div className="flex justify-between text-slate-300">
+                            <span>Legalitas:</span>
+                            <span className="uppercase text-slate-200 font-bold">{hoveredUnit.legal_status || 'SHM'}</span>
+                          </div>
+                          <div className="pt-2 border-t border-white/10 flex flex-col gap-1">
+                            <div className="flex justify-between text-slate-300 text-[10px]">
+                              <span>Progres Fisik Bangunan:</span>
+                              <strong className="text-purple-300">{hoveredUnit.construction_progress_percent || 0}%</strong>
+                            </div>
+                            <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                              <div
+                                className="bg-gradient-to-r from-purple-500 to-emerald-400 h-full rounded-full transition-all duration-300"
+                                style={{ width: `${hoveredUnit.construction_progress_percent || 0}%` }}
+                              ></div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Kavling list table */}
                     <div className="overflow-x-auto">

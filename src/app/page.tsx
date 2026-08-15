@@ -22,6 +22,33 @@ import {
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 
+// Sparkline Mini Chart Helper
+const Sparkline = ({ color = "#9333ea", dataPoints = [30, 45, 35, 60, 50, 75, 90] }: { color?: string; dataPoints?: number[] }) => {
+  const max = Math.max(...dataPoints);
+  const min = Math.min(...dataPoints);
+  const range = max - min || 1;
+  const width = 70;
+  const height = 22;
+  const points = dataPoints.map((val, idx) => {
+    const x = (idx / (dataPoints.length - 1)) * width;
+    const y = height - ((val - min) / range) * (height - 4) - 2;
+    return `${x},${y}`;
+  }).join(' ');
+
+  return (
+    <svg width={width} height={height} className="overflow-visible">
+      <polyline
+        fill="none"
+        stroke={color}
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        points={points}
+      />
+    </svg>
+  );
+};
+
 interface ProspectItem {
   id: string;
   name: string;
@@ -430,16 +457,56 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {/* Executive Target Sales Progress Meter Banner */}
+        <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-purple-950 text-white rounded-2xl p-5 shadow-xl relative overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border border-indigo-900/50">
+          <div className="flex flex-col gap-1.5 z-10 max-w-xl text-left">
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-400/30 text-[10px] font-extrabold uppercase tracking-wider">
+                🎯 Target Penjualan Bulanan
+              </span>
+              <span className="text-xs text-slate-400 font-semibold">Agustus 2026</span>
+            </div>
+            <h2 className="text-lg md:text-xl font-bold tracking-tight text-white">
+              Capaian Omset: <span className="text-purple-300 font-black">{formatIDR(data.pipelineValue)}</span>
+              <span className="text-xs font-normal text-slate-300 ml-2">(Target: {formatIDR(5000000000)})</span>
+            </h2>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Tergapai <strong className="text-emerald-400 font-extrabold">{((data.pipelineValue / 5000000000) * 100).toFixed(1)}%</strong> dari target bulanan. 
+              Sisa omset yang harus dikejar: <strong className="text-amber-300 font-extrabold">{formatIDR(Math.max(0, 5000000000 - data.pipelineValue))}</strong>.
+            </p>
+          </div>
+
+          <div className="w-full md:w-72 flex flex-col gap-2 z-10 bg-white/10 backdrop-blur-md p-3.5 rounded-xl border border-white/10">
+            <div className="flex justify-between items-baseline text-xs">
+              <span className="font-semibold text-slate-200">Progress Quota</span>
+              <span className="font-extrabold text-emerald-400 text-sm">{((data.pipelineValue / 5000000000) * 100).toFixed(1)}%</span>
+            </div>
+            <div className="w-full bg-slate-800/80 rounded-full h-3 p-0.5 overflow-hidden border border-slate-700">
+              <div 
+                className="bg-gradient-to-r from-purple-500 to-emerald-400 h-full rounded-full transition-all duration-1000 shadow-sm shadow-emerald-400/50"
+                style={{ width: `${Math.min(100, (data.pipelineValue / 5000000000) * 100)}%` }}
+              ></div>
+            </div>
+            <div className="flex justify-between items-center text-[10px] text-slate-400 font-medium">
+              <span>0 Miliar</span>
+              <span>Target: 5.0 Miliar</span>
+            </div>
+          </div>
+        </div>
+
         {/* Top 4 SalesX Metric Cards Grid (REAL DB DATA) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           
           {/* Card 1: Total Revenue / Pipeline Value */}
           <div className="salesx-card p-4.5 flex flex-col justify-between gap-3">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600 text-sm font-bold">
-                💳
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600 text-sm font-bold">
+                  💳
+                </div>
+                <span className="text-xs text-slate-500 font-medium">Total Pipeline Omset</span>
               </div>
-              <span className="text-xs text-slate-500 font-medium">Total Pipeline Omset</span>
+              <Sparkline color="#9333ea" dataPoints={[35, 42, 38, 55, 62, 70, 85]} />
             </div>
             <div className="flex items-baseline justify-between">
               <span className="text-xl font-bold text-slate-900 tracking-tight">{formatIDR(data.pipelineValue)}</span>
@@ -455,11 +522,14 @@ export default function DashboardPage() {
 
           {/* Card 2: Total Visitor / Active Prospects */}
           <div className="salesx-card p-4.5 flex flex-col justify-between gap-3">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 text-sm font-bold">
-                👁
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 text-sm font-bold">
+                  👁
+                </div>
+                <span className="text-xs text-slate-500 font-medium">Prospek & Leads Aktif</span>
               </div>
-              <span className="text-xs text-slate-500 font-medium">Prospek & Leads Aktif</span>
+              <Sparkline color="#4f46e5" dataPoints={[20, 28, 45, 40, 52, 60, 78]} />
             </div>
             <div className="flex items-baseline justify-between">
               <span className="text-2xl font-bold text-slate-900 tracking-tight">{data.prospectsCount} <span className="text-xs text-slate-400 font-normal">Leads</span></span>
@@ -475,11 +545,14 @@ export default function DashboardPage() {
 
           {/* Card 3: Total Transitions / Unit Booked */}
           <div className="salesx-card p-4.5 flex flex-col justify-between gap-3">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600 text-sm font-bold">
-                💲
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600 text-sm font-bold">
+                  💲
+                </div>
+                <span className="text-xs text-slate-500 font-medium">Unit Booked / Transaksi</span>
               </div>
-              <span className="text-xs text-slate-500 font-medium">Unit Booked / Transaksi</span>
+              <Sparkline color="#a855f7" dataPoints={[10, 15, 12, 25, 30, 42, 50]} />
             </div>
             <div className="flex items-baseline justify-between">
               <span className="text-2xl font-bold text-slate-900 tracking-tight">{data.bookedUnitsCount} <span className="text-xs text-slate-400 font-normal">Kavling</span></span>
@@ -495,11 +568,14 @@ export default function DashboardPage() {
 
           {/* Card 4: Total Products / Unit Inventory */}
           <div className="salesx-card p-4.5 flex flex-col justify-between gap-3">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 text-sm font-bold">
-                📦
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 text-sm font-bold">
+                  📦
+                </div>
+                <span className="text-xs text-slate-500 font-medium">Ketersediaan Kavling</span>
               </div>
-              <span className="text-xs text-slate-500 font-medium">Ketersediaan Kavling</span>
+              <Sparkline color="#06b6d4" dataPoints={[65, 60, 55, 48, 42, 38, 30]} />
             </div>
             <div className="flex items-baseline justify-between">
               <span className="text-2xl font-bold text-slate-900 tracking-tight">{data.availableUnits} / {data.totalUnits}</span>

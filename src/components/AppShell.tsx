@@ -23,7 +23,10 @@ import {
   PanelLeft,
   User as UserIcon,
   ShieldCheck,
-  UserCheck
+  UserCheck,
+  Sun,
+  Moon,
+  ExternalLink
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -47,9 +50,33 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [settings, setSettings] = useState<any>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedTheme = localStorage.getItem('domus_theme_mode') as 'light' | 'dark';
+      if (savedTheme) {
+        setTheme(savedTheme);
+        if (savedTheme === 'dark') document.documentElement.classList.add('dark');
+      }
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    const nextTheme = theme === 'light' ? 'dark' : 'light';
+    setTheme(nextTheme);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('domus_theme_mode', nextTheme);
+      if (nextTheme === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    }
+  };
 
   // Keyboard shortcut listener for Cmd+K / Ctrl+K
   useEffect(() => {
@@ -371,6 +398,16 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
           {/* Right Header Operations (SalesX Style Header Icons) */}
           <div className="flex items-center gap-2">
+            {/* Dark / Light Theme Mode Toggle */}
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl border border-slate-200/70 transition-colors cursor-pointer bg-white"
+              title={theme === 'light' ? 'Aktifkan Dark Mode' : 'Aktifkan Light Mode'}
+            >
+              {theme === 'light' ? <Moon size={17} className="text-slate-600" /> : <Sun size={17} className="text-amber-500" />}
+            </button>
+
             {/* Search Button (Mobile) */}
             <button 
               onClick={() => setIsSearchOpen(true)}
@@ -392,7 +429,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               </button>
 
               {showNotifications && (
-                <div className="absolute right-0 mt-2 w-76 bg-white border border-slate-200 rounded-2xl py-2 z-50 shadow-xl overflow-hidden">
+                <div className="absolute right-0 mt-2 w-80 bg-white border border-slate-200 rounded-2xl py-2 z-50 shadow-2xl overflow-hidden">
                   <div className="px-3.5 py-2 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                     <span className="font-bold text-[10px] text-slate-500 tracking-wider uppercase">Notifikasi In-App</span>
                     {notifications.some(n => !n.read) && (
@@ -404,31 +441,46 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                       </button>
                     )}
                   </div>
-                  <div className="max-h-[300px] overflow-y-auto divide-y divide-slate-100">
+                  <div className="max-h-[320px] overflow-y-auto divide-y divide-slate-100">
                     {notifications.length === 0 ? (
                       <div className="px-4 py-6 text-center text-xs text-slate-400">
                         Tidak ada notifikasi aktif.
                       </div>
                     ) : (
                       notifications.map(notif => (
-                        <Link 
+                        <div 
                           key={notif.id} 
-                          href={notif.link || '#'}
-                          onClick={() => handleNotificationClick(notif.id)}
-                          className={`px-3.5 py-2.5 text-left block transition-all duration-150 hover:bg-purple-50/30 ${notif.read ? '' : 'bg-purple-50/20'}`}
+                          className={`px-3.5 py-3 text-left block transition-all duration-150 hover:bg-purple-50/30 ${notif.read ? '' : 'bg-purple-50/20'}`}
                         >
-                          <div className="flex flex-col gap-0.5">
-                            <span className={`text-[10px] font-semibold uppercase tracking-wider ${notif.read ? 'text-slate-400' : 'text-purple-600'}`}>
-                              {notif.title}
-                            </span>
+                          <div className="flex flex-col gap-1">
+                            <div className="flex justify-between items-center">
+                              <span className={`text-[10px] font-bold uppercase tracking-wider ${notif.read ? 'text-slate-400' : 'text-purple-600'}`}>
+                                {notif.title}
+                              </span>
+                              <span className="text-[9px] text-slate-400 font-medium">
+                                {formatTimeAgo(notif.time)}
+                              </span>
+                            </div>
                             <p className={`text-[12px] text-slate-700 leading-snug ${notif.read ? '' : 'font-medium'}`}>
                               {notif.description}
                             </p>
-                            <span className="text-[9px] text-slate-400 font-medium mt-0.5">
-                              {formatTimeAgo(notif.time)}
-                            </span>
+                            
+                            {/* Direct Action Link Button */}
+                            <Link
+                              href={notif.link || '/crm'}
+                              onClick={() => handleNotificationClick(notif.id)}
+                              className="mt-1.5 self-start inline-flex items-center gap-1 text-[10px] font-extrabold text-purple-700 bg-purple-100 hover:bg-purple-200 px-2.5 py-1 rounded-lg transition-all"
+                            >
+                              <span>
+                                {notif.title.toLowerCase().includes('spr') || notif.title.toLowerCase().includes('booking') ? 'Lihat SPR / Dokumen' :
+                                 notif.title.toLowerCase().includes('cuti') || notif.title.toLowerCase().includes('absensi') ? 'Setujui Cuti / Absensi' :
+                                 notif.title.toLowerCase().includes('followup') || notif.title.toLowerCase().includes('prospek') ? 'Hubungi WA' :
+                                 'Buka Action Instan'}
+                              </span>
+                              <ExternalLink size={10} />
+                            </Link>
                           </div>
-                        </Link>
+                        </div>
                       ))
                     )}
                   </div>
