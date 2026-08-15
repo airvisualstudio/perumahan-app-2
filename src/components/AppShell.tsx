@@ -19,11 +19,16 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  Search
+  Search,
+  PanelLeft,
+  User as UserIcon,
+  ShieldCheck,
+  UserCheck
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import GlobalSearchModal from '@/components/GlobalSearchModal';
+import EditProfileModal from '@/components/EditProfileModal';
 
 interface SlackLog {
   timestamp: string;
@@ -40,6 +45,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [readIds, setReadIds] = useState<string[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [settings, setSettings] = useState<any>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -222,12 +229,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         isSidebarCollapsed ? 'w-20' : 'w-64 lg:w-68'
       }`}>
         {/* Sidebar Header - Logo Brand */}
-        <div className={`flex items-center px-4 py-4.5 border-b border-slate-100 flex-shrink-0 transition-all duration-300 ${
-          isSidebarCollapsed ? 'flex-col gap-2 justify-center' : 'justify-between gap-3'
+        <div className={`h-14 flex items-center px-4 border-b border-slate-200/70 flex-shrink-0 transition-all duration-300 ${
+          isSidebarCollapsed ? 'justify-center' : 'justify-start gap-3'
         }`}>
           {!isSidebarCollapsed ? (
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-xl bg-purple-600 flex items-center justify-center text-white font-black text-sm shadow-sm shadow-purple-200">
+              <div className="w-8 h-8 rounded-xl bg-purple-600 flex items-center justify-center text-white font-black text-sm shadow-sm shadow-purple-200 flex-shrink-0">
                 X
               </div>
               <div className="flex flex-col min-w-0">
@@ -241,15 +248,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               X
             </div>
           )}
-
-          {/* Minimize/Maximize button */}
-          <button 
-            onClick={toggleSidebar}
-            className="p-1 rounded-md hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition-colors cursor-pointer border border-slate-200/60"
-            title={isSidebarCollapsed ? "Expand Menu" : "Collapse Menu"}
-          >
-            {isSidebarCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
-          </button>
         </div>
 
         {/* Search Bar (SalesX Style) */}
@@ -346,7 +344,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       {/* Main Wrapper */}
       <div className="flex-1 flex flex-col h-full min-w-0 overflow-hidden bg-[#f8f9fc]">
         {/* Header - Desktop & Mobile */}
-        <header className="sticky top-0 z-20 w-full bg-white/90 backdrop-blur-md border-b border-slate-200/60 px-4 md:px-8 py-3.5 flex items-center justify-between transition-all">
+        <header className="sticky top-0 z-20 w-full bg-white/90 backdrop-blur-md border-b border-slate-200/70 px-4 md:px-6 h-14 flex items-center justify-between transition-all">
           <div className="flex items-center gap-3">
             {/* Hamburger button for mobile */}
             <button 
@@ -356,8 +354,17 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               <Menu size={18} />
             </button>
 
+            {/* Desktop Sidebar Toggle Button (Button Slide) */}
+            <button
+              onClick={toggleSidebar}
+              className="hidden md:flex p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl border border-slate-200/70 transition-colors cursor-pointer"
+              title={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+            >
+              <PanelLeft size={18} />
+            </button>
+
             {/* Desktop Page Title */}
-            <h1 className="font-bold text-xl text-slate-900 tracking-tight">
+            <h1 className="font-bold text-lg text-slate-900 tracking-tight">
               {getPageTitle()}
             </h1>
           </div>
@@ -430,11 +437,113 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             </div>
 
             {/* SalesX Avatar Profile Button */}
-            <div className="flex items-center gap-2 border border-slate-200/70 p-1 pl-1.5 pr-2.5 rounded-full bg-white hover:border-slate-300 transition-all cursor-pointer">
-              <div className="w-7 h-7 rounded-full bg-purple-600 text-white font-bold text-xs flex items-center justify-center">
-                {user ? getInitials(user.name) : 'U'}
-              </div>
-              <ChevronDown size={14} className="text-slate-400" />
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowProfileMenu(prev => !prev);
+                  setShowNotifications(false);
+                }}
+                className="flex items-center gap-2 border border-slate-200/70 p-1 pl-1.5 pr-2.5 rounded-full bg-white hover:border-slate-300 transition-all cursor-pointer shadow-2xs"
+              >
+                <div className="w-7 h-7 rounded-full bg-purple-600 text-white font-bold text-xs flex items-center justify-center overflow-hidden">
+                  {user?.avatar_url ? (
+                    <img src={user.avatar_url} alt={user.name} className="w-full h-full object-cover" />
+                  ) : (
+                    user ? getInitials(user.name) : 'U'
+                  )}
+                </div>
+                <ChevronDown size={14} className={`text-slate-400 transition-transform duration-200 ${showProfileMenu ? 'rotate-180 text-purple-600' : ''}`} />
+              </button>
+
+              {/* Profile Dropdown Popover Menu */}
+              {showProfileMenu && (
+                <div className="absolute right-0 mt-2 w-72 bg-white border border-slate-200 rounded-2xl p-2 z-50 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 divide-y divide-slate-100">
+                  {/* User Info Header */}
+                  <div className="p-3 bg-gradient-to-r from-purple-50/80 to-indigo-50/50 rounded-xl mb-1 flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-purple-600 text-white font-bold text-sm flex items-center justify-center shadow-md flex-shrink-0 overflow-hidden">
+                      {user?.avatar_url ? (
+                        <img src={user.avatar_url} alt={user.name} className="w-full h-full object-cover" />
+                      ) : (
+                        user ? getInitials(user.name) : 'U'
+                      )}
+                    </div>
+                    <div className="flex flex-col text-left min-w-0">
+                      <span className="font-extrabold text-sm text-slate-900 truncate">{user?.name || 'User'}</span>
+                      <span className="text-[11px] text-slate-500 truncate font-medium">{user?.email || 'user@domus.com'}</span>
+                      <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full w-max mt-1">
+                        <ShieldCheck size={10} /> {user?.role || 'Staff'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Actions Menu */}
+                  <div className="py-1.5 space-y-0.5 text-xs text-slate-700 font-medium">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowProfileMenu(false);
+                        setIsEditProfileOpen(true);
+                      }}
+                      className="w-full text-left px-3 py-2 rounded-xl hover:bg-purple-50 hover:text-purple-700 font-semibold flex items-center gap-2.5 transition-all cursor-pointer"
+                    >
+                      <UserIcon size={16} className="text-purple-600" />
+                      <span>Edit Profil Saya</span>
+                    </button>
+
+                    <Link
+                      href="/backoffice"
+                      onClick={() => setShowProfileMenu(false)}
+                      className="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-50 hover:text-slate-900 font-semibold flex items-center gap-2.5 transition-all cursor-pointer block"
+                    >
+                      <Settings size={16} className="text-slate-400" />
+                      <span>Pengaturan Backoffice</span>
+                    </Link>
+                  </div>
+
+                  {/* Role Switcher Menu */}
+                  <div className="py-2 space-y-1">
+                    <span className="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider block text-left">Ganti Role Akun (Quick Switch)</span>
+                    {availableUsers && availableUsers.map(usr => (
+                      <button
+                        key={usr.id}
+                        type="button"
+                        onClick={() => {
+                          switchUser(usr.id);
+                          setShowProfileMenu(false);
+                        }}
+                        className={`w-full text-left px-3 py-1.5 rounded-xl text-xs flex items-center justify-between transition-all cursor-pointer ${
+                          user?.id === usr.id ? 'bg-purple-50 text-purple-700 font-bold' : 'text-slate-600 hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          <div className="w-5 h-5 rounded-full bg-slate-200 text-slate-700 font-bold text-[9px] flex items-center justify-center">
+                            {getInitials(usr.name)}
+                          </div>
+                          <span className="truncate">{usr.name}</span>
+                          <span className="text-[9px] text-slate-400 capitalize">({usr.role})</span>
+                        </div>
+                        {user?.id === usr.id && <UserCheck size={14} className="text-purple-600 flex-shrink-0" />}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Logout Button */}
+                  <div className="pt-1.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowProfileMenu(false);
+                        logout();
+                      }}
+                      className="w-full text-left px-3 py-2 rounded-xl hover:bg-red-50 text-red-600 font-bold flex items-center gap-2.5 transition-all cursor-pointer"
+                    >
+                      <LogOut size={16} className="text-red-500" />
+                      <span>Keluar (Logout)</span>
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </header>
@@ -593,6 +702,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <GlobalSearchModal 
         isOpen={isSearchOpen} 
         onClose={() => setIsSearchOpen(false)} 
+      />
+
+      {/* Edit Profile Modal */}
+      <EditProfileModal
+        isOpen={isEditProfileOpen}
+        onClose={() => setIsEditProfileOpen(false)}
       />
     </div>
   );

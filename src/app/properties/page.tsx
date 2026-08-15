@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import AppShell from '@/components/AppShell';
+import HeroSelect from '@/components/HeroSelect';
 import { useAuth } from '@/context/AuthContext';
 import { useCrudModal } from '@/context/CrudModalContext';
 import { 
@@ -24,7 +25,8 @@ import {
   Phone,
   Mail,
   Search,
-  UserCheck
+  UserCheck,
+  Hammer
 } from 'lucide-react';
 
 const docCategories = [
@@ -104,6 +106,9 @@ interface PropertyUnit {
   status: 'available' | 'reserved' | 'booking' | 'kpr_process' | 'sold' | 'unavailable';
   notes?: string;
   construction_status?: 'belum_terbangun' | 'proses_pembangunan' | 'finishing' | 'ready';
+  construction_progress_percent?: number;
+  construction_stage?: 'lahan_siap' | 'pondasi' | 'dinding_struktur' | 'atap_plafon' | 'finishing' | 'siap_huni';
+  construction_updates?: Array<{ id: string; date: string; percent: number; stage: string; note: string; photo_urls?: string[]; updated_by: string }>;
   legal_status?: 'shm' | 'shgb' | 'ajb' | 'other';
   pbb_status?: 'paid' | 'unpaid' | 'not_registered';
   pbb_nop?: string;
@@ -199,6 +204,47 @@ export default function PropertiesManagementPage() {
   const [uTaxDocuments, setUTaxDocuments] = useState<any[]>([]);
   const [uPbbNop, setUPbbNop] = useState('');
   const [uPbbOwnerName, setUPbbOwnerName] = useState('');
+
+  const [selectedUnitForConstruction, setSelectedUnitForConstruction] = useState<any | null>(null);
+  const [constructPercent, setConstructPercent] = useState<number>(0);
+  const [constructStage, setConstructStage] = useState<string>('pondasi');
+  const [constructNote, setConstructNote] = useState<string>('');
+
+  const handleOpenConstructionModal = (unit: any) => {
+    setSelectedUnitForConstruction(unit);
+    setConstructPercent(unit.construction_progress_percent ?? 0);
+    setConstructStage(unit.construction_stage || 'pondasi');
+    setConstructNote('');
+  };
+
+  const handleSaveConstructionProgress = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedUnitForConstruction) return;
+    try {
+      const res = await fetch('/api/crm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'update_construction_progress',
+          unit_id: selectedUnitForConstruction.id,
+          percent: constructPercent,
+          stage: constructStage,
+          note: constructNote,
+          actor_id: user?.id
+        })
+      });
+      const json = await res.json();
+      if (json.success) {
+        showSuccess('Progres Konstruksi Diperbarui', `Progres fisik unit ${selectedUnitForConstruction.block_number} diperbarui ke ${constructPercent}%!`, 'UPDATE');
+        setSelectedUnitForConstruction(null);
+        fetchPropertiesData();
+      } else {
+        showError('Gagal Menyimpan', json.error || 'Gagal memperbarui progres.');
+      }
+    } catch (err: any) {
+      showError('Gagal Menyimpan', err?.message || 'Terjadi kesalahan sistem.');
+    }
+  };
 
   const fetchPropertiesData = async () => {
     try {
@@ -838,21 +884,19 @@ export default function PropertiesManagementPage() {
                 
                 {/* Perusahaan Induk Dropdown */}
                 <div className="flex flex-col gap-1.5 p-3.5 bg-blue-50/40 border border-blue-100 rounded-xl">
-                  <label className="text-blue-700 uppercase tracking-wider text-[9px] font-black flex items-center gap-1.5">
-                    <Building size={12} /> Perusahaan Induk (Developer PT)
-                  </label>
-                  <select
+                  <HeroSelect
+                    label="PERUSAHAAN INDUK (DEVELOPER PT)"
+                    placeholder="-- Tanpa Perusahaan Induk (Independen) --"
                     value={clCompanyId}
-                    onChange={e => setClCompanyId(e.target.value)}
-                    className="px-3.5 py-2.5 border border-gray-200 bg-white rounded-xl focus:outline-none focus:border-blue-500 font-bold text-xs text-gray-800"
-                  >
-                    <option value="">-- Tanpa Perusahaan Induk (Independen) --</option>
-                    {companies.map(comp => (
-                      <option key={comp.id} value={comp.id}>
-                        {comp.name} {comp.code ? `(${comp.code})` : ''}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(val) => setClCompanyId(val)}
+                    options={[
+                      { value: '', label: '-- Tanpa Perusahaan Induk (Independen) --' },
+                      ...companies.map(comp => ({
+                        value: comp.id,
+                        label: `${comp.name} ${comp.code ? `(${comp.code})` : ''}`
+                      }))
+                    ]}
+                  />
                   <span className="text-[10px] text-gray-500 italic">Pilih entitas PT yang menaungi proyek perumahan ini.</span>
                 </div>
 
@@ -960,18 +1004,16 @@ export default function PropertiesManagementPage() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-gray-400 uppercase tracking-wider text-[9px]">Status Penjualan</label>
-                    <select
-                      value={clStatus}
-                      onChange={e => setClStatus(e.target.value as any)}
-                      className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none bg-white font-medium"
-                    >
-                      <option value="active">Aktif (Active)</option>
-                      <option value="pre_launch">Pre-Launch</option>
-                      <option value="sold_out">Habis Terjual (Sold Out)</option>
-                    </select>
-                  </div>
+                  <HeroSelect
+                    label="STATUS PENJUALAN"
+                    value={clStatus}
+                    onChange={(val) => setClStatus(val as any)}
+                    options={[
+                      { value: 'active', label: 'Aktif (Active)' },
+                      { value: 'pre_launch', label: 'Pre-Launch' },
+                      { value: 'sold_out', label: 'Habis Terjual (Sold Out)' }
+                    ]}
+                  />
 
                   <div className="flex flex-col gap-1.5">
                     <label className="text-gray-400 uppercase tracking-wider text-[9px]">Unggah Peta Site Plan (SVG)</label>
@@ -1412,20 +1454,17 @@ export default function PropertiesManagementPage() {
                             />
                           </div>
 
-                          <div className="flex flex-col gap-1.5">
-                            <label className="text-gray-400 uppercase tracking-wider text-[9px]">Pilih Tipe Unit *</label>
-                            <select
-                              value={uUnitTypeId}
-                              onChange={e => setUUnitTypeId(e.target.value)}
-                              required
-                              className="px-3 py-2 border border-gray-200 bg-white rounded-xl focus:outline-none font-medium"
-                            >
-                              <option value="">-- Pilih Tipe --</option>
-                              {clusterTypes.map(t => (
-                                <option key={t.id} value={t.id}>{t.name} (LB {t.building_area}/LT {t.land_area})</option>
-                              ))}
-                            </select>
-                          </div>
+                          <HeroSelect
+                            label="PILIH TIPE UNIT"
+                            required
+                            placeholder="-- Pilih Tipe --"
+                            value={uUnitTypeId}
+                            onChange={(val) => setUUnitTypeId(val)}
+                            options={clusterTypes.map(t => ({
+                              value: t.id,
+                              label: `${t.name} (LB ${t.building_area}/LT ${t.land_area})`
+                            }))}
+                          />
 
                           <div className="flex flex-col gap-1.5">
                             <label className="text-gray-400 uppercase tracking-wider text-[9px]">Harga Jual (Rp) *</label>
@@ -1441,48 +1480,42 @@ export default function PropertiesManagementPage() {
                         </div>
 
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                          <div className="flex flex-col gap-1.5">
-                            <label className="text-gray-400 uppercase tracking-wider text-[9px]">Orientasi</label>
-                            <select
-                              value={uOrientation}
-                              onChange={e => setUOrientation(e.target.value as any)}
-                              className="px-3 py-2 border border-gray-200 bg-white rounded-xl focus:outline-none font-medium"
-                            >
-                              <option value="middle">Tengah (Standard)</option>
-                              <option value="hook">Hook (Pojok)</option>
-                              <option value="corner">Corner</option>
-                            </select>
-                          </div>
+                          <HeroSelect
+                            label="ORIENTASI"
+                            value={uOrientation}
+                            onChange={(val) => setUOrientation(val as any)}
+                            options={[
+                              { value: 'middle', label: 'Tengah (Standard)' },
+                              { value: 'hook', label: 'Hook (Pojok)' },
+                              { value: 'corner', label: 'Corner' }
+                            ]}
+                          />
 
-                          <div className="flex flex-col gap-1.5">
-                            <label className="text-gray-400 uppercase tracking-wider text-[9px]">Status Ketersediaan</label>
-                            <select
-                              value={uStatus}
-                              onChange={e => setUStatus(e.target.value)}
-                              className="px-3 py-2 border border-gray-200 bg-white rounded-xl focus:outline-none font-medium"
-                            >
-                              <option value="available">Tersedia (Available)</option>
-                              <option value="reserved">Reserved / NUP</option>
-                              <option value="booking">Booking Fee</option>
-                              <option value="kpr_process">Proses KPR/Cash</option>
-                              <option value="sold">Terjual (Sold)</option>
-                              <option value="unavailable">Hold / Tidak Dijual</option>
-                            </select>
-                          </div>
+                          <HeroSelect
+                            label="STATUS KETERSEDIAAN"
+                            value={uStatus}
+                            onChange={(val) => setUStatus(val)}
+                            options={[
+                              { value: 'available', label: 'Tersedia (Available)' },
+                              { value: 'reserved', label: 'Reserved / NUP' },
+                              { value: 'booking', label: 'Booking Fee' },
+                              { value: 'kpr_process', label: 'Proses KPR/Cash' },
+                              { value: 'sold', label: 'Terjual (Sold)' },
+                              { value: 'unavailable', label: 'Hold / Tidak Dijual' }
+                            ]}
+                          />
 
-                          <div className="flex flex-col gap-1.5">
-                            <label className="text-gray-400 uppercase tracking-wider text-[9px]">Progres Fisik Bangunan</label>
-                            <select
-                              value={uConstructionStatus}
-                              onChange={e => setUConstructionStatus(e.target.value)}
-                              className="px-3 py-2 border border-gray-200 bg-white rounded-xl focus:outline-none font-medium"
-                            >
-                              <option value="belum_terbangun">Belum Terbangun (Kavling Siap Bangun)</option>
-                              <option value="proses_pembangunan">Proses Pembangunan</option>
-                              <option value="finishing">Finishing / Tahap Akhir</option>
-                              <option value="ready">Ready Stock (Siap Huni)</option>
-                            </select>
-                          </div>
+                          <HeroSelect
+                            label="PROGRES FISIK BANGUNAN"
+                            value={uConstructionStatus}
+                            onChange={(val) => setUConstructionStatus(val)}
+                            options={[
+                              { value: 'belum_terbangun', label: 'Belum Terbangun (Kavling Siap Bangun)' },
+                              { value: 'proses_pembangunan', label: 'Proses Pembangunan' },
+                              { value: 'finishing', label: 'Finishing / Tahap Akhir' },
+                              { value: 'ready', label: 'Ready Stock (Siap Huni)' }
+                            ]}
+                          />
                         </div>
 
                         {/* Administrasi Legalitas & Pajak Kavling */}
@@ -1492,32 +1525,28 @@ export default function PropertiesManagementPage() {
                           </span>
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="flex flex-col gap-1.5">
-                              <label className="text-gray-400 uppercase tracking-wider text-[9px]">Status Sertifikat</label>
-                              <select
-                                value={uLegalStatus}
-                                onChange={e => setULegalStatus(e.target.value as any)}
-                                className="px-3 py-2 border border-gray-200 bg-white rounded-xl focus:outline-none font-medium text-xs text-slate-800"
-                              >
-                                <option value="shm">SHM (Sertifikat Hak Milik)</option>
-                                <option value="shgb">SHGB (Sertifikat Hak Guna Bangunan)</option>
-                                <option value="ajb">AJB (Akta Jual Beli)</option>
-                                <option value="other">Lainnya (HGB / Girik / Surat)</option>
-                              </select>
-                            </div>
+                            <HeroSelect
+                              label="STATUS SERTIFIKAT"
+                              value={uLegalStatus}
+                              onChange={(val) => setULegalStatus(val as any)}
+                              options={[
+                                { value: 'shm', label: 'SHM (Sertifikat Hak Milik)' },
+                                { value: 'shgb', label: 'SHGB (Sertifikat Hak Guna Bangunan)' },
+                                { value: 'ajb', label: 'AJB (Akta Jual Beli)' },
+                                { value: 'other', label: 'Lainnya (HGB / Girik / Surat)' }
+                              ]}
+                            />
 
-                            <div className="flex flex-col gap-1.5">
-                              <label className="text-gray-400 uppercase tracking-wider text-[9px]">Status Pajak PBB</label>
-                              <select
-                                value={uPbbStatus}
-                                onChange={e => setUPbbStatus(e.target.value as any)}
-                                className="px-3 py-2 border border-gray-200 bg-white rounded-xl focus:outline-none font-medium text-xs text-slate-800"
-                              >
-                                <option value="paid">Lunas (Paid)</option>
-                                <option value="unpaid">Belum Bayar (Unpaid)</option>
-                                <option value="not_registered">Belum Terdaftar</option>
-                              </select>
-                            </div>
+                            <HeroSelect
+                              label="STATUS PAJAK PBB"
+                              value={uPbbStatus}
+                              onChange={(val) => setUPbbStatus(val as any)}
+                              options={[
+                                { value: 'paid', label: 'Lunas (Paid)' },
+                                { value: 'unpaid', label: 'Belum Bayar (Unpaid)' },
+                                { value: 'not_registered', label: 'Belum Terdaftar' }
+                              ]}
+                            />
                           </div>
                         </div>
 
@@ -1553,6 +1582,7 @@ export default function PropertiesManagementPage() {
                             <th className="p-3">Harga</th>
                             <th className="p-3">Legalitas</th>
                             <th className="p-3">PBB</th>
+                            <th className="p-3">Progres Fisik</th>
                             <th className="p-3">Orientasi</th>
                             <th className="p-3 text-center">Status</th>
                             {isAllowedToMutate && <th className="p-3 text-center">Aksi</th>}
@@ -1561,13 +1591,14 @@ export default function PropertiesManagementPage() {
                         <tbody>
                           {clusterUnits.length === 0 ? (
                             <tr>
-                              <td colSpan={isAllowedToMutate ? 8 : 7} className="p-4 text-center text-gray-400 italic text-[11px]">
+                              <td colSpan={isAllowedToMutate ? 9 : 8} className="p-4 text-center text-gray-400 italic text-[11px]">
                                 Belum ada unit kavling terdaftar untuk perumahan ini.
                               </td>
                             </tr>
                           ) : (
                             clusterUnits.map(unit => {
                               const type = clusterTypes.find(t => t.id === unit.unit_type_id);
+                              const progressPct = unit.construction_progress_percent ?? 0;
                               return (
                                 <tr key={unit.id} className="border-b border-gray-100 hover:bg-gray-50/50">
                                   <td className="p-3 font-black text-gray-900">{unit.block_number}</td>
@@ -1587,6 +1618,22 @@ export default function PropertiesManagementPage() {
                                       {unit.pbb_status === 'paid' ? 'LUNAS' : unit.pbb_status === 'unpaid' ? 'BELUM BAYAR' : 'BELUM DAFTAR'}
                                     </span>
                                   </td>
+                                  <td className="p-3">
+                                    <div className="flex flex-col gap-1 w-28">
+                                      <div className="flex justify-between items-center text-[10px]">
+                                        <span className="font-bold text-slate-800">{progressPct}%</span>
+                                        <span className="text-[9px] text-slate-400 capitalize truncate font-semibold">
+                                          {(unit.construction_stage || 'pondasi').replace('_', ' ')}
+                                        </span>
+                                      </div>
+                                      <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                                        <div 
+                                          className="bg-gradient-to-r from-blue-500 to-indigo-600 h-full rounded-full transition-all duration-300"
+                                          style={{ width: `${progressPct}%` }}
+                                        />
+                                      </div>
+                                    </div>
+                                  </td>
                                   <td className="p-3 capitalize font-medium text-gray-500">{unit.orientation}</td>
                                   <td className="p-3 text-center">
                                     <span className={`px-2 py-0.5 rounded text-[9px] font-bold border ${
@@ -1600,6 +1647,14 @@ export default function PropertiesManagementPage() {
                                   {isAllowedToMutate && (
                                     <td className="p-3 text-center">
                                       <div className="flex items-center justify-center gap-1.5">
+                                        <button
+                                          type="button"
+                                          onClick={() => handleOpenConstructionModal(unit)}
+                                          className="p-1 hover:bg-blue-50 rounded text-slate-500 hover:text-blue-600 transition-colors"
+                                          title="Update Progres Fisik Bangunan"
+                                        >
+                                          <Hammer size={11} />
+                                        </button>
                                         <button
                                           type="button"
                                           onClick={() => handleStartEditUnit(unit)}
@@ -2099,6 +2154,137 @@ export default function PropertiesManagementPage() {
           </div>
         )}
       </div>
+
+      {/* MODAL: UPDATE PROGRES KONSTRUKSI LAPANGAN */}
+      {selectedUnitForConstruction && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-200" onClick={() => setSelectedUnitForConstruction(null)}>
+          <div 
+            className="w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden transform transition-all animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-6 py-4.5 bg-gradient-to-r from-blue-700 to-indigo-800 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center text-white font-bold">
+                  <Hammer size={20} />
+                </div>
+                <div>
+                  <h2 className="font-bold text-sm text-white">Progres Fisik Pembangunan</h2>
+                  <p className="text-[11px] text-blue-100">Blok <strong>{selectedUnitForConstruction.block_number}</strong></p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setSelectedUnitForConstruction(null)}
+                className="p-1.5 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-colors cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveConstructionProgress} className="p-6 space-y-4 text-left">
+              {/* Progress Slider */}
+              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
+                <div className="flex justify-between items-center">
+                  <label className="text-[10px] font-bold text-slate-800 uppercase tracking-wider block">Persentase Fisik Bangunan</label>
+                  <span className="px-3 py-1 bg-blue-600 text-white rounded-full text-xs font-extrabold shadow-xs">
+                    {constructPercent}%
+                  </span>
+                </div>
+
+                <input 
+                  type="range"
+                  min="0"
+                  max="100"
+                  step="5"
+                  value={constructPercent}
+                  onChange={(e) => {
+                    const val = Number(e.target.value);
+                    setConstructPercent(val);
+                    if (val >= 100) setConstructStage('siap_huni');
+                    else if (val >= 75) setConstructStage('finishing');
+                    else if (val >= 50) setConstructStage('atap_plafon');
+                    else if (val >= 25) setConstructStage('dinding_struktur');
+                    else if (val >= 10) setConstructStage('pondasi');
+                    else setConstructStage('lahan_siap');
+                  }}
+                  className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                />
+
+                <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                  <div 
+                    className="bg-gradient-to-r from-blue-500 to-indigo-600 h-full rounded-full transition-all duration-200"
+                    style={{ width: `${constructPercent}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Stage Selection */}
+              <HeroSelect
+                label="TAHAP PEMBANGUNAN *"
+                value={constructStage}
+                onChange={(val) => setConstructStage(val)}
+                options={[
+                  { value: 'lahan_siap', label: '1. Persiapan Lahan & Cut/Fill (0-10%)' },
+                  { value: 'pondasi', label: '2. Pekerjaan Pondasi & Cakar Ayam (10-25%)' },
+                  { value: 'dinding_struktur', label: '3. Struktur & Pasang Dinding (25-50%)' },
+                  { value: 'atap_plafon', label: '4. Rangka Atap, Genteng & Plafon (50-75%)' },
+                  { value: 'finishing', label: '5. Finishing, Pengecatan & Keramik (75-95%)' },
+                  { value: 'siap_huni', label: '6. Lunas STK & Siap Huni (100%)' }
+                ]}
+              />
+
+              {/* Note */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-700 block">Catatan Progres Lapangan</label>
+                <textarea
+                  rows={3}
+                  placeholder="Contoh: Pemasangan keramik lantai 1 lunas, siap pengecatan dinding luar..."
+                  value={constructNote}
+                  onChange={(e) => setConstructNote(e.target.value)}
+                  className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 font-medium resize-none"
+                />
+              </div>
+
+              {/* Riwayat Update */}
+              {selectedUnitForConstruction.construction_updates && selectedUnitForConstruction.construction_updates.length > 0 && (
+                <div className="space-y-2 pt-2 border-t border-slate-100">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Riwayat Pembaruan Fisik</span>
+                  <div className="max-h-36 overflow-y-auto space-y-2 pr-1">
+                    {selectedUnitForConstruction.construction_updates.map((cu: any) => (
+                      <div key={cu.id} className="p-2.5 bg-slate-50 border border-slate-150 rounded-xl text-xs flex justify-between items-start">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-slate-900">{cu.percent}%</span>
+                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 font-bold uppercase">{cu.stage?.replace('_', ' ')}</span>
+                          </div>
+                          <p className="text-[11px] text-slate-600 mt-1">{cu.note}</p>
+                        </div>
+                        <span className="text-[9px] text-slate-400 font-medium">{cu.date}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedUnitForConstruction(null)}
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-all shadow-md shadow-blue-200 cursor-pointer"
+                >
+                  Simpan Progres Fisik
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </AppShell>
   );
 }

@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import AppShell from '@/components/AppShell';
+import HeroSelect from '@/components/HeroSelect';
 import { useAuth } from '@/context/AuthContext';
 import { useCrudModal } from '@/context/CrudModalContext';
 import { 
@@ -174,16 +175,12 @@ function BlockEditor({ block, onChange, onDelete }: {
   );
 
   const sel = (field: keyof DocumentTemplateBlock, label: string, options: [string, string][]) => (
-    <div className="flex flex-col gap-0.5">
-      <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">{label}</label>
-      <select
-        value={(block as any)[field] || ''}
-        onChange={e => onChange({ ...block, [field]: e.target.value })}
-        className="px-2 py-1 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-400 bg-white"
-      >
-        {options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-      </select>
-    </div>
+    <HeroSelect
+      label={label}
+      value={(block as any)[field] || ''}
+      onChange={val => onChange({ ...block, [field]: val })}
+      options={options.map(([v, l]) => ({ value: v, label: l }))}
+    />
   );
 
   return (
@@ -441,19 +438,17 @@ function TemplateBuilder({
                   className="px-2.5 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-400 disabled:bg-gray-50 disabled:cursor-not-allowed"
                 />
               </div>
-              <div className="flex flex-col gap-0.5">
-                <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Ukuran Kertas</label>
-                <select
-                  value={tpl.paper_size || 'A4'}
-                  onChange={e => setTpl(t => ({ ...t, paper_size: e.target.value as any }))}
-                  className="px-2.5 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-400 bg-white"
-                >
-                  <option value="A4">A4 (210 x 297 mm)</option>
-                  <option value="Letter">Letter (8.5 x 11 in)</option>
-                  <option value="Legal">Legal (8.5 x 14 in)</option>
-                  <option value="F4">F4 / Folio (8.5 x 13 in)</option>
-                </select>
-              </div>
+              <HeroSelect
+                label="UKURAN KERTAS"
+                value={tpl.paper_size || 'A4'}
+                onChange={(val) => setTpl(t => ({ ...t, paper_size: val as any }))}
+                options={[
+                  { value: 'A4', label: 'A4 (210 x 297 mm)' },
+                  { value: 'Letter', label: 'Letter (8.5 x 11 in)' },
+                  { value: 'Legal', label: 'Legal (8.5 x 14 in)' },
+                  { value: 'F4', label: 'F4 / Folio (8.5 x 13 in)' }
+                ]}
+              />
             </div>
             <div className="mt-2">
               <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Deskripsi (opsional)</label>
@@ -589,6 +584,12 @@ export default function BackofficePage() {
   
   const [usersList, setUsersList] = useState<User[]>([]);
   const [employeesList, setEmployeesList] = useState<Employee[]>([]);
+  const [departmentsList, setDepartmentsList] = useState<string[]>([
+    'Pemasaran', 'Keuangan', 'HR & IT', 'Operasional & Konstruksi', 'Legal & Perizinan', 'Umum'
+  ]);
+  const [newDepartmentInput, setNewDepartmentInput] = useState('');
+  const [isAddingDepartment, setIsAddingDepartment] = useState(false);
+
   const [selectedUserForAccess, setSelectedUserForAccess] = useState<User | null>(null);
   const [tempSelectedClusters, setTempSelectedClusters] = useState<string[]>([]);
   const [tempRole, setTempRole] = useState<string>('staff');
@@ -603,6 +604,79 @@ export default function BackofficePage() {
   const [empIdString, setEmpIdString] = useState('');
   const [empLeaveBalance, setEmpLeaveBalance] = useState(12);
   const [isAddingEmployee, setIsAddingEmployee] = useState(false);
+  const [isDepartmentModalOpen, setIsDepartmentModalOpen] = useState(false);
+  const [newDepartmentTitle, setNewDepartmentTitle] = useState('');
+  const [onDepartmentAdded, setOnDepartmentAdded] = useState<((deptName: string) => void) | null>(null);
+
+  const openAddDepartmentModal = (callback?: (deptName: string) => void) => {
+    setNewDepartmentTitle('');
+    setOnDepartmentAdded(() => callback || null);
+    setIsDepartmentModalOpen(true);
+  };
+
+  const handleSaveNewDepartmentModal = async () => {
+    if (!newDepartmentTitle.trim()) return;
+    const name = newDepartmentTitle.trim();
+    await handleAddDepartment(name);
+    if (onDepartmentAdded) {
+      onDepartmentAdded(name);
+    }
+    setIsDepartmentModalOpen(false);
+    setNewDepartmentTitle('');
+  };
+
+  const handleAddDepartment = async (deptName?: string) => {
+    const targetName = deptName || newDepartmentInput;
+    if (!targetName || !targetName.trim()) return;
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'add_department',
+          actor_id: user?.id,
+          department_name: targetName.trim()
+        })
+      });
+      const json = await res.json();
+      if (json.success && json.departments) {
+        setDepartmentsList(json.departments);
+        setNewDepartmentInput('');
+        setIsAddingDepartment(false);
+        showSuccess('Departemen Ditambahkan', `Departemen ${targetName} berhasil ditambahkan!`, 'CREATE');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteDepartment = (deptName: string) => {
+    showConfirm(
+      'Hapus Departemen',
+      `Apakah Anda yakin ingin menghapus departemen "${deptName}" dari master data?`,
+      async () => {
+        try {
+          const res = await fetch('/api/settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'delete_department',
+              actor_id: user?.id,
+              department_name: deptName
+            })
+          });
+          const json = await res.json();
+          if (json.success && json.departments) {
+            setDepartmentsList(json.departments);
+            showSuccess('Departemen Dihapus', `Departemen ${deptName} telah dihapus.`, 'DELETE');
+          }
+        } catch (err) {
+          console.error(err);
+        }
+      },
+      'DELETE'
+    );
+  };
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [officeSettings, setOfficeSettings] = useState<any>(null);
   
@@ -1715,6 +1789,73 @@ export default function BackofficePage() {
               </div>
             </div>
 
+            {/* MASTER DATA DEPARTEMEN */}
+            <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-xs p-5 space-y-4">
+              <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                <div>
+                  <h3 className="font-bold text-sm text-gray-900 flex items-center gap-2">
+                    <Building2 size={16} className="text-purple-600" /> Master Data Departemen
+                  </h3>
+                  <p className="text-[11px] text-gray-500">Kelola divisi & departemen kepegawaian pengembang perumahan</p>
+                </div>
+                <button
+                  onClick={() => setIsAddingDepartment(true)}
+                  className="px-3 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+                >
+                  <Plus size={13} /> Tambah Departemen
+                </button>
+              </div>
+
+              {/* Departments List Badges */}
+              <div className="flex flex-wrap gap-2.5">
+                {departmentsList.map(dept => {
+                  const count = employeesList.filter(e => e.department === dept).length;
+                  return (
+                    <div key={dept} className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 hover:border-purple-300 transition-all">
+                      <span className="font-bold">{dept}</span>
+                      <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-purple-100 text-purple-700 font-extrabold">
+                        {count} Staf
+                      </span>
+                      <button
+                        onClick={() => handleDeleteDepartment(dept)}
+                        className="text-gray-400 hover:text-red-600 transition-colors p-0.5 cursor-pointer ml-1"
+                        title={`Hapus ${dept}`}
+                      >
+                        <X size={13} />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Form Tambah Departemen */}
+              {isAddingDepartment && (
+                <div className="pt-3 border-t border-gray-100 flex items-center gap-2 animate-in fade-in duration-150">
+                  <input
+                    type="text"
+                    placeholder="Nama departemen baru (contoh: Legal & Perizinan)"
+                    value={newDepartmentInput}
+                    onChange={e => setNewDepartmentInput(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleAddDepartment()}
+                    className="flex-1 px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium outline-none focus:border-purple-500 focus:bg-white"
+                    autoFocus
+                  />
+                  <button
+                    onClick={() => handleAddDepartment()}
+                    className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer"
+                  >
+                    Simpan
+                  </button>
+                  <button
+                    onClick={() => setIsAddingDepartment(false)}
+                    className="px-3 py-2 text-slate-500 hover:bg-slate-100 rounded-xl text-xs font-semibold cursor-pointer"
+                  >
+                    Batal
+                  </button>
+                </div>
+              )}
+            </div>
+
             {/* 2. DATA KARYAWAN (EMPLOYEES DATA) */}
             <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
               <div className="p-4 bg-gray-50 border-b border-gray-100 font-extrabold text-xs text-gray-500 uppercase tracking-wider flex justify-between items-center">
@@ -2374,18 +2515,16 @@ export default function BackofficePage() {
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
-                      <div className="flex flex-col gap-1.5">
-                        <label className="text-gray-400 uppercase tracking-wider text-[9px]">Status Penjualan</label>
-                        <select
-                          value={clStatus}
-                          onChange={e => setClStatus(e.target.value as any)}
-                          className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none bg-white font-medium"
-                        >
-                          <option value="active">Aktif (Active)</option>
-                          <option value="pre_launch">Pre-Launch</option>
-                          <option value="sold_out">Habis Terjual (Sold Out)</option>
-                        </select>
-                      </div>
+                      <HeroSelect
+                        label="STATUS PENJUALAN"
+                        value={clStatus}
+                        onChange={(val) => setClStatus(val as any)}
+                        options={[
+                          { value: 'active', label: 'Aktif (Active)' },
+                          { value: 'pre_launch', label: 'Pre-Launch' },
+                          { value: 'sold_out', label: 'Habis Terjual (Sold Out)' }
+                        ]}
+                      />
 
                       <div className="flex flex-col gap-1.5">
                         <label className="text-gray-400 uppercase tracking-wider text-[9px]">Peta Site Plan (File .svg) *</label>
@@ -2728,18 +2867,13 @@ export default function BackofficePage() {
                                 />
                               </div>
 
-                              <div className="flex flex-col gap-1.5">
-                                <label className="text-gray-400 uppercase tracking-wider text-[9px]">Tipe Unit Properti *</label>
-                                <select
-                                  value={uUnitTypeId}
-                                  onChange={e => setUUnitTypeId(e.target.value)}
-                                  className="px-3 py-2 border border-gray-200 bg-white rounded-xl focus:outline-none font-medium text-xs"
-                                >
-                                  {clusterTypes.map(type => (
-                                    <option key={type.id} value={type.id}>{type.name}</option>
-                                  ))}
-                                </select>
-                              </div>
+                              <HeroSelect
+                                label="TIPE UNIT PROPERTI *"
+                                required
+                                value={uUnitTypeId}
+                                onChange={(val) => setUUnitTypeId(val)}
+                                options={clusterTypes.map(type => ({ value: type.id, label: type.name }))}
+                              />
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
@@ -2755,56 +2889,50 @@ export default function BackofficePage() {
                                 />
                               </div>
 
-                              <div className="flex flex-col gap-1.5">
-                                <label className="text-gray-400 uppercase tracking-wider text-[9px]">Orientasi Kavling</label>
-                                <select
-                                  value={uOrientation}
-                                  onChange={e => setUOrientation(e.target.value as any)}
-                                  className="px-3 py-2 border border-gray-200 bg-white rounded-xl focus:outline-none font-medium text-xs"
-                                >
-                                  <option value="middle">Tengah (Middle)</option>
-                                  <option value="hook">Sudut Jalan (Hook)</option>
-                                  <option value="corner">Pojok (Corner)</option>
-                                </select>
-                              </div>
+                              <HeroSelect
+                                label="ORIENTASI KAVLING"
+                                value={uOrientation}
+                                onChange={(val) => setUOrientation(val as any)}
+                                options={[
+                                  { value: 'middle', label: 'Tengah (Middle)' },
+                                  { value: 'hook', label: 'Sudut Jalan (Hook)' },
+                                  { value: 'corner', label: 'Pojok (Corner)' }
+                                ]}
+                              />
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
-                              <div className="flex flex-col gap-1.5">
-                                <label className="text-gray-400 uppercase tracking-wider text-[9px]">Status Ketersediaan</label>
-                                <select
-                                  value={uStatus}
-                                  onChange={e => {
-                                    setUStatus(e.target.value);
-                                    if (e.target.value !== 'available') {
-                                      setUConstructionStatus('belum_terbangun');
-                                    }
-                                  }}
-                                  className="px-3 py-2 border border-gray-200 bg-white rounded-xl focus:outline-none font-medium text-xs"
-                                >
-                                  <option value="available">Tersedia / Kosong (Available)</option>
-                                  <option value="reserved">Minat (Reserved)</option>
-                                  <option value="booking">Booking Fee Paid</option>
-                                  <option value="kpr_process">Proses KPR</option>
-                                  <option value="sold">Terjual (Sold)</option>
-                                  <option value="unavailable">Tidak Tersedia</option>
-                                </select>
-                              </div>
+                              <HeroSelect
+                                label="STATUS KETERSEDIAAN"
+                                value={uStatus}
+                                onChange={(val) => {
+                                  setUStatus(val);
+                                  if (val !== 'available') {
+                                    setUConstructionStatus('belum_terbangun');
+                                  }
+                                }}
+                                options={[
+                                  { value: 'available', label: 'Tersedia / Kosong (Available)' },
+                                  { value: 'reserved', label: 'Minat (Reserved)' },
+                                  { value: 'booking', label: 'Booking Fee Paid' },
+                                  { value: 'kpr_process', label: 'Proses KPR' },
+                                  { value: 'sold', label: 'Terjual (Sold)' },
+                                  { value: 'unavailable', label: 'Tidak Tersedia' }
+                                ]}
+                              />
 
                               {uStatus === 'available' ? (
-                                <div className="flex flex-col gap-1.5">
-                                  <label className="text-gray-400 uppercase tracking-wider text-[9px]">Tahap Pembangunan *</label>
-                                  <select
-                                    value={uConstructionStatus}
-                                    onChange={e => setUConstructionStatus(e.target.value)}
-                                    className="px-3 py-2 border border-gray-200 bg-white rounded-xl focus:outline-none font-bold text-xs text-indigo-700"
-                                  >
-                                    <option value="belum_terbangun">Belum Terbangun</option>
-                                    <option value="proses_pembangunan">Proses Pembangunan</option>
-                                    <option value="finishing">Finishing</option>
-                                    <option value="ready">Ready (Siap Huni)</option>
-                                  </select>
-                                </div>
+                                <HeroSelect
+                                  label="TAHAP PEMBANGUNAN *"
+                                  value={uConstructionStatus}
+                                  onChange={(val) => setUConstructionStatus(val)}
+                                  options={[
+                                    { value: 'belum_terbangun', label: 'Belum Terbangun' },
+                                    { value: 'proses_pembangunan', label: 'Proses Pembangunan' },
+                                    { value: 'finishing', label: 'Finishing' },
+                                    { value: 'ready', label: 'Ready (Siap Huni)' }
+                                  ]}
+                                />
                               ) : (
                                 <div className="flex flex-col gap-1.5">
                                   <label className="text-gray-400 uppercase tracking-wider text-[9px]">Catatan Unit</label>
@@ -2837,32 +2965,28 @@ export default function BackofficePage() {
                               <h5 className="font-extrabold text-[10px] text-indigo-600 uppercase tracking-widest">⚖️ Legalitas & Perpajakan</h5>
                               
                               <div className="grid grid-cols-2 gap-4">
-                                <div className="flex flex-col gap-1.5">
-                                  <label className="text-gray-400 uppercase tracking-wider text-[9px]">Status Sertifikat Tanah</label>
-                                  <select
-                                    value={uLegalStatus}
-                                    onChange={e => setULegalStatus(e.target.value as any)}
-                                    className="px-3 py-2 border border-gray-200 bg-white rounded-xl focus:outline-none font-medium text-xs text-slate-800"
-                                  >
-                                    <option value="shm">SHM (Sertifikat Hak Milik)</option>
-                                    <option value="shgb">SHGB (Sertifikat Hak Guna Bangunan)</option>
-                                    <option value="ajb">AJB (Akta Jual Beli)</option>
-                                    <option value="other">Lainnya (HGB / Girik / Surat)</option>
-                                  </select>
-                                </div>
+                                <HeroSelect
+                                  label="STATUS SERTIFIKAT TANAH"
+                                  value={uLegalStatus}
+                                  onChange={(val) => setULegalStatus(val as any)}
+                                  options={[
+                                    { value: 'shm', label: 'SHM (Sertifikat Hak Milik)' },
+                                    { value: 'shgb', label: 'SHGB (Sertifikat Hak Guna Bangunan)' },
+                                    { value: 'ajb', label: 'AJB (Akta Jual Beli)' },
+                                    { value: 'other', label: 'Lainnya (HGB / Girik / Surat)' }
+                                  ]}
+                                />
 
-                                <div className="flex flex-col gap-1.5">
-                                  <label className="text-gray-400 uppercase tracking-wider text-[9px]">Status Pajak PBB</label>
-                                  <select
-                                    value={uPbbStatus}
-                                    onChange={e => setUPbbStatus(e.target.value as any)}
-                                    className="px-3 py-2 border border-gray-200 bg-white rounded-xl focus:outline-none font-medium text-xs text-slate-800"
-                                  >
-                                    <option value="paid">Lunas (Paid)</option>
-                                    <option value="unpaid">Belum Bayar (Unpaid)</option>
-                                    <option value="not_registered">Belum Terdaftar</option>
-                                  </select>
-                                </div>
+                                <HeroSelect
+                                  label="STATUS PAJAK PBB"
+                                  value={uPbbStatus}
+                                  onChange={(val) => setUPbbStatus(val as any)}
+                                  options={[
+                                    { value: 'paid', label: 'Lunas (Paid)' },
+                                    { value: 'unpaid', label: 'Belum Bayar (Unpaid)' },
+                                    { value: 'not_registered', label: 'Belum Terdaftar' }
+                                  ]}
+                                />
                               </div>
 
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-1">
@@ -3248,15 +3372,24 @@ export default function BackofficePage() {
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5 flex flex-col text-left">
-                  <label className="text-gray-400 uppercase tracking-wider text-[9px] font-bold">Departemen</label>
-                  <input
-                    type="text"
-                    value={tempDepartment}
-                    onChange={(e) => setTempDepartment(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 font-medium text-xs text-gray-800"
-                  />
-                </div>
+                <HeroSelect
+                  label="DEPARTEMEN"
+                  placeholder="Pilih Departemen..."
+                  value={tempDepartment}
+                  onChange={(val) => {
+                    if (val === '__add_new__') {
+                      openAddDepartmentModal((newDept) => {
+                        setTempDepartment(newDept);
+                      });
+                    } else {
+                      setTempDepartment(val);
+                    }
+                  }}
+                  options={[
+                    ...departmentsList.map(d => ({ value: d, label: d })),
+                    { value: '__add_new__', label: '+ Tambah Departemen Baru...' }
+                  ]}
+                />
                 <div className="space-y-1.5 flex flex-col text-left">
                   <label className="text-gray-400 uppercase tracking-wider text-[9px] font-bold">Saldo Cuti (Hari)</label>
                   <input
@@ -3269,18 +3402,17 @@ export default function BackofficePage() {
               </div>
 
               {/* Role Selection */}
-              <div className="space-y-1.5 flex flex-col text-left">
-                <label className="text-gray-400 uppercase tracking-wider text-[9px] font-bold">Role Hak Akses Sistem *</label>
-                <select
-                  value={tempRole}
-                  onChange={(e) => setTempRole(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 font-medium text-xs text-gray-800"
-                >
-                  <option value="admin">Admin (Akses Penuh Seluruh Sistem)</option>
-                  <option value="manager">Manager (Akses Manajemen Properti & CRM)</option>
-                  <option value="staff">Staff (Akses Operasional Lapangan & Sales)</option>
-                </select>
-              </div>
+              <HeroSelect
+                label="ROLE HAK AKSES SISTEM *"
+                required
+                value={tempRole}
+                onChange={(val) => setTempRole(val)}
+                options={[
+                  { value: 'admin', label: 'Admin (Akses Penuh Seluruh Sistem)' },
+                  { value: 'manager', label: 'Manager (Akses Manajemen Properti & CRM)' },
+                  { value: 'staff', label: 'Staff (Akses Operasional Lapangan & Sales)' }
+                ]}
+              />
               
               {/* Cluster Access Restriction */}
               <div className="space-y-2.5">
@@ -3369,10 +3501,24 @@ export default function BackofficePage() {
                 <input type="text" value={empName} onChange={e => setEmpName(e.target.value)} className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 font-medium text-xs text-gray-800" />
               </div>
               
-              <div className="space-y-1.5 flex flex-col text-left">
-                <label className="text-gray-400 uppercase tracking-wider text-[9px] font-bold">Departemen</label>
-                <input type="text" value={empDepartment} onChange={e => setEmpDepartment(e.target.value)} className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 font-medium text-xs text-gray-800" />
-              </div>
+              <HeroSelect
+                label="DEPARTEMEN"
+                placeholder="Pilih Departemen..."
+                value={empDepartment}
+                onChange={(val) => {
+                  if (val === '__add_new__') {
+                    openAddDepartmentModal((newDept) => {
+                      setEmpDepartment(newDept);
+                    });
+                  } else {
+                    setEmpDepartment(val);
+                  }
+                }}
+                options={[
+                  ...departmentsList.map(d => ({ value: d, label: d })),
+                  { value: '__add_new__', label: '+ Tambah Departemen Baru...' }
+                ]}
+              />
               
               <div className="space-y-1.5 flex flex-col text-left">
                 <label className="text-gray-400 uppercase tracking-wider text-[9px] font-bold">ID Karyawan</label>
@@ -3417,10 +3563,25 @@ export default function BackofficePage() {
                 <input type="text" value={empName} onChange={e => setEmpName(e.target.value)} placeholder="Nama karyawan baru" className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 font-medium text-xs text-gray-800" />
               </div>
               
-              <div className="space-y-1.5 flex flex-col text-left">
-                <label className="text-gray-400 uppercase tracking-wider text-[9px] font-bold">Departemen *</label>
-                <input type="text" value={empDepartment} onChange={e => setEmpDepartment(e.target.value)} placeholder="Contoh: Pemasaran, Keuangan" className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 font-medium text-xs text-gray-800" />
-              </div>
+              <HeroSelect
+                label="DEPARTEMEN"
+                required
+                placeholder="Pilih Departemen..."
+                value={empDepartment}
+                onChange={(val) => {
+                  if (val === '__add_new__') {
+                    openAddDepartmentModal((newDept) => {
+                      setEmpDepartment(newDept);
+                    });
+                  } else {
+                    setEmpDepartment(val);
+                  }
+                }}
+                options={[
+                  ...departmentsList.map(d => ({ value: d, label: d })),
+                  { value: '__add_new__', label: '+ Tambah Departemen Baru...' }
+                ]}
+              />
               
               <div className="space-y-1.5 flex flex-col text-left">
                 <label className="text-gray-400 uppercase tracking-wider text-[9px] font-bold">ID Karyawan *</label>
@@ -3441,6 +3602,69 @@ export default function BackofficePage() {
                 Daftarkan
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: TAMBAH DEPARTEMEN BARU */}
+      {isDepartmentModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div 
+            className="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden transform transition-all animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="px-6 py-4.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center text-white">
+                  <Building2 size={18} />
+                </div>
+                <div>
+                  <h2 className="font-bold text-sm text-white">Tambah Departemen Baru</h2>
+                  <p className="text-[11px] text-purple-100">Masukkan nama divisi atau departemen baru</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setIsDepartmentModalOpen(false)}
+                className="p-1.5 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-colors cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Body */}
+            <form onSubmit={(e) => { e.preventDefault(); handleSaveNewDepartmentModal(); }} className="p-6 space-y-4">
+              <div className="space-y-1.5 text-left">
+                <label className="text-xs font-semibold text-slate-700 block">Nama Departemen *</label>
+                <input 
+                  type="text"
+                  placeholder="Contoh: Legal & Perizinan, Customer Service..."
+                  value={newDepartmentTitle}
+                  onChange={(e) => setNewDepartmentTitle(e.target.value)}
+                  className="w-full px-4 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-purple-500 focus:bg-white transition-all font-medium"
+                  autoFocus
+                />
+              </div>
+
+              {/* Actions */}
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsDepartmentModalOpen(false)}
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={!newDepartmentTitle.trim()}
+                  className="px-5 py-2 text-xs font-bold text-white bg-purple-600 hover:bg-purple-700 active:scale-95 disabled:opacity-40 rounded-xl transition-all shadow-md shadow-purple-200 flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Check size={14} />
+                  Simpan Departemen
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

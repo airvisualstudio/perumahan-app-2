@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import AppShell from '@/components/AppShell';
+import HeroSelect from '@/components/HeroSelect';
 import { useAuth } from '@/context/AuthContext';
 import { useCrudModal } from '@/context/CrudModalContext';
 import { 
@@ -376,31 +377,23 @@ export default function TaskBoardPage() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-gray-400 uppercase tracking-wider text-[10px]">Assignee (Penugasan)</label>
-                    <select
-                      value={newAssignee}
-                      onChange={(e) => setNewAssignee(e.target.value)}
-                      className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none"
-                    >
-                      {users.map(u => (
-                        <option key={u.id} value={u.id}>{u.name} ({u.role})</option>
-                      ))}
-                    </select>
-                  </div>
+                  <HeroSelect
+                    label="ASSIGNEE (PENUGASAN)"
+                    value={newAssignee}
+                    onChange={(val) => setNewAssignee(val)}
+                    options={users.map(u => ({ value: u.id, label: `${u.name} (${u.role})` }))}
+                  />
 
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-gray-400 uppercase tracking-wider text-[10px]">Prioritas</label>
-                    <select
-                      value={newPriority}
-                      onChange={(e) => setNewPriority(e.target.value as any)}
-                      className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none"
-                    >
-                      <option value="low">Rendah (Low)</option>
-                      <option value="medium">Sedang (Medium)</option>
-                      <option value="high">Tinggi (High)</option>
-                    </select>
-                  </div>
+                  <HeroSelect
+                    label="PRIORITAS"
+                    value={newPriority}
+                    onChange={(val) => setNewPriority(val as any)}
+                    options={[
+                      { value: 'low', label: 'Rendah (Low)' },
+                      { value: 'medium', label: 'Sedang (Medium)' },
+                      { value: 'high', label: 'Tinggi (High)' }
+                    ]}
+                  />
                 </div>
 
                 <div className="flex flex-col gap-1.5">

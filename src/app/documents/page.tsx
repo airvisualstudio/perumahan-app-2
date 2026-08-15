@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import AppShell from '@/components/AppShell';
+import HeroSelect from '@/components/HeroSelect';
 import { useAuth } from '@/context/AuthContext';
 import { useCrudModal } from '@/context/CrudModalContext';
 import { 
@@ -997,35 +998,26 @@ export default function DocumentHubPage() {
               
               <div className="flex flex-col gap-1.5 bg-slate-50 border border-slate-200/50 p-4 rounded-2xl mb-2">
                 <label className="text-gray-400 uppercase tracking-wider text-[9px]">Pemberkasan untuk Proyek Perumahan *</label>
-                <select
-                  value={docClusterId}
-                  onChange={e => setDocClusterId(e.target.value)}
-                  className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none bg-white font-bold text-gray-800 focus:border-blue-500"
+                <HeroSelect
+                  label="PROYEK PERUMAHAN"
                   required
-                >
-                  <option value="">-- PILIH PROYEK PERUMAHAN --</option>
-                  {clusters.map(c => (
-                    <option key={c.id} value={c.id}>{c.name} ({c.location})</option>
-                  ))}
-                </select>
+                  placeholder="-- PILIH PROYEK PERUMAHAN --"
+                  value={docClusterId}
+                  onChange={(val) => setDocClusterId(val)}
+                  options={clusters.map(c => ({ value: c.id, label: `${c.name} (${c.location})` }))}
+                />
                 <p className="text-[10px] text-gray-400 font-medium">Dokumen dan Kop Surat akan otomatis disesuaikan dengan profil perumahan yang dipilih.</p>
               </div>
 
               {/* Form: INVOICE (builtin) */}
               {selectedTemplate?.doc_type_key === 'Invoice' && (
                 <>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-gray-400 uppercase tracking-wider text-[9px]">Hubungkan Prospek Klien *</label>
-                    <select
-                      value={invProspectId}
-                      onChange={e => setInvProspectId(e.target.value)}
-                      className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none"
-                    >
-                      {prospects.map(p => (
-                        <option key={p.id} value={p.id}>{p.full_name}</option>
-                      ))}
-                    </select>
-                  </div>
+                  <HeroSelect
+                    label="HUBUNGKAN PROSPEK KLIEN *"
+                    value={invProspectId}
+                    onChange={(val) => setInvProspectId(val)}
+                    options={prospects.map(p => ({ value: p.id, label: p.full_name }))}
+                  />
 
                   <div className="flex flex-col gap-1.5">
                     <label className="text-gray-400 uppercase tracking-wider text-[9px]">Rincian Item Pembayaran *</label>
@@ -1073,19 +1065,16 @@ export default function DocumentHubPage() {
               {/* Form: KWITANSI (builtin) */}
               {selectedTemplate?.doc_type_key === 'Kwitansi' && (
                 <>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-gray-400 uppercase tracking-wider text-[9px]">Hubungkan Invoice Approved (Salin Data)</label>
-                    <select
-                      value={kwtInvoiceId}
-                      onChange={e => handleKwtInvoiceChange(e.target.value)}
-                      className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none"
-                    >
-                      <option value="">-- PILIH INVOICE JIKA ADA --</option>
-                      {documents.filter(d => d.doc_type === 'Invoice').map(d => (
-                        <option key={d.id} value={d.id}>{d.doc_number} ({d.data.client_name} - {formatIDR(d.data.total_amount)})</option>
-                      ))}
-                    </select>
-                  </div>
+                  <HeroSelect
+                    label="HUBUNGKAN INVOICE APPROVED"
+                    placeholder="-- PILIH INVOICE JIKA ADA --"
+                    value={kwtInvoiceId}
+                    onChange={(val) => handleKwtInvoiceChange(val)}
+                    options={documents.filter(d => d.doc_type === 'Invoice').map(d => ({
+                      value: d.id,
+                      label: `${d.doc_number} (${d.data.client_name} - ${formatIDR(d.data.total_amount)})`
+                    }))}
+                  />
                   <div className="flex flex-col gap-1.5">
                     <label className="text-gray-400 uppercase tracking-wider text-[9px]">Telah Diterima Dari (Nama) *</label>
                     <input type="text" required placeholder="Masukkan nama pembayar..." value={kwtPenerima}
@@ -1113,15 +1102,16 @@ export default function DocumentHubPage() {
               {selectedTemplate?.doc_type_key === 'Surat' && (
                 <>
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-gray-400 uppercase tracking-wider text-[9px]">Pilih Template Surat</label>
-                      <select value={srtTemplate} onChange={e => setSrtTemplate(e.target.value)}
-                        className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none">
-                        <option value="Surat Tugas">Surat Tugas Lapangan</option>
-                        <option value="Surat Pengantar">Surat Pengantar Proyek</option>
-                        <option value="Surat Keterangan">Surat Keterangan Kerja</option>
-                      </select>
-                    </div>
+                    <HeroSelect
+                      label="TEMPLATE SURAT"
+                      value={srtTemplate}
+                      onChange={(val) => setSrtTemplate(val)}
+                      options={[
+                        { value: 'Surat Tugas', label: 'Surat Tugas Lapangan' },
+                        { value: 'Surat Pengantar', label: 'Surat Pengantar Proyek' },
+                        { value: 'Surat Keterangan', label: 'Surat Keterangan Kerja' }
+                      ]}
+                    />
                     <div className="flex flex-col gap-1.5">
                       <label className="text-gray-400 uppercase tracking-wider text-[9px]">Tanggal Berlaku *</label>
                       <input type="date" required value={srtTanggal} onChange={e => setSrtTanggal(e.target.value)}

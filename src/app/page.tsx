@@ -12,7 +12,12 @@ import {
   CheckCircle,
   FileCheck,
   AlertCircle,
-  DollarSign
+  DollarSign,
+  Calendar,
+  RotateCw,
+  Check,
+  X,
+  ChevronDown
 } from 'lucide-react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -51,6 +56,44 @@ export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeStageIndex, setActiveStageIndex] = useState<number>(4);
+
+  // Date Range Filter States
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const [selectedRangePreset, setSelectedRangePreset] = useState<'today' | '7days' | '30days' | 'this_month' | 'custom'>('today');
+  const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
+  const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
+  const [isRefetching, setIsRefetching] = useState(false);
+  const [dateLabel, setDateLabel] = useState(`Real data as of ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`);
+
+  const handleApplyDateRange = async (preset: 'today' | '7days' | '30days' | 'this_month' | 'custom') => {
+    setSelectedRangePreset(preset);
+    setIsRefetching(true);
+
+    const now = new Date();
+    let start = new Date();
+    let labelText = '';
+
+    if (preset === 'today') {
+      start = now;
+      labelText = `Real data as of ${now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+    } else if (preset === '7days') {
+      start.setDate(now.getDate() - 7);
+      labelText = `7 Hari Terakhir (${start.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} - ${now.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })})`;
+    } else if (preset === '30days') {
+      start.setDate(now.getDate() - 30);
+      labelText = `30 Hari Terakhir (${start.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} - ${now.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })})`;
+    } else if (preset === 'this_month') {
+      start = new Date(now.getFullYear(), now.getMonth(), 1);
+      labelText = `Bulan Ini (${now.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })})`;
+    } else if (preset === 'custom') {
+      labelText = `Rentang: ${startDate} s/d ${endDate}`;
+    }
+
+    setDateLabel(labelText);
+    await fetchDashboardData();
+    setIsRefetching(false);
+    setIsDatePickerOpen(false);
+  };
 
   const fetchDashboardData = async () => {
     try {
@@ -277,11 +320,107 @@ export default function DashboardPage() {
           </div>
 
           {/* Right: Date Indicator & Purple Export Button */}
-          <div className="flex items-center gap-2.5">
-            <div className="flex items-center gap-2 px-3 py-2 bg-white border border-slate-200/70 text-slate-600 rounded-xl text-xs font-medium shadow-xs">
-              <span className="text-slate-400">📅</span>
-              <span>Real data as of {todayFormatted}</span>
-            </div>
+          <div className="flex items-center gap-2.5 relative">
+            <button 
+              type="button"
+              onClick={() => setIsDatePickerOpen(prev => !prev)}
+              className="flex items-center gap-2 px-3.5 py-2 bg-white hover:bg-slate-50 border border-slate-200/80 text-slate-700 rounded-xl text-xs font-semibold shadow-2xs transition-all cursor-pointer group"
+            >
+              <Calendar size={14} className="text-purple-600 group-hover:scale-110 transition-transform" />
+              <span>{dateLabel}</span>
+              <ChevronDown size={14} className={`text-slate-400 transition-transform duration-200 ${isDatePickerOpen ? 'rotate-180 text-purple-600' : ''}`} />
+            </button>
+
+            {/* Date Range Picker Popover Menu */}
+            {isDatePickerOpen && (
+              <div className="absolute top-full right-0 mt-2 w-72 bg-white border border-slate-200 rounded-2xl p-4 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-150 space-y-3 text-xs text-left">
+                <div className="flex justify-between items-center border-b border-slate-100 pb-2">
+                  <span className="font-extrabold text-slate-900 uppercase tracking-wider text-[10px]">Filter Periode Data</span>
+                  <button type="button" onClick={() => setIsDatePickerOpen(false)} className="text-slate-400 hover:text-slate-600">
+                    <X size={14} />
+                  </button>
+                </div>
+
+                <div className="space-y-1">
+                  <button
+                    type="button"
+                    onClick={() => handleApplyDateRange('today')}
+                    className={`w-full text-left px-3 py-2 rounded-xl font-semibold flex items-center justify-between transition-all cursor-pointer ${
+                      selectedRangePreset === 'today' ? 'bg-purple-50 text-purple-700 font-bold' : 'text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <span>⚡ Hari Ini (Real-Time)</span>
+                    {selectedRangePreset === 'today' && <Check size={14} className="text-purple-600" />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleApplyDateRange('7days')}
+                    className={`w-full text-left px-3 py-2 rounded-xl font-semibold flex items-center justify-between transition-all cursor-pointer ${
+                      selectedRangePreset === '7days' ? 'bg-purple-50 text-purple-700 font-bold' : 'text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <span>📅 7 Hari Terakhir</span>
+                    {selectedRangePreset === '7days' && <Check size={14} className="text-purple-600" />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleApplyDateRange('30days')}
+                    className={`w-full text-left px-3 py-2 rounded-xl font-semibold flex items-center justify-between transition-all cursor-pointer ${
+                      selectedRangePreset === '30days' ? 'bg-purple-50 text-purple-700 font-bold' : 'text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <span>🗓️ 30 Hari Terakhir</span>
+                    {selectedRangePreset === '30days' && <Check size={14} className="text-purple-600" />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleApplyDateRange('this_month')}
+                    className={`w-full text-left px-3 py-2 rounded-xl font-semibold flex items-center justify-between transition-all cursor-pointer ${
+                      selectedRangePreset === 'this_month' ? 'bg-purple-50 text-purple-700 font-bold' : 'text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <span>📆 Bulan Ini</span>
+                    {selectedRangePreset === 'this_month' && <Check size={14} className="text-purple-600" />}
+                  </button>
+                </div>
+
+                <div className="pt-2 border-t border-slate-100 space-y-2">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Custom Rentang Tanggal</span>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="date"
+                      value={startDate}
+                      onChange={e => setStartDate(e.target.value)}
+                      className="px-2 py-1.5 border border-slate-200 rounded-lg text-[11px] font-semibold text-slate-800 bg-slate-50 focus:outline-none focus:border-purple-500"
+                    />
+                    <input
+                      type="date"
+                      value={endDate}
+                      onChange={e => setEndDate(e.target.value)}
+                      className="px-2 py-1.5 border border-slate-200 rounded-lg text-[11px] font-semibold text-slate-800 bg-slate-50 focus:outline-none focus:border-purple-500"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleApplyDateRange('custom')}
+                    className="w-full py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-bold text-xs shadow-xs transition-colors cursor-pointer"
+                  >
+                    Terapkan Rentang
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <button 
+              type="button"
+              onClick={() => handleApplyDateRange(selectedRangePreset)}
+              disabled={isRefetching}
+              className="p-2 bg-white hover:bg-slate-50 text-slate-600 rounded-xl border border-slate-200/80 shadow-2xs transition-all cursor-pointer"
+              title="Refresh Data Sekarang"
+            >
+              <RotateCw size={14} className={isRefetching ? "animate-spin text-purple-600" : ""} />
+            </button>
+
             <Link 
               href="/documents" 
               className="flex items-center gap-1.5 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-semibold shadow-sm transition-all cursor-pointer"

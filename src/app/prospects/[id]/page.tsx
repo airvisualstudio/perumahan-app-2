@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, use } from 'react';
 import AppShell from '@/components/AppShell';
+import HeroSelect from '@/components/HeroSelect';
 import { useAuth } from '@/context/AuthContext';
 import { useCrudModal } from '@/context/CrudModalContext';
 import { 
@@ -598,17 +599,11 @@ export default function ProspectDetailPage({ params }: Props) {
           {/* Select dropdown stage switcher */}
           <div className="flex items-center gap-3 w-full md:w-auto">
             <span className="text-xs font-bold text-gray-400 uppercase tracking-wider hidden sm:block">Tahapan:</span>
-            <select
+            <HeroSelect
               value={prospect.pipeline_stage}
-              onChange={handleStageChangeAttempt}
-              className={`px-3 py-2 border rounded-xl text-xs font-extrabold focus:outline-none ${activeStageConfig?.color}`}
-            >
-              {pipelineStages.map((stage) => (
-                <option key={stage.key} value={stage.key} className="bg-white text-gray-800 font-semibold">
-                  {stage.label}
-                </option>
-              ))}
-            </select>
+              onChange={(val) => handleStageChangeAttempt({ target: { value: val } } as any)}
+              options={pipelineStages.map(stage => ({ value: stage.key, label: stage.label }))}
+            />
           </div>
         </div>
 
@@ -936,34 +931,30 @@ export default function ProspectDetailPage({ params }: Props) {
 
               <form onSubmit={handleAddFollowup} className="flex flex-col gap-4 text-xs font-semibold">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-gray-400 uppercase tracking-wider text-[10px]">Tipe Follow-up</label>
-                    <select
-                      value={fuType}
-                      onChange={(e) => setFuType(e.target.value as any)}
-                      className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500"
-                    >
-                      <option value="whatsapp">WhatsApp Chat</option>
-                      <option value="telepon">Panggilan Telepon</option>
-                      <option value="kunjungan">Kunjungan Lapangan</option>
-                      <option value="meeting">Meeting Kantor</option>
-                      <option value="email">Email</option>
-                    </select>
-                  </div>
+                  <HeroSelect
+                    label="TIPE FOLLOW-UP"
+                    value={fuType}
+                    onChange={(val) => setFuType(val as any)}
+                    options={[
+                      { value: 'whatsapp', label: 'WhatsApp Chat' },
+                      { value: 'telepon', label: 'Panggilan Telepon' },
+                      { value: 'kunjungan', label: 'Kunjungan Lapangan' },
+                      { value: 'meeting', label: 'Meeting Kantor' },
+                      { value: 'email', label: 'Email' }
+                    ]}
+                  />
 
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-gray-400 uppercase tracking-wider text-[10px]">Respon Prospek</label>
-                    <select
-                      value={fuResponse}
-                      onChange={(e) => setFuResponse(e.target.value as any)}
-                      className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500"
-                    >
-                      <option value="very_interested">Sangat Tertarik (Very Interested)</option>
-                      <option value="interested">Tertarik (Interested)</option>
-                      <option value="considering">Pikir-Pikir (Considering)</option>
-                      <option value="not_interested">Tidak Berminat (Not Interested)</option>
-                    </select>
-                  </div>
+                  <HeroSelect
+                    label="RESPON PROSPEK"
+                    value={fuResponse}
+                    onChange={(val) => setFuResponse(val as any)}
+                    options={[
+                      { value: 'very_interested', label: 'Sangat Tertarik (Very Interested)' },
+                      { value: 'interested', label: 'Tertarik (Interested)' },
+                      { value: 'considering', label: 'Pikir-Pikir (Considering)' },
+                      { value: 'not_interested', label: 'Tidak Berminat (Not Interested)' }
+                    ]}
+                  />
                 </div>
 
                 <div className="flex flex-col gap-1.5">

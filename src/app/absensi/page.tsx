@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import AppShell from '@/components/AppShell';
+import HeroSelect from '@/components/HeroSelect';
 import { useAuth } from '@/context/AuthContext';
 import { useCrudModal } from '@/context/CrudModalContext';
 import { 
@@ -2147,17 +2148,15 @@ export default function AttendancePage() {
               </div>
 
               <form onSubmit={handleApplyCuti} className="flex flex-col gap-4 text-xs font-semibold">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-gray-400 uppercase tracking-wider text-[10px]">Tipe Cuti</label>
-                  <select
-                    value={cutiType}
-                    onChange={(e) => setCutiType(e.target.value)}
-                    className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500"
-                  >
-                    <option value="Cuti Tahunan">Cuti Tahunan (Potong Saldo)</option>
-                    <option value="Cuti Khusus">Cuti Khusus (Menikah, Duka, Melahirkan)</option>
-                  </select>
-                </div>
+                <HeroSelect
+                  label="TIPE CUTI"
+                  value={cutiType}
+                  onChange={(val) => setCutiType(val)}
+                  options={[
+                    { value: 'Cuti Tahunan', label: 'Cuti Tahunan (Potong Saldo)' },
+                    { value: 'Cuti Khusus', label: 'Cuti Khusus (Menikah, Duka, Melahirkan)' }
+                  ]}
+                />
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="flex flex-col gap-1.5">
@@ -2225,20 +2224,15 @@ export default function AttendancePage() {
               </div>
 
               <form onSubmit={handleApplyIzin} className="flex flex-col gap-4 text-xs font-semibold">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-gray-400 uppercase tracking-wider text-[10px]">Tipe Izin</label>
-                  <select
-                    value={izinType}
-                    onChange={(e) => setIzinType(e.target.value)}
-                    className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-slate-500"
-                  >
-                    {permissionTypes.map((pt) => (
-                      <option key={pt.id} value={pt.name}>
-                        {pt.name} {pt.requires_attachment ? '(Wajib Bukti Gambar)' : ''}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <HeroSelect
+                  label="TIPE IZIN"
+                  value={izinType}
+                  onChange={(val) => setIzinType(val)}
+                  options={permissionTypes.map((pt) => ({
+                    value: pt.name,
+                    label: `${pt.name} ${pt.requires_attachment ? '(Wajib Bukti Gambar)' : ''}`
+                  }))}
+                />
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="flex flex-col gap-1.5">

@@ -11,6 +11,8 @@ export interface UserSession {
   employee_id: string;
   annual_leave_balance: number;
   accessible_clusters?: string[];
+  phone?: string;
+  avatar_url?: string;
 }
 
 interface AuthContextType {
@@ -18,6 +20,7 @@ interface AuthContextType {
   isLoading: boolean;
   switchUser: (userId: string) => void;
   logout: () => void;
+  updateUser: (updatedData: Partial<UserSession>) => void;
   availableUsers: UserSession[];
 }
 
@@ -89,8 +92,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     window.location.href = '/';
   };
 
+  const updateUser = (updatedData: Partial<UserSession>) => {
+    setUser(prev => prev ? { ...prev, ...updatedData } : null);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, isLoading, switchUser, logout, availableUsers: mockUsers }}>
+    <AuthContext.Provider value={{ user, isLoading, switchUser, logout, updateUser, availableUsers: mockUsers }}>
       {children}
     </AuthContext.Provider>
   );

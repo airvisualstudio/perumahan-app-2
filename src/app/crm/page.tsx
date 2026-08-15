@@ -24,10 +24,19 @@ import {
   Edit2,
   Trash2,
   Grid,
-  List
+  List,
+  Calculator,
+  CreditCard,
+  Receipt,
+  Hammer,
+  Printer,
+  KeyRound,
+  ShieldCheck
 } from 'lucide-react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
+import PrintDocumentModal from '@/components/PrintDocumentModal';
+import HeroSelect from '@/components/HeroSelect';
 
 interface Cluster {
   id: string;
@@ -69,9 +78,21 @@ interface UnitType {
   photos?: string[];
 }
 
+interface PaymentScheduleItem {
+  id: string;
+  milestone_name: string;
+  due_date: string;
+  amount: number;
+  status: 'pending' | 'paid' | 'overdue';
+  paid_at?: string;
+  receipt_no?: string;
+  notes?: string;
+}
+
 interface Prospect {
   id: string;
   full_name: string;
+  nik?: string;
   phone: string;
   email?: string;
   occupation?: string;
@@ -87,6 +108,12 @@ interface Prospect {
   notes?: string;
   last_followup_at?: string;
   created_at: string;
+  payment_scheme?: 'kpr' | 'cash_bertahap' | 'cash_keras';
+  booking_fee?: number;
+  dp_total?: number;
+  dp_installments_count?: number;
+  kpr_amount?: number;
+  payment_schedules?: PaymentScheduleItem[];
 }
 
 const statusConfig = {
@@ -214,6 +241,257 @@ export default function CRMModulePage() {
   const [editFormIncome, setEditFormIncome] = useState('');
   const [editFormNotes, setEditFormNotes] = useState('');
 
+  // Print Modal & STK Inspection states
+  const [printModalState, setPrintModalState] = useState<{ isOpen: boolean; mode: 'kwitansi' | 'spr'; data: any }>({
+    isOpen: false,
+    mode: 'kwitansi',
+    data: {}
+  });
+
+  const [selectedUnitForSTK, setSelectedUnitForSTK] = useState<any | null>(null);
+  const [stkBastNumber, setStkBastNumber] = useState('');
+  const [stkNotes, setStkNotes] = useState('');
+  const [stkChecklistInput, setStkChecklistInput] = useState<Array<{ id: string; category: any; item_name: string; status: 'good' | 'defect'; note?: string }>>([
+    { id: '1', category: 'kelistrikan', item_name: 'Instalasi Sakelar & Stop Kontak', status: 'good' },
+    { id: '2', category: 'saniter', item_name: 'Kloset, Kran & Shower Mandi', status: 'good' },
+    { id: '3', category: 'cat_dinding', item_name: 'Cat Dinding Dalam & Luar Rumah', status: 'good' },
+    { id: '4', category: 'keramik_lantai', item_name: 'Keramik Lantai Utama & Kamar Mandi', status: 'good' },
+    { id: '5', category: 'pintu_jendela', item_name: 'Kunci, Handle Pintu & Kusen Jendela', status: 'good' },
+    { id: '6', category: 'atap_plafon', item_name: 'Plafon Gypsum & Bebas Kebocoran Atap', status: 'good' }
+  ]);
+
+  const handleOpenPrintKwitansi = (prospect: Prospect, milestone: any) => {
+    const cluster = clusters.find(c => c.id === prospect.interested_cluster_id);
+    const unit = units.find(u => u.id === prospect.booked_unit_id || (prospect.interested_cluster_id && u.cluster_id === prospect.interested_cluster_id && u.reserved_for === prospect.id));
+
+    setPrintModalState({
+      isOpen: true,
+      mode: 'kwitansi',
+      data: {
+        companyName: 'PT DOMUS SOMNIA PRATAMA',
+        companyAddress: 'Jl. Perumahan Raya No. 88, Jakarta',
+        receiptNo: milestone.receipt_no || ('KW-' + Math.random().toString().substr(2, 6)),
+        receiptDate: milestone.paid_at || new Date().toISOString().split('T')[0],
+        payerName: prospect.full_name,
+        amount: milestone.amount,
+        paymentFor: milestone.milestone_name,
+        paymentMethod: 'Transfer / Tunai',
+        clusterName: cluster?.name || 'Perumahan Domus Somnia',
+        unitBlock: unit?.block_number || 'A-01',
+        salesName: user?.name || 'Keuangan Proyek'
+      }
+    });
+  };
+
+  const handleOpenPrintSPR = (prospect: Prospect) => {
+    const cluster = clusters.find(c => c.id === prospect.interested_cluster_id);
+    const unit = units.find(u => u.id === prospect.booked_unit_id || (prospect.interested_cluster_id && u.cluster_id === prospect.interested_cluster_id && u.reserved_for === prospect.id));
+    const type = unitTypes.find(t => t.id === (unit?.unit_type_id || prospect.interested_type_id));
+
+    setPrintModalState({
+      isOpen: true,
+      mode: 'spr',
+      data: {
+        companyName: 'PT DOMUS SOMNIA PRATAMA',
+        companyAddress: 'Jl. Perumahan Raya No. 88, Jakarta',
+        sprNumber: 'SPR-' + prospect.id.substr(0, 6).toUpperCase(),
+        payerName: prospect.full_name,
+        buyerNik: prospect.nik || '32760815000293',
+        buyerPhone: prospect.phone,
+        buyerEmail: prospect.email,
+        clusterName: cluster?.name || 'Perumahan Domus Somnia',
+        unitBlock: unit?.block_number || 'A-01',
+        unitType: type?.name || 'Tipe 36/72',
+        buildingArea: type?.building_area || 36,
+        landArea: type?.land_area || 72,
+        totalPrice: unit?.sell_price || type?.base_price || 450000000,
+        bookingFee: prospect.booking_fee || 10000000,
+        dpTotal: prospect.dp_total || 45000000,
+        kprAmount: prospect.kpr_amount || 395000000,
+        salesName: user?.name || 'Sales Executive'
+      }
+    });
+  };
+
+  const handleOpenSTKModal = (unit: any) => {
+    setSelectedUnitForSTK(unit);
+    setStkBastNumber(unit.stk_data?.bast_number || ('BAST-' + Math.floor(100000 + Math.random() * 900000)));
+    setStkNotes(unit.stk_data?.notes || '');
+    if (unit.stk_data?.checklist && unit.stk_data.checklist.length > 0) {
+      setStkChecklistInput(unit.stk_data.checklist);
+    }
+  };
+
+  const handleSaveSTKChecklist = async () => {
+    if (!selectedUnitForSTK) return;
+    try {
+      const res = await fetch('/api/crm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'update_stk_checklist',
+          unit_id: selectedUnitForSTK.id,
+          bast_number: stkBastNumber,
+          handover_date: new Date().toISOString().split('T')[0],
+          checklist: stkChecklistInput,
+          status: 'signed_bast',
+          notes: stkNotes,
+          actor_id: user?.id
+        })
+      });
+      const json = await res.json();
+      if (json.success) {
+        showSuccess('Berita Acara STK Berhasil Disimpan', `Unit Blok ${selectedUnitForSTK.block_number} resmi diserahterimakan & Garansi Pemeliharaan 100 Hari Aktif!`, 'UPDATE');
+        setSelectedUnitForSTK(null);
+        fetchData();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // Payment tracker states
+  const [isPaymentSetupOpen, setIsPaymentSetupOpen] = useState(false);
+  const [selectedProspectForPayment, setSelectedProspectForPayment] = useState<Prospect | null>(null);
+  const [paymentSchemeInput, setPaymentSchemeInput] = useState<'kpr' | 'cash_bertahap' | 'cash_keras'>('kpr');
+  const [bookingFeeInput, setBookingFeeInput] = useState<number>(10000000);
+  const [dpTotalInput, setDpTotalInput] = useState<number>(45000000);
+  const [dpInstallmentsInput, setDpInstallmentsInput] = useState<number>(3);
+  const [kprAmountInput, setKprAmountInput] = useState<number>(395000000);
+
+  // Pay milestone modal state
+  const [selectedMilestoneForPay, setSelectedMilestoneForPay] = useState<{ prospect: Prospect; item: any } | null>(null);
+  const [receiptNoInput, setReceiptNoInput] = useState('');
+  const [paidDateInput, setPaidDateInput] = useState('');
+  const [paidNotesInput, setPaidNotesInput] = useState('');
+
+  const handleOpenPaymentSetup = (prospect: Prospect) => {
+    setSelectedProspectForPayment(prospect);
+    setPaymentSchemeInput(prospect.payment_scheme || 'kpr');
+    setBookingFeeInput(prospect.booking_fee || 10000000);
+    setDpTotalInput(prospect.dp_total || 45000000);
+    setDpInstallmentsInput(prospect.dp_installments_count || 3);
+    setKprAmountInput(prospect.kpr_amount || 395000000);
+    setIsPaymentSetupOpen(true);
+  };
+
+  const handleSavePaymentSchedule = async () => {
+    if (!selectedProspectForPayment) return;
+    const prospect = selectedProspectForPayment;
+
+    const schedules: any[] = [];
+    schedules.push({
+      id: 'pay-' + Math.random().toString(36).substr(2, 7),
+      milestone_name: 'Uang Tanda Jadi (UTJ / Booking Fee)',
+      due_date: new Date().toISOString().split('T')[0],
+      amount: Number(bookingFeeInput),
+      status: 'paid',
+      paid_at: new Date().toISOString().split('T')[0],
+      receipt_no: 'KW-' + Math.random().toString().substr(2, 6),
+      notes: 'Telah diterima via booking fee'
+    });
+
+    if (dpTotalInput > 0 && dpInstallmentsInput > 0) {
+      const perInstallment = Math.round(dpTotalInput / dpInstallmentsInput);
+      const today = new Date();
+      for (let i = 1; i <= dpInstallmentsInput; i++) {
+        const dueDate = new Date(today);
+        dueDate.setMonth(dueDate.getMonth() + i);
+        schedules.push({
+          id: 'pay-' + Math.random().toString(36).substr(2, 7),
+          milestone_name: `DP Angsuran ${i} dari ${dpInstallmentsInput}`,
+          due_date: dueDate.toISOString().split('T')[0],
+          amount: perInstallment,
+          status: 'pending',
+          notes: `Angsuran DP bulan ke-${i}`
+        });
+      }
+    }
+
+    if (paymentSchemeInput === 'kpr' && kprAmountInput > 0) {
+      const kprDueDate = new Date();
+      kprDueDate.setMonth(kprDueDate.getMonth() + dpInstallmentsInput + 1);
+      schedules.push({
+        id: 'pay-' + Math.random().toString(36).substr(2, 7),
+        milestone_name: 'Pencairan KPR Bank / Pelunasan Akad',
+        due_date: kprDueDate.toISOString().split('T')[0],
+        amount: Number(kprAmountInput),
+        status: 'pending',
+        notes: 'Pencairan dana dari Bank KPR mitra'
+      });
+    } else if (paymentSchemeInput === 'cash_keras') {
+      const cashDueDate = new Date();
+      cashDueDate.setDate(cashDueDate.getDate() + 14);
+      schedules.push({
+        id: 'pay-' + Math.random().toString(36).substr(2, 7),
+        milestone_name: 'Pelunasan Cash Keras 100%',
+        due_date: cashDueDate.toISOString().split('T')[0],
+        amount: Number(kprAmountInput || 400000000),
+        status: 'pending'
+      });
+    }
+
+    try {
+      const res = await fetch('/api/crm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'update_payment_schedule',
+          prospect_id: prospect.id,
+          payment_scheme: paymentSchemeInput,
+          booking_fee: bookingFeeInput,
+          dp_total: dpTotalInput,
+          dp_installments_count: dpInstallmentsInput,
+          kpr_amount: kprAmountInput,
+          payment_schedules: schedules,
+          actor_id: user?.id
+        })
+      });
+      const json = await res.json();
+      if (json.success) {
+        showSuccess('Skema Pembayaran Disimpan', `Skema pembayaran & jadwal ${prospect.full_name} berhasil diperbarui!`, 'UPDATE');
+        setIsPaymentSetupOpen(false);
+        if (selectedProspectDetail?.id === prospect.id) {
+          setSelectedProspectDetail(json.prospect);
+        }
+        fetchData();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleConfirmPayMilestone = async () => {
+    if (!selectedMilestoneForPay) return;
+    const { prospect, item } = selectedMilestoneForPay;
+    try {
+      const res = await fetch('/api/crm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'mark_payment_paid',
+          prospect_id: prospect.id,
+          schedule_id: item.id,
+          receipt_no: receiptNoInput || ('KW-' + Math.random().toString().substr(2, 6)),
+          paid_at: paidDateInput || new Date().toISOString().split('T')[0],
+          notes: paidNotesInput,
+          actor_id: user?.id
+        })
+      });
+      const json = await res.json();
+      if (json.success) {
+        showSuccess('Pembayaran Berhasil Dikonfirmasi', `Milestone ${item.milestone_name} sebesar Rp ${item.amount.toLocaleString('id-ID')} telah LUNAS!`, 'UPDATE');
+        setSelectedMilestoneForPay(null);
+        if (selectedProspectDetail?.id === prospect.id) {
+          setSelectedProspectDetail(json.prospect);
+        }
+        fetchData();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const startEditProspect = (prospect: Prospect) => {
     setEditingProspect(prospect);
     setEditFormName(prospect.full_name || '');
@@ -335,7 +613,7 @@ export default function CRMModulePage() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && units.length > 0) {
@@ -757,16 +1035,16 @@ export default function CRMModulePage() {
                   />
                 </div>
 
-                <select
+                <HeroSelect
                   value={filterStage}
-                  onChange={(e) => setFilterStage(e.target.value)}
-                  className="px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold focus:outline-none focus:border-blue-500"
-                >
-                  <option value="">Semua Tahapan Pipeline</option>
-                  {pipelineStages.map(s => (
-                    <option key={s.key} value={s.key}>{s.label}</option>
-                  ))}
-                </select>
+                  onChange={(val) => setFilterStage(val)}
+                  placeholder="Semua Tahapan Pipeline"
+                  className="min-w-[180px]"
+                  options={[
+                    { value: '', label: 'Semua Tahapan Pipeline' },
+                    ...pipelineStages.map(s => ({ value: s.key, label: s.label }))
+                  ]}
+                />
               </div>
 
               {/* View Mode Switcher */}
@@ -1061,49 +1339,35 @@ export default function CRMModulePage() {
                     />
                   </div>
 
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-gray-500 uppercase tracking-wider text-[10px]">Sumber Lead</label>
-                    <select
-                      value={formSource}
-                      onChange={(e) => setFormSource(e.target.value)}
-                      className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500"
-                    >
-                      <option value="instagram">Instagram Ads</option>
-                      <option value="facebook_ads">Facebook Ads</option>
-                      <option value="walk_in">Walk-in (Kantor)</option>
-                      <option value="referral">Referral</option>
-                      <option value="pameran">Pameran</option>
-                      <option value="website">Website</option>
-                    </select>
-                  </div>
+                  <HeroSelect
+                    label="SUMBER LEAD"
+                    value={formSource}
+                    onChange={(val) => setFormSource(val)}
+                    options={[
+                      { value: 'instagram', label: 'Instagram Ads' },
+                      { value: 'facebook_ads', label: 'Facebook Ads' },
+                      { value: 'walk_in', label: 'Walk-in (Kantor)' },
+                      { value: 'referral', label: 'Referral' },
+                      { value: 'pameran', label: 'Pameran' },
+                      { value: 'website', label: 'Website' }
+                    ]}
+                  />
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-gray-500 uppercase tracking-wider text-[10px]">Cluster Minat</label>
-                    <select
-                      value={formCluster}
-                      onChange={(e) => setFormCluster(e.target.value)}
-                      className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500"
-                    >
-                      {clusters.map(c => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
-                      ))}
-                    </select>
-                  </div>
+                  <HeroSelect
+                    label="CLUSTER MINAT"
+                    value={formCluster}
+                    onChange={(val) => setFormCluster(val)}
+                    options={clusters.map(c => ({ value: c.id, label: c.name }))}
+                  />
 
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-gray-500 uppercase tracking-wider text-[10px]">Tipe Unit Minat</label>
-                    <select
-                      value={formType}
-                      onChange={(e) => setFormType(e.target.value)}
-                      className="px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500"
-                    >
-                      {unitTypes.filter(t => t.cluster_id === formCluster).map(t => (
-                        <option key={t.id} value={t.id}>{t.name}</option>
-                      ))}
-                    </select>
-                  </div>
+                  <HeroSelect
+                    label="TIPE UNIT MINAT"
+                    value={formType}
+                    onChange={(val) => setFormType(val)}
+                    options={unitTypes.filter(t => t.cluster_id === formCluster).map(t => ({ value: t.id, label: t.name }))}
+                  />
                 </div>
 
                 <div className="flex flex-col gap-1.5">
@@ -1417,6 +1681,188 @@ export default function CRMModulePage() {
                     </div>
                   </div>
 
+                  {/* WIDGET PROGRES KONSTRUKSI LAPANGAN */}
+                  {(() => {
+                    const bookedUnit = units.find(u => u.id === p.booked_unit_id || (p.interested_cluster_id && u.cluster_id === p.interested_cluster_id && u.reserved_for === p.id));
+                    if (!bookedUnit) return null;
+                    const pct = (bookedUnit as any).construction_progress_percent ?? 0;
+                    const stageName = ((bookedUnit as any).construction_stage || 'pondasi').replace('_', ' ');
+
+                    return (
+                      <div className="flex flex-col gap-2.5">
+                        <div className="flex justify-between items-center">
+                          <h4 className="font-extrabold text-slate-900 uppercase tracking-widest text-[9px] text-blue-600 flex items-center gap-1.5">
+                            <Hammer size={12} /> Progres Fisik Bangunan (Blok {bookedUnit.block_number})
+                          </h4>
+                          <span className="text-[10px] font-extrabold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100 uppercase">
+                            {stageName}
+                          </span>
+                        </div>
+
+                        <div className="bg-slate-50 p-4 border border-slate-200 rounded-2xl flex flex-col gap-2.5">
+                          <div className="flex justify-between items-center text-xs font-bold text-slate-800">
+                            <span>Progres Lapangan</span>
+                            <span className="text-blue-700 font-extrabold">{pct}%</span>
+                          </div>
+                          <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                            <div 
+                              className="bg-gradient-to-r from-blue-500 to-indigo-600 h-full rounded-full transition-all duration-300"
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                          {(bookedUnit as any).construction_updates && (bookedUnit as any).construction_updates.length > 0 && (
+                            <p className="text-[10.5px] text-slate-600 font-medium italic mt-1 bg-white p-2 rounded-xl border border-slate-100">
+                              "{(bookedUnit as any).construction_updates[0].note}" — <span className="text-slate-400 not-italic font-normal">{(bookedUnit as any).construction_updates[0].date}</span>
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* FINANCIAL & PAYMENT MILESTONE TRACKER */}
+                  <div className="flex flex-col gap-2.5 border-t border-gray-100 pt-4">
+                    <div className="flex justify-between items-center">
+                      <h4 className="font-extrabold text-slate-900 uppercase tracking-widest text-[9px] text-emerald-600 flex items-center gap-1.5">
+                        <CreditCard size={12} /> Skema & Milestone Pembayaran
+                      </h4>
+                      <button
+                        onClick={() => handleOpenPaymentSetup(p)}
+                        className="text-[10px] font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-xl border border-emerald-200 transition-colors flex items-center gap-1 cursor-pointer"
+                      >
+                        <Calculator size={11} /> Atur Skema & Angsuran
+                      </button>
+                    </div>
+
+                    {p.payment_schedules && p.payment_schedules.length > 0 ? (() => {
+                      const totalAmount = p.payment_schedules.reduce((acc, curr) => acc + curr.amount, 0);
+                      const paidAmount = p.payment_schedules.filter(s => s.status === 'paid').reduce((acc, curr) => acc + curr.amount, 0);
+                      const paidPercent = totalAmount > 0 ? Math.round((paidAmount / totalAmount) * 100) : 0;
+
+                      return (
+                        <div className="flex flex-col gap-3">
+                          {/* Progress Bar Finansial */}
+                          <div className="bg-emerald-50/40 p-3.5 border border-emerald-100 rounded-2xl flex flex-col gap-2">
+                            <div className="flex justify-between items-center text-[11px] font-bold text-slate-800">
+                              <span>Total Terbayar: <strong className="text-emerald-700">{formatIDR(paidAmount)}</strong></span>
+                              <span className="text-slate-500 font-medium">dari {formatIDR(totalAmount)} ({paidPercent}%)</span>
+                            </div>
+                            <div className="w-full bg-emerald-100 rounded-full h-2 overflow-hidden">
+                              <div 
+                                className="bg-gradient-to-r from-emerald-500 to-teal-600 h-full rounded-full transition-all duration-300"
+                                style={{ width: `${paidPercent}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* Tabel Milestone */}
+                          <div className="border border-slate-200 rounded-2xl overflow-hidden divide-y divide-slate-100 bg-white">
+                            {p.payment_schedules.map((item, idx) => (
+                              <div key={item.id || idx} className="p-3 flex items-center justify-between hover:bg-slate-50/50 transition-colors">
+                                <div className="flex flex-col gap-0.5 min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-bold text-slate-900 text-xs truncate">{item.milestone_name}</span>
+                                    <span className={`px-1.5 py-0.5 rounded text-[8.5px] font-black uppercase tracking-wider border ${
+                                      item.status === 'paid' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                                      item.status === 'overdue' ? 'bg-rose-50 text-rose-700 border-rose-200' :
+                                      'bg-amber-50 text-amber-700 border-amber-200'
+                                    }`}>
+                                      {item.status === 'paid' ? 'LUNAS' : item.status === 'overdue' ? 'JATUH TEMPO' : 'MENUNGGU'}
+                                    </span>
+                                  </div>
+                  <div className="flex items-center gap-3 text-[10px] text-slate-500 font-medium mt-0.5">
+                                    <span>Jatuh Tempo: <strong>{item.due_date}</strong></span>
+                                    {item.paid_at && <span>Tgl Bayar: <strong className="text-emerald-700">{item.paid_at}</strong></span>}
+                                    {item.receipt_no && <span>No. KW: <strong>{item.receipt_no}</strong></span>}
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2 flex-shrink-0">
+                                  <span className="font-extrabold text-slate-900 text-xs">{formatIDR(item.amount)}</span>
+                                  {item.status === 'paid' ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOpenPrintKwitansi(p, item)}
+                                      className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-bold text-[10px] flex items-center gap-1 transition-colors cursor-pointer border border-slate-200"
+                                    >
+                                      <Printer size={11} /> Kwitansi
+                                    </button>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setSelectedMilestoneForPay({ prospect: p, item });
+                                        setReceiptNoInput('KW-' + Math.random().toString().substr(2, 6));
+                                        setPaidDateInput(new Date().toISOString().split('T')[0]);
+                                        setPaidNotesInput('');
+                                      }}
+                                      className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-[10px] shadow-xs cursor-pointer transition-colors"
+                                    >
+                                      Bayar
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })() : (
+                      <div className="p-4 border border-dashed border-slate-200 rounded-2xl text-center text-slate-400 italic text-[11px]">
+                        Belum ada skema pembayaran yang diatur. Klik "Atur Skema & Angsuran" untuk membuat simulasi angsuran DP & KPR.
+                      </div>
+                    )}
+                  </div>
+
+                  {/* MODUL STK & QUALITY CONTROL GARANSI */}
+                  {(() => {
+                    const bookedUnit = units.find(u => u.id === p.booked_unit_id || (p.interested_cluster_id && u.cluster_id === p.interested_cluster_id && u.reserved_for === p.id));
+                    if (!bookedUnit) return null;
+                    const stkData = (bookedUnit as any).stk_data;
+
+                    return (
+                      <div className="flex flex-col gap-2.5 border-t border-gray-100 pt-4">
+                        <div className="flex justify-between items-center">
+                          <h4 className="font-extrabold text-slate-900 uppercase tracking-widest text-[9px] text-purple-700 flex items-center gap-1.5">
+                            <KeyRound size={12} /> Serah Terima Kunci (STK) & QC Garansi
+                          </h4>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenSTKModal(bookedUnit)}
+                            className="text-[10px] font-bold text-purple-700 hover:text-purple-800 bg-purple-50 hover:bg-purple-100 px-2.5 py-1 rounded-xl border border-purple-200 transition-colors flex items-center gap-1 cursor-pointer"
+                          >
+                            <ShieldCheck size={11} /> Inspeksi QC & BAST
+                          </button>
+                        </div>
+
+                        {stkData ? (
+                          <div className="bg-purple-50/40 p-3.5 border border-purple-100 rounded-2xl flex flex-col gap-2">
+                            <div className="flex justify-between items-center text-xs">
+                              <span className="font-extrabold text-slate-900">No. BAST: <strong className="text-purple-800">{stkData.bast_number}</strong></span>
+                              <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                Lolos BAST STK
+                              </span>
+                            </div>
+                            <div className="flex justify-between text-[11px] text-slate-600 font-medium">
+                              <span>Tgl STK: <strong>{stkData.handover_date}</strong></span>
+                              <span className="text-purple-700 font-bold">Masa Garansi S.D: <strong>{stkData.guarantee_expiry_date}</strong> (100 Hari)</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-500 text-[11px] flex justify-between items-center">
+                            <span>Fisik bangunan 100% Siap Huni. Belum ada BAST STK resmi.</span>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenSTKModal(bookedUnit)}
+                              className="px-2.5 py-1 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg text-[10px] transition-colors cursor-pointer"
+                            >
+                              Terbit BAST
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+
                   {/* Sales Agent handling */}
                   {salesAgent && (
                     <div className="flex flex-col gap-2.5">
@@ -1449,11 +1895,19 @@ export default function CRMModulePage() {
                 {/* Footer Actions */}
                 <div className="bg-slate-50 border-t border-gray-100 p-4 flex gap-2 justify-end">
                   <button
+                    type="button"
+                    onClick={() => handleOpenPrintSPR(p)}
+                    className="px-3.5 py-2 border border-purple-200 text-purple-700 bg-purple-50 font-bold text-xs rounded-xl hover:bg-purple-100 transition-colors uppercase tracking-wider flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Printer size={13} />
+                    Cetak SPR (PDF)
+                  </button>
+                  <button
                     onClick={() => {
                       setSelectedProspectDetail(null);
                       startEditProspect(p);
                     }}
-                    className="px-4 py-2 border border-gray-200 text-gray-700 bg-white font-bold text-xs rounded-xl shadow-sm hover:bg-gray-50 transition-colors uppercase tracking-wider"
+                    className="px-4 py-2 border border-gray-200 text-gray-700 bg-white font-bold text-xs rounded-xl shadow-sm hover:bg-gray-50 transition-colors uppercase tracking-wider cursor-pointer"
                   >
                     Edit Data
                   </button>
@@ -1587,6 +2041,333 @@ export default function CRMModulePage() {
         )}
 
       </div>
+
+        {/* MODAL: SETUP SKEMA PEMBAYARAN */}
+        {isPaymentSetupOpen && selectedProspectForPayment && (
+          <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4" onClick={() => setIsPaymentSetupOpen(false)}>
+            <div className="bg-white max-w-md w-full rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-scaleUp text-left border border-slate-100" onClick={e => e.stopPropagation()}>
+              <div className="px-6 py-4.5 bg-gradient-to-r from-emerald-600 to-teal-700 text-white flex justify-between items-center">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center text-white">
+                    <Calculator size={18} />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-sm text-white">Simulasi & Skema Pembayaran</h3>
+                    <p className="text-[11px] text-emerald-100">Konsumen: <strong>{selectedProspectForPayment.full_name}</strong></p>
+                  </div>
+                </div>
+                <button onClick={() => setIsPaymentSetupOpen(false)} className="text-white/80 hover:text-white p-1">
+                  ✕
+                </button>
+              </div>
+
+              <div className="p-6 space-y-4 text-xs font-semibold">
+                {/* Opsi Skema */}
+                <HeroSelect
+                  label="JENIS SKEMA PEMBAYARAN"
+                  required
+                  value={paymentSchemeInput}
+                  onChange={(val) => setPaymentSchemeInput(val as any)}
+                  options={[
+                    { value: 'kpr', label: 'KPR Bank Mitra (DP + Plafond Bank)' },
+                    { value: 'cash_bertahap', label: 'Cash Bertahap Developer (Instalment 6x-12x)' },
+                    { value: 'cash_keras', label: 'Cash Keras (Lunas Lumpsum 100%)' }
+                  ]}
+                />
+
+                {/* Booking Fee / UTJ */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-gray-500 uppercase tracking-wider text-[9.5px]">Uang Tanda Jadi / UTJ (IDR) *</label>
+                  <input
+                    type="number"
+                    value={bookingFeeInput}
+                    onChange={e => setBookingFeeInput(Number(e.target.value))}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500 font-bold text-slate-800"
+                  />
+                </div>
+
+                {/* DP Total & Installments */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-gray-500 uppercase tracking-wider text-[9.5px]">Total Uang Muka (DP)</label>
+                    <input
+                      type="number"
+                      value={dpTotalInput}
+                      onChange={e => setDpTotalInput(Number(e.target.value))}
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500 font-bold text-slate-800"
+                    />
+                  </div>
+                  <HeroSelect
+                    label="JUMLAH CICILAN DP"
+                    value={String(dpInstallmentsInput)}
+                    onChange={(val) => setDpInstallmentsInput(Number(val))}
+                    options={[
+                      { value: '1', label: '1 Kali (Cash DP)' },
+                      { value: '3', label: '3 Kali (3 Bulan)' },
+                      { value: '6', label: '6 Kali (6 Bulan)' },
+                      { value: '12', label: '12 Kali (12 Bulan)' }
+                    ]}
+                  />
+                </div>
+
+                {/* Ringkasan Per-Angsuran DP */}
+                {dpTotalInput > 0 && dpInstallmentsInput > 0 && (
+                  <div className="p-3 bg-emerald-50 border border-emerald-100 rounded-xl flex justify-between items-center text-[11px] font-bold text-emerald-800">
+                    <span>Angsuran DP per bulan:</span>
+                    <span className="font-extrabold text-sm">{formatIDR(Math.round(dpTotalInput / dpInstallmentsInput))} / bln</span>
+                  </div>
+                )}
+
+                {/* Sisa KPR / Cash */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-gray-500 uppercase tracking-wider text-[9.5px]">
+                    {paymentSchemeInput === 'kpr' ? 'Plafond KPR Bank (IDR)' : 'Sisa Pelunasan (IDR)'}
+                  </label>
+                  <input
+                    type="number"
+                    value={kprAmountInput}
+                    onChange={e => setKprAmountInput(Number(e.target.value))}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500 font-bold text-slate-800"
+                  />
+                </div>
+
+                {/* Simulasi KPR Estimasi Bunga & Tenor */}
+                {paymentSchemeInput === 'kpr' && kprAmountInput > 0 && (
+                  <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
+                    <span className="text-[9.5px] font-extrabold text-slate-500 uppercase tracking-wider block">Simulasi Angsuran Bulanan KPR (Bunga 7% p.a.)</span>
+                    <div className="grid grid-cols-3 gap-2 text-center">
+                      <div className="p-2 bg-white border border-slate-150 rounded-xl">
+                        <span className="text-[9px] text-slate-400 font-bold block">10 TAHUN</span>
+                        <span className="font-extrabold text-slate-800 text-[11px]">
+                          {formatIDR(Math.round((kprAmountInput * (1 + 0.07 * 10)) / 120))}
+                        </span>
+                      </div>
+                      <div className="p-2 bg-white border border-slate-150 rounded-xl">
+                        <span className="text-[9px] text-slate-400 font-bold block">15 TAHUN</span>
+                        <span className="font-extrabold text-slate-800 text-[11px]">
+                          {formatIDR(Math.round((kprAmountInput * (1 + 0.07 * 15)) / 180))}
+                        </span>
+                      </div>
+                      <div className="p-2 bg-white border border-slate-150 rounded-xl">
+                        <span className="text-[9px] text-slate-400 font-bold block">20 TAHUN</span>
+                        <span className="font-extrabold text-slate-800 text-[11px]">
+                          {formatIDR(Math.round((kprAmountInput * (1 + 0.07 * 20)) / 240))}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsPaymentSetupOpen(false)}
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSavePaymentSchedule}
+                  className="px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-all shadow-md shadow-emerald-200 cursor-pointer"
+                >
+                  Simpan Jadwal Angsuran
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL: KONFIRMASI BAYAR MILESTONE */}
+        {selectedMilestoneForPay && (
+          <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4" onClick={() => setSelectedMilestoneForPay(null)}>
+            <div className="bg-white max-w-sm w-full rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-scaleUp text-left border border-slate-100" onClick={e => e.stopPropagation()}>
+              <div className="px-5 py-4 bg-gradient-to-r from-emerald-600 to-teal-600 text-white flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <Receipt size={18} />
+                  <h3 className="font-bold text-xs text-white">Konfirmasi Pembayaran Lunas</h3>
+                </div>
+                <button onClick={() => setSelectedMilestoneForPay(null)} className="text-white/80 hover:text-white p-1">
+                  ✕
+                </button>
+              </div>
+
+              <div className="p-5 space-y-3.5 text-xs font-semibold">
+                <div className="bg-emerald-50 border border-emerald-100 p-3 rounded-2xl flex flex-col gap-1">
+                  <span className="text-[10px] text-emerald-700 font-bold uppercase tracking-wider">{selectedMilestoneForPay.item.milestone_name}</span>
+                  <span className="text-base font-extrabold text-emerald-950">{formatIDR(selectedMilestoneForPay.item.amount)}</span>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-gray-500 uppercase tracking-wider text-[9.5px]">Nomor Kwitansi Bukti Pembayaran *</label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: KW-2026-0815"
+                    value={receiptNoInput}
+                    onChange={e => setReceiptNoInput(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500 font-bold text-slate-800"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-gray-500 uppercase tracking-wider text-[9.5px]">Tanggal Diterima *</label>
+                  <input
+                    type="date"
+                    value={paidDateInput}
+                    onChange={e => setPaidDateInput(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500 font-bold text-slate-800"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-gray-500 uppercase tracking-wider text-[9.5px]">Catatan Penerimaan</label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: Pembayaran tunai via kasir / transfer BCA..."
+                    value={paidNotesInput}
+                    onChange={e => setPaidNotesInput(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500 font-medium text-slate-800"
+                  />
+                </div>
+              </div>
+
+              <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedMilestoneForPay(null)}
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmPayMilestone}
+                  className="px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-all shadow-md shadow-emerald-200 cursor-pointer"
+                >
+                  Konfirmasi Lunas
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL: CETAK PRINT DOCUMENT (KWITANSI / SPR) */}
+        <PrintDocumentModal
+          mode={printModalState.mode}
+          isOpen={printModalState.isOpen}
+          onClose={() => setPrintModalState(prev => ({ ...prev, isOpen: false }))}
+          data={printModalState.data}
+        />
+
+        {/* MODAL: INSPEKSI BAST & STK QC */}
+        {selectedUnitForSTK && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4" onClick={() => setSelectedUnitForSTK(null)}>
+            <div className="bg-white max-w-xl w-full rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-scaleUp text-left border border-slate-100" onClick={e => e.stopPropagation()}>
+              <div className="px-6 py-4.5 bg-gradient-to-r from-purple-700 to-indigo-800 text-white flex justify-between items-center">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center text-white font-bold">
+                    <KeyRound size={20} />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-sm text-white">Inspeksi BAST & STK Quality Control</h3>
+                    <p className="text-[11px] text-purple-100">Unit Kavling <strong>Blok {selectedUnitForSTK.block_number}</strong></p>
+                  </div>
+                </div>
+                <button onClick={() => setSelectedUnitForSTK(null)} className="text-white/80 hover:text-white p-1">
+                  ✕
+                </button>
+              </div>
+
+              <div className="p-6 space-y-4 max-h-[75vh] overflow-y-auto text-xs">
+                <div className="grid grid-cols-2 gap-3 bg-purple-50 p-3.5 rounded-2xl border border-purple-100">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[9.5px] font-bold text-slate-500 uppercase tracking-wider">No. BAST STK Resmi *</label>
+                    <input
+                      type="text"
+                      value={stkBastNumber}
+                      onChange={e => setStkBastNumber(e.target.value)}
+                      className="px-3 py-1.5 bg-white border border-slate-200 rounded-xl font-bold text-purple-900 focus:outline-none"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[9.5px] font-bold text-slate-500 uppercase tracking-wider">Masa Garansi Pemeliharaan</label>
+                    <span className="px-3 py-2 bg-white border border-slate-200 rounded-xl font-bold text-emerald-700 text-xs">
+                      100 Hari Kalender
+                    </span>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">Checklist Kelayakan Fisik Unit</span>
+                  <div className="space-y-2 border border-slate-200 rounded-2xl p-3 divide-y divide-slate-100 bg-white">
+                    {stkChecklistInput.map((chk, idx) => (
+                      <div key={chk.id || idx} className="pt-2 first:pt-0 flex items-center justify-between gap-3 text-xs">
+                        <span className="font-bold text-slate-800 flex-1">{chk.item_name}</span>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const copy = [...stkChecklistInput];
+                              copy[idx].status = 'good';
+                              setStkChecklistInput(copy);
+                            }}
+                            className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                              chk.status === 'good' ? 'bg-emerald-600 text-white shadow-xs' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                            }`}
+                          >
+                            ✓ Layak (Good)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const copy = [...stkChecklistInput];
+                              copy[idx].status = 'defect';
+                              setStkChecklistInput(copy);
+                            }}
+                            className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                              chk.status === 'defect' ? 'bg-rose-600 text-white shadow-xs' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                            }`}
+                          >
+                            ✕ Defek (Perbaikan)
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block">Catatan BAST & Garansi</label>
+                  <textarea
+                    rows={2}
+                    placeholder="Masukkan catatan khusus penyerahan kunci..."
+                    value={stkNotes}
+                    onChange={e => setStkNotes(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-purple-500 text-xs font-medium resize-none"
+                  />
+                </div>
+              </div>
+
+              <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedUnitForSTK(null)}
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveSTKChecklist}
+                  className="px-5 py-2 text-xs font-bold text-white bg-purple-600 hover:bg-purple-700 rounded-xl transition-all shadow-md shadow-purple-200 cursor-pointer"
+                >
+                  Simpan BAST & Aktifkan Garansi
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
     </AppShell>
   );
 }
