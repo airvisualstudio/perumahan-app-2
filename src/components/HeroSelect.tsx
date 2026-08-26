@@ -16,6 +16,7 @@ interface HeroSelectProps {
   onChange: (value: string) => void;
   options: SelectOption[];
   className?: string;
+  hideScrollbar?: boolean;
 }
 
 export default function HeroSelect({
@@ -25,7 +26,8 @@ export default function HeroSelect({
   value,
   onChange,
   options,
-  className = ""
+  className = "",
+  hideScrollbar = false
 }: HeroSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -67,32 +69,36 @@ export default function HeroSelect({
 
       {/* Dropdown Menu Popup (HeroUI Style Floating List) */}
       {isOpen && (
-        <div className="absolute top-full left-0 mt-1.5 w-full bg-white border border-slate-200/80 rounded-2xl p-1.5 shadow-2xl z-50 max-h-56 overflow-y-auto animate-in fade-in zoom-in-95 duration-150 divide-y divide-slate-50">
-          {options.length === 0 ? (
-            <div className="px-3.5 py-3 text-xs text-slate-400 font-medium text-center">Tidak ada pilihan.</div>
-          ) : (
-            options.map((opt) => {
-              const isSelected = opt.value === value;
-              return (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => {
-                    onChange(opt.value);
-                    setIsOpen(false);
-                  }}
-                  className={`w-full px-4 py-2.5 text-xs text-left rounded-xl transition-all font-medium flex items-center justify-between cursor-pointer ${
-                    isSelected
-                      ? 'bg-purple-50 text-purple-700 font-bold'
-                      : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
-                  }`}
-                >
-                  <span className="truncate">{opt.label}</span>
-                  {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-purple-600"></span>}
-                </button>
-              );
-            })
-          )}
+        <div className="absolute top-full left-0 mt-1.5 w-full bg-white border border-slate-200/80 rounded-2xl p-1.5 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-150 overflow-hidden">
+          <div className={`max-h-56 overflow-y-auto pr-1 flex flex-col gap-0.5 ${
+            hideScrollbar ? 'no-scrollbar' : 'custom-dropdown-scrollbar'
+          }`}>
+            {options.length === 0 ? (
+              <div className="px-3.5 py-3 text-xs text-slate-400 font-medium text-center">Tidak ada pilihan.</div>
+            ) : (
+              options.map((opt) => {
+                const isSelected = opt.value === value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => {
+                      onChange(opt.value);
+                      setIsOpen(false);
+                    }}
+                    className={`w-full px-3 py-2 text-xs text-left rounded-xl transition-all font-medium flex items-center justify-between cursor-pointer ${
+                      isSelected
+                        ? 'bg-purple-50 text-purple-700 font-bold'
+                        : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
+                    }`}
+                  >
+                    <span className="truncate mr-2">{opt.label}</span>
+                    {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-purple-600 shrink-0"></span>}
+                  </button>
+                );
+              })
+            )}
+          </div>
         </div>
       )}
     </div>

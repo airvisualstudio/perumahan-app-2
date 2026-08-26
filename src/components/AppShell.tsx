@@ -441,7 +441,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                       </button>
                     )}
                   </div>
-                  <div className="max-h-[320px] overflow-y-auto divide-y divide-slate-100">
+                  <div className="max-h-[320px] overflow-y-auto custom-dropdown-scrollbar divide-y divide-slate-100">
                     {notifications.length === 0 ? (
                       <div className="px-4 py-6 text-center text-xs text-slate-400">
                         Tidak ada notifikasi aktif.
@@ -732,7 +732,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             <div className="px-3 py-1 border-b border-gray-100 font-bold text-[10px] text-gray-400 uppercase tracking-wider">
               Pilih Role Testing
             </div>
-            <div className="flex flex-col max-h-56 overflow-y-auto">
+            <div className="flex flex-col max-h-56 overflow-y-auto custom-dropdown-scrollbar">
               {availableUsers.map((u) => (
                 <button
                   key={u.id}
